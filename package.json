@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "build:offline": "EVORA_DIST=.next-offline next build",
+    "start:offline": "EVORA_DIST=.next-offline next start -p 3100"
   },
   "dependencies": {
     "@google/model-viewer": "^4.3.1",

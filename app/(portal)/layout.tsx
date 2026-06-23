@@ -3,6 +3,7 @@ import { Fraunces, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import { PortalAuthProvider } from "@/lib/portal/auth";
+import OfflineReady from "@/components/portal/OfflineReady";
 
 /* Third root layout (route group "(portal)") for the Client Portal and Admin
  * dashboard. Lean chrome — fonts + i18n + auth, no heavy 3D / smooth-scroll.
@@ -34,6 +35,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <I18nProvider>
           <PortalAuthProvider>{children}</PortalAuthProvider>
         </I18nProvider>
+        <OfflineReady />
       </body>
     </html>
   );

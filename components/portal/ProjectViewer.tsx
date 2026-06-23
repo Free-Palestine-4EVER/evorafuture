@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Script from "next/script";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
@@ -23,6 +22,15 @@ export default function ProjectViewer({
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [onClose]);
 
+  // Self-hosted model-viewer (registers the <model-viewer> custom element) so
+  // the 3D tab works fully offline — no CDN fetch. Only loaded when a .glb is
+  // actually shown.
+  useEffect(() => {
+    if (project.model3dUrl && !project.viewerUrl && !customElements.get("model-viewer")) {
+      import("@google/model-viewer").catch(() => {});
+    }
+  }, [project.model3dUrl, project.viewerUrl]);
+
   const has3d = Boolean(project.viewerUrl || project.model3dUrl);
 
   return (
@@ -31,7 +39,6 @@ export default function ProjectViewer({
         position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.55)",
         backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "clamp(0.5rem,3vw,2rem)",
       }}>
-      <Script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js" strategy="lazyOnload" />
       <div onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(1040px, 100%)", maxHeight: "92dvh", overflow: "auto", background: "var(--paper)",
@@ -60,7 +67,7 @@ export default function ProjectViewer({
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} />
             )}
             {tab === "3d" && !project.viewerUrl && project.model3dUrl && (
-              // model-viewer is a custom element loaded via <Script> above
+              // model-viewer custom element, self-hosted (see useEffect import)
               <model-viewer src={project.model3dUrl} camera-controls auto-rotate ar tone-mapping="neutral" shadow-intensity="1"
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "#f3f0ea" }} />
             )}
