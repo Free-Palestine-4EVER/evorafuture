@@ -1,0 +1,14 @@
+{
+  "name": "Evora Client Portal",
+  "short_name": "Evora Portal",
+  "description": "View and approve your saved Evora 3D home designs.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#16150F",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

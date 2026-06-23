@@ -66,6 +66,13 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
                 </a>
               </li>
             ))}
+            <li>
+              <a href="/dashboard" style={{ fontSize: "0.82rem", fontWeight: 500, letterSpacing: "0.02em", color: fg, opacity: 0.85 }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.85")}>
+                {lang === "ar" ? "بوابة العملاء" : "Client Portal"}
+              </a>
+            </li>
           </ul>
 
           <button onClick={toggle} aria-label="Toggle language"
@@ -117,6 +124,7 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
         </ul>
         <div style={{ marginTop: "2.5rem", display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
           <a href="/visit" onClick={() => setOpen(false)} className="btn" style={{ background: "var(--ink)", color: "var(--paper)" }}>{t("nav_book")} <span className="arrow">→</span></a>
+          <a href="/dashboard" onClick={() => setOpen(false)} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>{lang === "ar" ? "بوابة العملاء" : "Client Portal"}</a>
           <button onClick={toggle} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)", fontFamily: lang === "en" ? "var(--f-ar)" : "var(--font-sans)" }}>
             {lang === "en" ? "العربية" : "English"}
           </button>
