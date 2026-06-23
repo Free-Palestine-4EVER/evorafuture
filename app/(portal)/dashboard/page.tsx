@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { approveProject, isLive, listProjectsForUser } from "@/lib/portal/store";
+import { approveProject, isLive, listProjectsForUser, subscribe } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
 import LoginForm from "@/components/portal/LoginForm";
 import ProjectViewer from "@/components/portal/ProjectViewer";
@@ -22,6 +22,8 @@ export default function DashboardPage() {
   }, [user]);
 
   useEffect(() => { if (user) load(); }, [user, load]);
+  // Live updates: refetch when an employee saves/edits in Puffer or the admin.
+  useEffect(() => { if (!user) return; return subscribe(() => load()); }, [user, load]);
 
   if (loading) return <Splash />;
   if (!user) return <LoginForm variant="client" />;

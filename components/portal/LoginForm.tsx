@@ -54,7 +54,8 @@ export default function LoginForm({ variant = "client" }: { variant?: "client" |
         <form onSubmit={submit}>
           <label style={labelStyle}>{tp("phone", lang)}
             <input style={fieldStyle} value={phone} onChange={(e) => setPhone(e.target.value)}
-              type="tel" inputMode="tel" autoComplete="username" placeholder="07_ _______" required />
+              type="text" inputMode="text" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+              autoComplete="username" placeholder={variant === "admin" ? "admin  ·  or phone number" : "client  ·  or phone number"} required />
           </label>
           <div style={{ height: "1.1rem" }} />
           <label style={labelStyle}>{tp("password", lang)}

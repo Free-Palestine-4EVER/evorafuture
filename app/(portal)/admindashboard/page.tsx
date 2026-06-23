@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { createClient, deleteProject, isLive, listAllProjects, listClients, saveProject } from "@/lib/portal/store";
+import { createClient, deleteProject, isLive, listAllProjects, listClients, saveProject, subscribe } from "@/lib/portal/store";
 import { STATUS_LABEL, type PortalUser, type Project } from "@/lib/portal/types";
 import LoginForm from "@/components/portal/LoginForm";
 import PortalHeader from "@/components/portal/PortalHeader";
@@ -26,6 +26,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user, load]);
+  useEffect(() => { if (user?.role !== "admin") return; return subscribe(() => load()); }, [user, load]);
 
   if (loading) return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontFamily: "var(--f-display)" }}>EVORA</div>;
   if (!user || user.role !== "admin") return <LoginForm variant="admin" />;
