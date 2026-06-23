@@ -16,8 +16,8 @@ function seed() {
   if (typeof window === "undefined") return;
   if (!localStorage.getItem(LS_USERS)) {
     const users: StoredUser[] = [
-      { uid: "demo-client", phone: "0790000000", name: "Rana Haddad", role: "client", password: "evora123" },
-      { uid: "demo-admin", phone: "0791111111", name: "Evora Studio", role: "admin", password: "admin123" },
+      { uid: "demo-client", phone: "client", name: "Rana Haddad", role: "client", password: "client" },
+      { uid: "demo-admin", phone: "admin", name: "Evora Studio", role: "admin", password: "admin" },
     ];
     localStorage.setItem(LS_USERS, JSON.stringify(users));
   }
@@ -25,7 +25,7 @@ function seed() {
     const now = Date.now();
     const projects: Project[] = [
       {
-        id: "p1", ownerUid: "demo-client", ownerPhone: "0790000000", ownerName: "Rana Haddad",
+        id: "p1", ownerUid: "demo-client", ownerPhone: "client", ownerName: "Rana Haddad",
         title: "Khalda Apartment — Living Room", room: "Living room", status: "approved",
         thumbnailUrl: "/evora/p07.jpg", plan2dUrl: "/evora/p07.jpg",
         viewerUrl: "", model3dUrl: "",
@@ -33,14 +33,14 @@ function seed() {
         approvedByClient: true, createdAt: now - 86400000 * 9, updatedAt: now - 86400000 * 2,
       },
       {
-        id: "p2", ownerUid: "demo-client", ownerPhone: "0790000000", ownerName: "Rana Haddad",
+        id: "p2", ownerUid: "demo-client", ownerPhone: "client", ownerName: "Rana Haddad",
         title: "Master Bedroom Suite", room: "Master bedroom", status: "in_production",
         thumbnailUrl: "/evora/p03.jpg", plan2dUrl: "/evora/p03.jpg",
         notes: "Built-in wardrobe wall + upholstered headboard.",
         approvedByClient: true, createdAt: now - 86400000 * 6, updatedAt: now - 86400000,
       },
       {
-        id: "p3", ownerUid: "demo-client", ownerPhone: "0790000000", ownerName: "Rana Haddad",
+        id: "p3", ownerUid: "demo-client", ownerPhone: "client", ownerName: "Rana Haddad",
         title: "Dining Concept (from Puffer)", room: "Dining", status: "draft",
         thumbnailUrl: "/evora/p11.jpg", plan2dUrl: "/evora/p11.jpg",
         notes: "10-seat oak table, awaiting your sign-off.",
@@ -66,8 +66,10 @@ const strip = (u: StoredUser): PortalUser => ({ uid: u.uid, phone: u.phone, name
 
 export const mockBackend = {
   signIn(phone: string, password: string): PortalUser {
-    const norm = phone.replace(/[^\d]/g, "");
-    const user = readUsers().find((u) => u.phone.replace(/[^\d]/g, "") === norm && u.password === password);
+    // Match by phone digits when present, else by the raw handle (e.g. the
+    // demo "client" / "admin" logins) — case-insensitive.
+    const norm = (s: string) => { const d = s.replace(/[^\d]/g, ""); return d.length ? d : s.trim().toLowerCase(); };
+    const user = readUsers().find((u) => norm(u.phone) === norm(phone) && u.password === password);
     if (!user) throw new Error("INVALID_CREDENTIALS");
     localStorage.setItem(LS_SESSION, user.uid);
     return strip(user);

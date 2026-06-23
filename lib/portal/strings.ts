@@ -42,8 +42,8 @@ export const P = {
   viewer: { en: "Puffer 3D viewer URL", ar: "رابط عارض بافر ثلاثي الأبعاد" },
   client_name: { en: "Client name", ar: "اسم العميل" },
   demo_mode: { en: "Demo mode — using local sample data. Add Firebase keys to go live.", ar: "وضع العرض — بيانات تجريبية محلية. أضف مفاتيح Firebase للتشغيل المباشر." },
-  demo_login: { en: "Demo: 0790000000 · evora123", ar: "تجريبي: 0790000000 · evora123" },
-  demo_admin: { en: "Demo admin: 0791111111 · admin123", ar: "مشرف تجريبي: 0791111111 · admin123" },
+  demo_login: { en: "Demo login — client · client", ar: "دخول تجريبي — client · client" },
+  demo_admin: { en: "Demo admin — admin · admin", ar: "مشرف تجريبي — admin · admin" },
   not_admin: { en: "This account is not an administrator.", ar: "هذا الحساب ليس مشرفًا." },
   back_site: { en: "Back to site", ar: "العودة للموقع" },
 } as const;
