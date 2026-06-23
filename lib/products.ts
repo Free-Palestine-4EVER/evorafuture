@@ -84,6 +84,44 @@ const ROWS: Row[] = [
   ["item-12", "Suna", "Bedroom", 2480, 220, 235, 100, "Linen", "#cfc6b3", "Platform bed", "A low upholstered platform bed with a generous headboard you can lean into.", ""],
 ];
 
+// Curated finish palettes. The 3D viewer recolors the upholstery live, so these
+// double as real, choosable options — on desktop and in AR alike.
+const FABRIC_FINISHES: Colorway[] = [
+  { name: "Oat", hex: "#d2cabb" },
+  { name: "Bone", hex: "#e6ddca" },
+  { name: "Sage", hex: "#9aa088" },
+  { name: "Olive", hex: "#6e7043" },
+  { name: "Slate", hex: "#6f757b" },
+  { name: "Clay", hex: "#b27457" },
+  { name: "Ink", hex: "#36352f" },
+];
+const LEATHER_FINISHES: Colorway[] = [
+  { name: "Tan", hex: "#9c6b3e" },
+  { name: "Cognac", hex: "#7a5235" },
+  { name: "Saddle", hex: "#6a4a35" },
+  { name: "Espresso", hex: "#4a3526" },
+  { name: "Oxblood", hex: "#6e3b34" },
+  { name: "Black", hex: "#2b2723" },
+];
+
+// Build a 5-finish set: the as-shown finish first, then on-brand alternates
+// drawn from the palette that matches the piece's material (fabric vs leather),
+// skipping any that sit too close to the as-shown colour.
+function buildColorways(material: string, hex: string): Colorway[] {
+  const isLeather = /leather/i.test(material);
+  const pool = isLeather ? LEATHER_FINISHES : FABRIC_FINISHES;
+  const v = (h: string) => parseInt(h.replace("#", ""), 16);
+  const near = (a: string, b: string) => {
+    const x = v(a), y = v(b);
+    const dr = ((x >> 16) & 255) - ((y >> 16) & 255);
+    const dg = ((x >> 8) & 255) - ((y >> 8) & 255);
+    const db = (x & 255) - (y & 255);
+    return dr * dr + dg * dg + db * db < 900; // ~30/channel
+  };
+  const alts = pool.filter((c) => !near(c.hex, hex)).slice(0, 4);
+  return [{ name: "As shown", hex }, ...alts];
+}
+
 export const products: Product[] = ROWS.map(
   ([id, name, category, price, w, d, h, material, hex, tagline, description, badge]) => ({
     id,
@@ -94,7 +132,7 @@ export const products: Product[] = ROWS.map(
     currency: "€",
     dimensions: { w, d, h },
     materials: material.split(" & ").map((m) => m.trim()),
-    colorways: [{ name: "As shown", hex }],
+    colorways: buildColorways(material, hex),
     description,
     model: `/models/furni/${id}.glb`,
     arPlacement: "floor",

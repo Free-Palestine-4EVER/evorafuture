@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import ModelViewer, { type ViewerEl } from "./ModelViewer";
+import { applyColor, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
 import { formatPrice, type Product } from "@/lib/products";
 
 interface Props {
@@ -15,11 +16,24 @@ export default function ProductDialog({ product, onClose }: Props) {
   const [arReady, setArReady] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [color, setColor] = useState(0);
+  const targetIdx = useRef<number[]>([]);
+  const anchorHex = product.colorways[0].hex;
 
-  const onReady = useCallback((el: ViewerEl) => {
-    setViewer(el);
-    setArReady(Boolean(el.canActivateAR));
-  }, []);
+  const onReady = useCallback(
+    (el: ViewerEl) => {
+      setViewer(el);
+      setArReady(Boolean(el.canActivateAR));
+      const mv = el as unknown as MVElement;
+      targetIdx.current = pickUpholsteryIndices(mv, anchorHex);
+      applyColor(mv, targetIdx.current, product.colorways[color].hex);
+    },
+    [anchorHex, color, product.colorways]
+  );
+
+  const pickColor = (i: number) => {
+    setColor(i);
+    applyColor(viewer as unknown as MVElement | null, targetIdx.current, product.colorways[i].hex);
+  };
 
   // Lock body scroll + close on Escape while the dialog is open.
   useEffect(() => {
@@ -119,7 +133,7 @@ export default function ProductDialog({ product, onClose }: Props) {
                     key={c.name}
                     className={`dot${i === color ? " on" : ""}`}
                     style={{ background: c.hex }}
-                    onClick={() => setColor(i)}
+                    onClick={() => pickColor(i)}
                     aria-label={c.name}
                   />
                 ))}
