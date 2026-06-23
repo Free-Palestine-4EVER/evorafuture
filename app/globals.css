@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ============================================================
+   EVORA — Future Home
+   Aesthetic: warm editorial quiet-luxury, botanical undertone
+   ============================================================ */
+
+:root {
+  /* ---- Gallery white base ---- */
+  --bone:        #F5F3EF;   /* faint warm-grey for alternating sections */
+  --paper:       #FFFFFF;   /* pure gallery white — the dominant surface */
+  --paper-2:     #FAFAF8;
+  --ink:         #16150F;   /* near-black text */
+  --ink-soft:    #4B463E;
+  --ink-faint:   #6E675B;   /* secondary labels — AA on white & bone (5.6:1 / 5.1:1) */
+  --ever:       #36412F;   /* deep ever green — now an ACCENT */
+  --ever-2:     #4C5A40;
+  --ever-soft:  #8C9A78;
+  --brass:       #8A6A3C;   /* antique brass — on-light accent/label, AA on white & bone */
+  --brass-2:     #C5A06A;   /* lighter brass — on-dark accent (hero, photo bands, panels) */
+  --clay:        #B27457;
+  --line:        rgba(22,21,15,0.12);
+  --line-soft:   rgba(22,21,15,0.06);
+
+  --font-display: var(--f-display), Georgia, serif;
+  --font-sans:    var(--f-sans), system-ui, sans-serif;
+  --font-ar:      var(--f-ar), var(--f-sans), sans-serif;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --gut: clamp(1.25rem, 5vw, 6rem);
+}
+
+@theme inline {
+  --color-bone: var(--bone);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ever: var(--ever);
+  --color-brass: var(--brass);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; scroll-behavior: auto; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+html[dir="rtl"] body { font-family: var(--font-ar); }
+
+::selection { background: var(--ever); color: var(--paper); }
+
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+/* ---- Type ---- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 340;
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
+}
+html[dir="rtl"] .display { font-family: var(--font-ar); font-weight: 600; letter-spacing: 0; line-height: 1.14; }
+
+.eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+html[dir="rtl"] .eyebrow { letter-spacing: 0.14em; }
+
+.wordmark { font-family: var(--font-sans); font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.serif-i { font-family: var(--font-display); font-style: italic; font-weight: 380; }
+html[dir="rtl"] .serif-i { font-style: normal; }
+
+/* ---- Layout helpers ---- */
+.container { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); }
+.section { padding-block: clamp(5rem, 11vw, 11rem); position: relative; }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 0.7em;
+  font-family: var(--font-sans); font-weight: 500;
+  font-size: 0.82rem; letter-spacing: 0.04em;
+  padding: 1.05em 1.9em; border-radius: 100px;
+  border: 1px solid transparent; cursor: none;
+  transition: all 0.4s var(--ease); position: relative; overflow: hidden;
+}
+.btn-solid { background: var(--ink); color: var(--paper); }
+.btn-solid:hover { background: var(--ever); transform: translateY(-2px); }
+.btn-ghost { border-color: var(--line); color: var(--ink); background: transparent; }
+.btn-ghost:hover { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.btn .arrow { transition: transform 0.4s var(--ease); display: inline-block; }
+.btn:hover .arrow { transform: translateX(4px); }
+html[dir="rtl"] .btn .arrow { transform: scaleX(-1); }
+html[dir="rtl"] .btn:hover .arrow { transform: translateX(-4px) scaleX(-1); }
+
+/* ---- Hairline divider ---- */
+.rule { height: 1px; background: var(--line); width: 100%; }
+
+/* ---- Reveal ---- */
+.reveal { opacity: 0; transform: translateY(44px); filter: blur(10px); transition: opacity 1.1s var(--ease), transform 1.1s var(--ease), filter 1.1s var(--ease); }
+.reveal.in { opacity: 1; transform: none; filter: blur(0); }
+
+/* ---- Keyboard focus ---- */
+/* The custom cursor hides the pointer; keyboard users still need a clear ring.
+   Brass reads on both the white surfaces and the dark hero/photo bands. */
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, [data-cursor]:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--brass); outline-offset: 3px;
+}
+/* never strip focus from inputs that already show a focus border */
+.ft__input:focus-visible, .news-input:focus-visible { outline-offset: 2px; }
+
+/* ---- Custom cursor ---- */
+@media (pointer: fine) {
+  body { cursor: none; }
+  .cursor-dot, .cursor-ring { position: fixed; top: 0; left: 0; z-index: 9999; pointer-events: none; border-radius: 50%; mix-blend-mode: difference; will-change: transform; }
+  .cursor-dot { width: 6px; height: 6px; background: #fff; transform: translate(-50%,-50%); }
+  .cursor-ring { width: 38px; height: 38px; border: 1px solid rgba(255,255,255,0.7); transform: translate(-50%,-50%); transition: width .3s var(--ease), height .3s var(--ease), background .3s var(--ease); }
+  .cursor-ring.hover { width: 66px; height: 66px; background: rgba(255,255,255,0.14); }
+}
+
+/* ---- Marquee ---- */
+.marquee { display: flex; overflow: hidden; user-select: none; }
+.marquee__track { display: flex; flex-shrink: 0; align-items: center; white-space: nowrap; animation: marquee 40s linear infinite; }
+@keyframes marquee { to { transform: translateX(-100%); } }
+html[dir="rtl"] .marquee__track { animation-direction: reverse; }
+
+/* ---- Tour hotspot pulse ---- */
+@keyframes pulse-ring { 0% { transform: scale(.5); opacity: .9; } 70% { transform: scale(1.7); opacity: 0; } 100% { opacity: 0; } }
+
+.scroll-hint { animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
+
+/* ---- Kenburns ---- */
+@keyframes kenburns { 0% { transform: scale(1.08) translate(0,0); } 100% { transform: scale(1.18) translate(-1.5%, -1.5%); } }
+
+/* ---- Mobile refinements (site-wide) ---- */
+@media (max-width: 640px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 15.5px; }
+  .section { padding-block: clamp(3.5rem, 12vw, 6rem); }
+  /* snappier, shorter reveal travel on small screens */
+  .reveal { transform: translateY(20px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
+  /* full-width, comfortably tappable buttons */
+  .btn { padding: 1em 1.6em; font-size: 0.84rem; min-height: 46px; }
+  /* anchor targets clear the fixed nav */
+  [id] { scroll-margin-top: 84px; }
+}
+
+/* kill any horizontal overflow on touch devices */
+@media (max-width: 860px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::after, *::before { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
