@@ -19,11 +19,23 @@ import { openStartProject } from "@/lib/startProject";
  * visual crossfades. Bilingual via lang. Mounted after the hero. */
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+const SPRING = { type: "spring", stiffness: 320, damping: 34 } as const;
+
+// A short closing line per step — adds bite under the data copy.
+const TAGLINES = [
+  { en: "Walls, rooms, dimensions — nothing else yet.", ar: "جدران وغرف وأبعاد — لا شيء آخر بعد." },
+  { en: "Every piece placed to scale, to how you live.", ar: "كل قطعة موضوعة بالمقاس، وبأسلوب حياتك." },
+  { en: "Walk it, spin it, see it from any angle.", ar: "تجوّل فيه، أدِره، شاهده من أي زاوية." },
+  { en: "Approve once — then we build it for real.", ar: "اعتمده مرة — ثم نصنعه على الحقيقة." },
+];
 
 export default function ProcessJourney({ showFinale = true }: { showFinale?: boolean }) {
   const { lang, dir } = useT();
   const ar = lang === "ar";
   const [active, setActive] = useState(0);
+
+  // Panel springs side-to-side: even steps (0,2) → LEFT, odd (1,3) → RIGHT.
+  const panelRight = active % 2 === 1;
 
   return (
     <section dir={dir} style={{ position: "relative", paddingTop: "clamp(4rem,9vw,7rem)" }}>
@@ -33,76 +45,63 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           <span className="pj-kicker">
             <span className="pj-kicker-rule" />
             {ar ? "كيف تعمل إيفورا" : "How Evora works"}
+            <span className="pj-kicker-rule" />
           </span>
         </Rise>
         <Rise delay={0.06} as="h2" className="pj-title">
           {ar ? (
-            <>من مخطط مسطّح <em>إلى منزلك المكتمل</em></>
+            <>مخطّطٌ مسطّح، <em>يصبح منزلك.</em></>
           ) : (
-            <>From a flat plan <em>to your finished home</em></>
+            <>A flat plan, <em>made your home.</em></>
           )}
         </Rise>
         <Rise delay={0.12} as="p" className="pj-lede">
           {ar
-            ? "لا تخمين في صالة العرض. أرسل مخططك، ونحوّله أمام عينيك خلال أربع خطوات — مؤثّثًا، مبنيًا ثلاثي الأبعاد، ومُقدّمًا بعرض واقعي لتعتمده."
-            : "No showroom guesswork. Send your floor plan and watch it become a finished home in four moves — furnished, rebuilt in 3D, and rendered photoreal for your sign-off."}
+            ? "أربع خطوات فقط: ترسل مخطّطك، فنؤثّثه ونبنيه ثلاثي الأبعاد ونقدّمه بعرض واقعي تعتمده — ثم نصنعه وأنت تتابع كل مرحلة مباشرةً."
+            : "Four moves: you send a plan, we furnish it, rebuild it in 3D and render it photoreal for your sign-off — then we build it while you watch every stage."}
         </Rise>
       </div>
 
-      {/* ---- Sticky image + scrolling step timeline ---- */}
-      <div className="container pj-grid">
-        {/* Left: pinned kitchen film + clickable progress track */}
-        <div className="pj-visual">
-          <div className="pj-visual-inner">
+      {/* ---- Left↔right swap-column scroll ---- */}
+      <div className="pj-swap container">
+        {/* Sticky panel that springs side-to-side (desktop only) */}
+        <div className="pj-sticky">
+          <motion.div className="pj-panel" animate={{ left: panelRight ? "42%" : "0%" }} transition={SPRING}>
             <TransformStage step={active} ar={ar} />
-            <div className="pj-track" role="tablist" aria-label={ar ? "المراحل" : "Stages"}>
-              {processSteps.map((st, i) => (
-                <button
-                  key={st.n}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === active}
-                  aria-label={st.title[lang]}
-                  className={`pj-track-seg${i <= active ? " on" : ""}${i === active ? " now" : ""}`}
-                  onClick={() => setActive(i)}
-                />
-              ))}
-            </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Right: timeline of step cards */}
-        <ol className="pj-steps">
-          {processSteps.map((step, i) => {
-            const done = i < active;
-            return (
-              <motion.li
-                key={step.n}
-                className={`pj-card${i === active ? " is-active" : ""}${done ? " is-done" : ""}`}
-                onViewportEnter={() => setActive(i)}
-                viewport={{ margin: "-45% 0px -45% 0px", amount: 0.2 }}
-              >
-                <div className="pj-card-rail" aria-hidden>
-                  <span className="pj-card-badge">{done ? "✓" : step.n}</span>
-                  {i < processSteps.length - 1 && <span className="pj-card-line" />}
+        {/* Steps share the sticky panel's space, pulled up over it */}
+        <div className="pj-offset" />
+
+        {processSteps.map((step, i) => {
+          const textRight = i % 2 === 0; // panel left → text right, and vice-versa
+          return (
+            <motion.section
+              key={step.n}
+              className="pj-step"
+              onViewportEnter={() => setActive(i)}
+              viewport={{ margin: "-50% 0px -50% 0px", amount: 0 }}
+              style={{ justifyContent: textRight ? "flex-end" : "flex-start" }}
+            >
+              <div className={`pj-step-text${i === active ? " is-active" : ""}`}>
+                <span className="pj-step-ghost" aria-hidden>{step.n}</span>
+                <span className="pj-step-eyebrow">
+                  {ar ? "المرحلة" : "Stage"} <b>{step.n}</b>
+                  <i />
+                  {ar ? "من ٠٤" : "of 04"}
+                </span>
+                <h3 className="pj-step-title">{step.title[lang]}</h3>
+                <p className="pj-step-body">{step.body[lang]}</p>
+                <span className="pj-step-tag">{ar ? TAGLINES[i].ar : TAGLINES[i].en}</span>
+                {/* Mobile inline visual (sticky panel hidden < 860px) */}
+                <div className="pj-step-media-mobile">
+                  <TransformStage step={i} ar={ar} />
                 </div>
-                <div className="pj-card-main">
-                  <span className="pj-card-meta">
-                    {ar ? `الخطوة ${step.n}` : `Step ${step.n}`}
-                    <i />
-                    {ar ? "من ٠٤" : "of 04"}
-                  </span>
-                  <h3 className="pj-card-title">{step.title[lang]}</h3>
-                  <p className="pj-card-body">{step.body[lang]}</p>
-                  {/* Mobile inline visual (sticky image hidden < 900px) */}
-                  <div className="pj-card-media">
-                    <TransformStage step={i} ar={ar} />
-                  </div>
-                </div>
-              </motion.li>
-            );
-          })}
-        </ol>
+              </div>
+            </motion.section>
+          );
+        })}
       </div>
 
       {/* Finale — live production tracking. Suppressed on the home page, where
@@ -115,7 +114,7 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
 
       <style>{`
         /* ---------- Header ---------- */
-        .pj-head { max-width: 62ch; }
+        .pj-head { max-width: 64ch; margin-inline: auto; text-align: center; }
         .pj-kicker {
           display: inline-flex; align-items: center; gap: 0.85rem;
           font-family: var(--f-sans);
@@ -143,85 +142,79 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           color: var(--ever, #2f5d4a);
         }
         .pj-lede {
-          max-width: 50ch; margin-top: 1.4rem;
+          max-width: 54ch; margin: 1.4rem auto 0;
           font-family: var(--f-sans); color: var(--ink-soft);
           font-size: clamp(1.02rem, 1.35vw, 1.16rem); line-height: 1.7;
           text-wrap: pretty;
         }
 
-        /* ---------- Sticky visual + timeline grid ---------- */
-        .pj-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
-          gap: clamp(2rem, 5vw, 5.5rem);
-          margin-top: clamp(2.6rem, 5vw, 4.5rem);
+        /* ---------- Left↔right swap-column scroll ---------- */
+        .pj-swap { position: relative; margin-top: clamp(2rem, 5vw, 4rem); }
+        .pj-sticky {
+          pointer-events: none;
+          position: sticky; top: 0; z-index: 2;
+          height: 100vh; width: 100%;
+          display: flex; align-items: center;
         }
-        .pj-visual-inner { position: sticky; top: clamp(84px, 13vh, 150px); }
-        .pj-track { display: flex; gap: 8px; margin-top: 18px; }
-        .pj-track-seg {
-          flex: 1; height: 5px; padding: 0; border: none; cursor: pointer;
-          border-radius: 999px; background: var(--line);
-          transition: background .45s ease, transform .45s ease;
+        .pj-panel { position: absolute; width: 58%; }
+        .pj-offset { margin-top: -100vh; }
+        .pj-step {
+          position: relative; z-index: 1;
+          display: flex; align-items: center;
+          min-height: 100vh;
         }
-        .pj-track-seg.on { background: var(--brass); }
-        .pj-track-seg.now { transform: scaleY(1.5); }
 
-        /* ---------- Step cards ---------- */
-        .pj-steps { list-style: none; margin: 0; padding: 0; }
-        .pj-card {
-          display: grid;
-          grid-template-columns: 48px minmax(0, 1fr);
-          gap: clamp(1rem, 2vw, 1.5rem);
+        /* ---------- Step text ---------- */
+        .pj-step-text {
+          position: relative; width: 38%;
+          opacity: 0.4; transition: opacity .5s ease;
         }
-        .pj-card-rail { display: flex; flex-direction: column; align-items: center; }
-        .pj-card-badge {
-          flex: none; width: 46px; height: 46px; border-radius: 999px;
-          display: grid; place-items: center;
-          font-family: var(--f-display), Georgia, serif; font-size: 1.15rem; font-weight: 420;
-          background: #fff; border: 1.5px solid var(--line); color: var(--ink-soft);
-          transition: background .4s ease, border-color .4s ease, color .4s ease, box-shadow .4s ease;
+        .pj-step-text.is-active { opacity: 1; }
+        .pj-step-ghost {
+          position: absolute; z-index: -1;
+          inset-block-start: -0.46em; inset-inline-start: -0.06em;
+          font-family: var(--f-display), Georgia, serif;
+          font-optical-sizing: auto; font-variation-settings: "opsz" 144, "WONK" 1;
+          font-size: clamp(8rem, 15vw, 13rem);
+          line-height: 0.78; font-weight: 360;
+          color: var(--brass); opacity: 0.1;
+          pointer-events: none; user-select: none;
         }
-        .pj-card.is-active .pj-card-badge {
-          border-color: var(--brass); color: var(--ink);
-          box-shadow: 0 0 0 4px rgba(176,141,87,0.16);
-        }
-        .pj-card.is-done .pj-card-badge { background: var(--brass); border-color: var(--brass); color: #fff; }
-        .pj-card-line {
-          flex: 1; width: 2px; margin: 8px 0; min-height: clamp(1.8rem, 5vh, 4rem);
-          background: var(--line); transition: background .5s ease;
-        }
-        .pj-card.is-done .pj-card-line { background: var(--brass); }
-        .pj-card-main {
-          padding-bottom: clamp(1.8rem, 6vh, 4.5rem); max-width: 46ch;
-          transition: opacity .45s ease;
-        }
-        .pj-card:not(.is-active) .pj-card-main { opacity: 0.5; }
-        .pj-card-meta {
+        .pj-step-eyebrow {
           display: inline-flex; align-items: center; gap: 0.6rem;
           font-family: var(--f-sans); font-size: 0.72rem; font-weight: 600;
-          letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass-2);
+          letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass-2);
         }
-        .pj-card-meta i { width: 22px; height: 1px; background: var(--line); display: inline-block; }
-        .pj-card-title {
+        .pj-step-eyebrow b { color: var(--clay); font-weight: 700; }
+        .pj-step-eyebrow i { width: 26px; height: 1px; background: var(--line); display: inline-block; }
+        .pj-step-title {
           font-family: var(--f-display), Georgia, serif;
-          font-optical-sizing: auto; font-variation-settings: "opsz" 60, "SOFT" 40;
-          font-weight: 380; font-size: clamp(1.5rem, 2.9vw, 2.15rem);
-          line-height: 1.08; letter-spacing: -0.012em; color: var(--ink);
-          margin: 0.7rem 0 0.6rem; text-wrap: balance;
+          font-optical-sizing: auto; font-variation-settings: "opsz" 90, "SOFT" 40;
+          font-weight: 360; font-size: clamp(1.9rem, 4vw, 3.1rem);
+          line-height: 1.04; letter-spacing: -0.018em; color: var(--ink);
+          margin: 0.9rem 0 0.8rem; text-wrap: balance;
         }
-        .pj-card-body {
+        .pj-step-body {
           font-family: var(--f-sans); color: var(--ink-soft);
-          font-size: clamp(1rem, 1.25vw, 1.06rem); line-height: 1.7; text-wrap: pretty;
+          font-size: clamp(1.02rem, 1.3vw, 1.12rem); line-height: 1.72;
+          max-width: 40ch; text-wrap: pretty;
         }
-        .pj-card-media { display: none; margin-top: 1.3rem; }
+        .pj-step-tag {
+          display: block; margin-top: 1.1rem; padding-inline-start: 0.9rem;
+          border-inline-start: 2px solid var(--brass);
+          font-family: var(--f-display), Georgia, serif; font-style: italic;
+          font-variation-settings: "opsz" 40, "SOFT" 60;
+          font-size: clamp(1.02rem, 1.5vw, 1.22rem); line-height: 1.4;
+          color: var(--ever, #2f5d4a);
+        }
+        .pj-step-media-mobile { display: none; margin-top: 1.6rem; }
 
-        @media (max-width: 900px) {
-          .pj-grid { grid-template-columns: 1fr; gap: 0; margin-top: 2.2rem; }
-          .pj-visual { display: none; }
-          .pj-card { grid-template-columns: 40px minmax(0, 1fr); }
-          .pj-card-badge { width: 40px; height: 40px; font-size: 1rem; }
-          .pj-card-main { opacity: 1 !important; padding-bottom: 2.4rem; }
-          .pj-card-media { display: block; }
+        @media (max-width: 860px) {
+          .pj-sticky, .pj-offset { display: none; }
+          .pj-step { min-height: auto; padding-block: 2.4rem; justify-content: stretch !important; }
+          .pj-step-text { width: 100%; opacity: 1; }
+          .pj-step-ghost { font-size: clamp(6rem, 22vw, 9rem); }
+          .pj-step-media-mobile { display: block; }
         }
       `}</style>
     </section>
