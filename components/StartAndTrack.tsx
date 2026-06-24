@@ -1,58 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { JOURNEY } from "@/lib/portal/journey";
 import { openStartProject } from "@/lib/startProject";
 
 /* ── Start & Track ─────────────────────────────────────────────────────────
- * The home page's merged showpiece. It fuses two beats into ONE story with a
- * cause→effect: you drop a flat floor plan on the left, it tilts into a faux-3D
- * preview, and that act lights up the live production tracker on the right —
- * blueprint → render → "built while you watch". A glowing flow line carries a
- * travelling spark from the upload panel into the tracker the moment a plan
- * lands, so the merge reads as a single gesture, not two stacked sections.
- *
- * Replaces CreateYour2D3D + the live-tracking finale on the home page. The
- * /how-it-works page keeps ProcessJourney's own finale. Bilingual + RTL. */
+ * The home page's create + track showpiece, fully rebuilt. Two columns under
+ * one promise: LEFT is a clean upload invitation that opens the real Start-a-
+ * Project modal; RIGHT is the payoff — a live production card fronted by the
+ * actual finished-kitchen reveal film, whose stage list lights up stage by
+ * stage the moment the section comes into view. Bilingual + RTL. */
 
-const EASE = [0.22, 1, 0.36, 1] as const;
 const LIVE_INDEX = 5; // "Production & Finishing" — the current live stage
+const REVEAL = "/evora/kitchen/reveal.mp4";
+const POSTER = "/evora/kitchen/stage-4.jpg";
 
 export default function StartAndTrack() {
   const { lang, dir } = useT();
   const ar = lang === "ar";
   const reduce = useReducedMotion();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState(reduce ? LIVE_INDEX : -1);
+  const seen = useRef(false);
 
-  const [plan, setPlan] = useState<string | null>(null);
-  const [drag, setDrag] = useState(false);
-  // How far the tracker has "lit up". -1 = dormant; climbs to LIVE_INDEX once a
-  // plan is dropped, so the build visibly comes alive from the upload.
-  const [progress, setProgress] = useState(-1);
-
-  const take = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    setPlan(URL.createObjectURL(file));
-  };
-
-  // Drive the tracker forward stage-by-stage after a plan lands.
-  useEffect(() => {
-    if (!plan) { setProgress(-1); return; }
+  // Light up the tracker stage-by-stage once the section enters view.
+  function onView() {
+    if (seen.current) return;
+    seen.current = true;
     if (reduce) { setProgress(LIVE_INDEX); return; }
-    setProgress(-1);
     let i = -1;
     const id = setInterval(() => {
       i += 1;
       setProgress(i);
       if (i >= LIVE_INDEX) clearInterval(id);
-    }, 460);
-    return () => clearInterval(id);
-  }, [plan, reduce]);
+    }, 520);
+  }
 
-  const started = !!plan;
+  const points = ar
+    ? ["ارفع مخطّطك — صورة أو PDF", "نصمّمه ونؤثّثه ثلاثي الأبعاد، ثم نقدّمه بعرض واقعي", "تعتمده — ثم نصنعه وأنت تتابع كل مرحلة مباشرةً"]
+    : ["Upload your plan — an image or a PDF", "We model & furnish it in 3D, then render it photoreal", "You approve — then we build it while you track every stage"];
 
   return (
     <section id="start-track" className="st" dir={dir} lang={lang}>
@@ -60,290 +48,221 @@ export default function StartAndTrack() {
         {!reduce && (
           <>
             <motion.span className="st__aurora st__aurora--a"
-              animate={{ x: [0, 40, 0], y: [0, -30, 0], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} />
+              animate={{ x: [0, 40, 0], y: [0, -30, 0], opacity: [0.45, 0.75, 0.45] }}
+              transition={{ duration: 19, repeat: Infinity, ease: "easeInOut" }} />
             <motion.span className="st__aurora st__aurora--b"
               animate={{ x: [0, -50, 0], y: [0, 30, 0], opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }} />
+              transition={{ duration: 23, repeat: Infinity, ease: "easeInOut" }} />
           </>
         )}
         <span className="st__grain" />
       </div>
 
       <div className="container st__inner">
-        {/* ── header ── */}
         <header className="st__head">
-          <span className="eyebrow st__eyebrow">{ar ? "ابدأ وتابع" : "Create & track"}</span>
-          <h2 className="display st__title">
-            {ar ? "ارفع مخطّطك، وشاهد منزلك يُبنى" : "Upload your plan. Watch your home come to life."}
+          <span className="st__eyebrow">{ar ? "ابدأ وتابع" : "Create & track"}</span>
+          <h2 className="st__title">
+            {ar ? (
+              <>ارفع مخطّطك. <em>وشاهد منزلك يُبنى.</em></>
+            ) : (
+              <>Upload your plan. <em>Watch your home come to life.</em></>
+            )}
           </h2>
           <p className="st__lead">
             {ar
-              ? "أفلت مخططك المسطّح فيتحوّل إلى نموذج ثلاثي الأبعاد مؤثّث ومُضاء — وبمجرد اعتمادك يبدأ الإنتاج، وتتابع كل مرحلة مباشرةً من لوحتك."
-              : "Drop your flat plan and watch it become a furnished, lit 3D model. The moment you approve, production begins — and you follow every stage live from your dashboard."}
+              ? "من مخطط مسطّح إلى منزل مؤثّث ثلاثي الأبعاد ومُقدّم بعرض واقعي — وبمجرد اعتمادك يبدأ الإنتاج، وتتابع كل مرحلة مباشرةً من لوحتك."
+              : "From a flat plan to a furnished, photoreal 3D home — and once you approve, production begins and every stage streams live to your dashboard."}
           </p>
         </header>
 
-        {/* ── the merged stage: CREATE → flow → TRACK ── */}
-        <div className={`st__stage ${started ? "is-started" : ""}`}>
-          {/* CREATE */}
+        <motion.div className="st__grid" onViewportEnter={onView} viewport={{ once: true, margin: "0px 0px -18% 0px" }}>
+          {/* ── LEFT · Create ── */}
           <div className="st__create">
-            <div className="st__panel-tag">
-              <span className="st__panel-n">1</span>{ar ? "أنشئ" : "Create"}
-            </div>
+            <span className="st__tag"><b>01</b>{ar ? "أنشئ" : "Create"}</span>
 
-            <input ref={inputRef} type="file" accept="image/*,application/pdf" hidden
-              onChange={(e) => take(e.target.files?.[0])} />
+            <button
+              type="button"
+              className="st__drop"
+              onClick={openStartProject}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("is-drag"); }}
+              onDragLeave={(e) => e.currentTarget.classList.remove("is-drag")}
+              onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("is-drag"); openStartProject(); }}
+            >
+              <span className="st__drop-ic"><PlanIcon /></span>
+              <span className="st__drop-t">{ar ? "أفلت مخطّطك هنا" : "Drop your floor plan here"}</span>
+              <span className="st__drop-s">{ar ? "أو اضغط للرفع · PNG · JPG · PDF" : "or tap to upload · PNG · JPG · PDF"}</span>
+            </button>
 
-            <AnimatePresence mode="wait">
-              {!plan ? (
-                <motion.button
-                  key="drop"
-                  type="button"
-                  className={`st__drop ${drag ? "is-drag" : ""}`}
-                  onClick={() => inputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-                  onDragLeave={() => setDrag(false)}
-                  onDrop={(e) => { e.preventDefault(); setDrag(false); take(e.dataTransfer.files?.[0]); }}
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}
-                >
-                  <PlanIcon />
-                  <span className="st__drop-t">{ar ? "أفلت مخطّطك هنا" : "Drop your floor plan here"}</span>
-                  <span className="st__drop-s">{ar ? "أو اضغط للاختيار · PNG · JPG · PDF" : "or click to browse · PNG · JPG · PDF"}</span>
-                </motion.button>
-              ) : (
-                <motion.div key="preview" className="st__preview"
-                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5, ease: EASE }}>
-                  <figure className="st__plate st__plate--flat">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={plan} alt="" />
-                    <figcaption>{ar ? "مخططك ثنائي الأبعاد" : "Your 2D plan"}</figcaption>
-                  </figure>
-                  <span className="st__to" aria-hidden>→</span>
-                  <figure className="st__plate st__plate--iso">
-                    <motion.div className="st__iso-inner"
-                      animate={reduce ? undefined : { rotateX: [52, 48, 52], rotateZ: [-26, -22, -26] }}
-                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={plan} alt="" />
-                    </motion.div>
-                    <span className="st__scan" aria-hidden />
-                    <figcaption>{ar ? "معاينة ثلاثية الأبعاد" : "3D preview"}</figcaption>
-                  </figure>
-                  <button type="button" className="st__redo" onClick={() => setPlan(null)}>
-                    {ar ? "جرّب مخططًا آخر" : "Try another plan"}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <ol className="st__steps">
-              {[
-                ar ? "ارفع المخطط (صورة أو PDF)" : "Upload your plan (image or PDF)",
-                ar ? "نُصمّمه ونؤثّثه ثلاثي الأبعاد" : "We model & furnish it in 3D",
-                ar ? "تستلم عروضًا واقعية وتعتمدها" : "You get photoreal renders to approve",
-              ].map((s, i) => (
-                <li key={i} className="st__step"><span className="st__step-n">{i + 1}</span><span>{s}</span></li>
+            <ul className="st__points">
+              {points.map((p, i) => (
+                <li key={i} className="st__point">
+                  <span className="st__point-n">{i + 1}</span>
+                  <span>{p}</span>
+                </li>
               ))}
-            </ol>
-          </div>
+            </ul>
 
-          {/* FLOW connector — a travelling spark fires from Create into Track */}
-          <div className="st__flow" aria-hidden>
-            <span className="st__flow-line" />
-            {!reduce && (
-              <motion.span className="st__flow-spark"
-                animate={started ? { offsetDistance: ["0%", "100%"], opacity: [0, 1, 0] } : { opacity: 0 }}
-                transition={started ? { duration: 1.1, ease: EASE, repeat: Infinity, repeatDelay: 1.4 } : { duration: 0.3 }} />
-            )}
-            <span className={`st__flow-label ${started ? "is-on" : ""}`}>{ar ? "تعتمد" : "Approve"}</span>
-          </div>
-
-          {/* TRACK */}
-          <div className={`st__track ${started ? "is-live" : ""}`}>
-            <div className="st__panel-tag">
-              <span className="st__panel-n">2</span>{ar ? "تابع" : "Track"}
+            <div className="st__cta">
+              <button type="button" className="st__btn st__btn--solid" onClick={openStartProject}>
+                {ar ? "ارفع مخططك" : "Upload your plan"} <span className="arrow" aria-hidden>↗</span>
+              </button>
+              <button type="button" className="st__btn st__btn--ghost" onClick={openStartProject}>
+                {ar ? "ابدأ مشروعًا" : "Start a project"}
+              </button>
             </div>
+          </div>
+
+          {/* ── RIGHT · Track ── */}
+          <div className="st__track">
+            <span className="st__tag"><b>02</b>{ar ? "تابع" : "Track"}</span>
 
             <div className="st__card">
+              <figure className="st__film">
+                <video src={REVEAL} poster={POSTER} autoPlay muted loop playsInline preload="metadata" />
+                <figcaption><LiveDot /> {ar ? "معاينة حيّة · نموذجك الحقيقي" : "Live preview · your real model"}</figcaption>
+              </figure>
+
               <div className="st__card-head">
                 <span className="st__card-title">{ar ? "غرفة المعيشة — فيلا" : "Living Room — Villa"}</span>
-                <span className={`st__badge ${started ? "is-on" : ""}`}>
-                  {started ? (ar ? "قيد الإنتاج" : "In production") : (ar ? "بانتظار البدء" : "Awaiting start")}
-                </span>
+                <span className="st__badge">{ar ? "قيد الإنتاج" : "In production"}</span>
               </div>
 
               <ol className="st__journey">
                 {JOURNEY.map((s, i) => {
-                  const done = i < progress;
-                  const active = i === progress && progress < LIVE_INDEX ? false : i === LIVE_INDEX && progress >= LIVE_INDEX;
                   const lit = i <= progress;
+                  const isActive = i === LIVE_INDEX && progress >= LIVE_INDEX;
                   return (
-                    <li key={s.key} className={`st__j ${lit ? "is-lit" : ""} ${active ? "is-active" : ""}`}>
+                    <li key={s.key} className={`st__j${lit ? " is-lit" : ""}${isActive ? " is-active" : ""}`}>
                       <span className="st__j-rail">
                         <span className="st__j-dot">{lit && i < LIVE_INDEX ? "✓" : ""}</span>
                         {i < JOURNEY.length - 1 && <span className="st__j-line" />}
                       </span>
                       <span className="st__j-label">
                         {ar ? s.ar : s.en}
-                        {active && <LiveDot />}
+                        {isActive && <LiveDot />}
                       </span>
                     </li>
                   );
                 })}
               </ol>
 
-              {!started && (
-                <div className="st__card-veil">
-                  <span>{ar ? "ارفع مخطّطًا لتُشغّل التتبّع المباشر" : "Upload a plan to start live tracking"}</span>
-                </div>
-              )}
+              <Link href="/dashboard" className="st__dash">
+                {ar ? "افتح لوحتي" : "Open my dashboard"} <span className="arrow" aria-hidden>{ar ? "←" : "→"}</span>
+              </Link>
             </div>
-            <span className="st__note">
-              {started
-                ? (ar ? "تحديثات بالصور تظهر فورًا في لوحتك" : "Photo updates appear instantly in your dashboard")
-                : (ar ? "معاينة فورية — الفريق يبني النموذج الحقيقي" : "Instant preview — our team builds the real model")}
-            </span>
           </div>
-        </div>
-
-        {/* ── unified CTA ── */}
-        <div className="st__cta">
-          <button type="button" className="btn st__btn-solid" onClick={() => inputRef.current?.click()}>
-            {ar ? "ارفع مخططك" : "Upload your plan"} <span className="arrow" aria-hidden>↗</span>
-          </button>
-          <Link href="/dashboard" className="btn st__btn-ghost">{ar ? "افتح لوحتي" : "Open my dashboard"}</Link>
-          <button type="button" onClick={openStartProject} className="btn st__btn-ghost">{ar ? "ابدأ مشروعًا" : "Start a project"}</button>
-        </div>
+        </motion.div>
       </div>
 
       <style>{`
         .st { position: relative; isolation: isolate; background: var(--ink); color: var(--paper);
           padding-block: clamp(4.5rem, 10vw, 9rem); overflow: hidden; }
         .st__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-        .st__aurora { position: absolute; border-radius: 50%; filter: blur(90px); }
-        .st__aurora--a { width: 46vw; height: 46vw; top: -12%; inset-inline-start: -8%;
+        .st__aurora { position: absolute; border-radius: 50%; filter: blur(95px); }
+        .st__aurora--a { width: 46vw; height: 46vw; top: -14%; inset-inline-start: -8%;
           background: radial-gradient(circle, rgba(197,160,106,0.30), transparent 65%); }
-        .st__aurora--b { width: 52vw; height: 52vw; bottom: -18%; inset-inline-end: -10%;
+        .st__aurora--b { width: 54vw; height: 54vw; bottom: -20%; inset-inline-end: -12%;
           background: radial-gradient(circle, rgba(54,65,47,0.42), transparent 65%); }
         .st__grain { position: absolute; inset: 0; opacity: 0.05; mix-blend-mode: overlay;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
         .st__inner { position: relative; z-index: 1; }
-        .st__head { max-width: 60ch; margin-inline: auto; text-align: center; }
-        .st__eyebrow { color: var(--brass-2); display: block; }
-        .st__title { font-size: clamp(2.1rem, 4.8vw, 4rem); line-height: 1.04; font-weight: 360;
-          color: var(--paper); margin: 1.1rem 0 0; }
-        .st__lead { color: rgba(251,247,240,0.74); font-size: clamp(1rem, 1.2vw, 1.12rem);
-          line-height: 1.72; max-width: 56ch; margin: 1.4rem auto 0; }
 
-        .st__stage { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,0.92fr);
-          gap: clamp(1rem, 3vw, 2.4rem); align-items: stretch; margin-top: clamp(2.6rem, 6vw, 4.5rem); }
+        /* Header */
+        .st__head { max-width: 62ch; }
+        .st__eyebrow { font-family: var(--f-sans); font-size: 0.72rem; font-weight: 600;
+          letter-spacing: 0.26em; text-transform: uppercase; color: var(--brass-2); }
+        .st__title { font-family: var(--f-display), Georgia, serif; font-optical-sizing: auto;
+          font-variation-settings: "opsz" 140, "SOFT" 0, "WONK" 1; font-weight: 340;
+          font-size: clamp(2.2rem, 5.2vw, 4.2rem); line-height: 1.0; letter-spacing: -0.02em;
+          color: var(--paper); margin: 1rem 0 0; text-wrap: balance; }
+        .st__title em { font-style: italic; font-variation-settings: "opsz" 140, "SOFT" 60, "WONK" 1;
+          color: var(--brass); }
+        .st__lead { font-family: var(--f-sans); color: rgba(251,247,240,0.74);
+          font-size: clamp(1rem, 1.25vw, 1.14rem); line-height: 1.7; max-width: 56ch; margin: 1.3rem 0 0; }
 
-        .st__panel-tag { display: inline-flex; align-items: center; gap: 0.6rem; font-size: 0.72rem;
-          letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,247,240,0.66); margin-bottom: 1.1rem; }
-        .st__panel-n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
-          font-family: var(--f-display); font-size: 0.8rem; color: var(--ink); background: var(--brass-2); }
+        /* Grid */
+        .st__grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+          gap: clamp(1.4rem, 4vw, 3.4rem); align-items: stretch; margin-top: clamp(2.6rem, 6vw, 4.5rem); }
+        .st__tag { display: inline-flex; align-items: center; gap: 0.7rem; font-family: var(--f-sans);
+          font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+          color: rgba(251,247,240,0.62); margin-bottom: 1.2rem; }
+        .st__tag b { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+          font-family: var(--f-display); font-size: 0.82rem; color: var(--ink); background: var(--brass); font-weight: 600; }
 
-        /* CREATE */
+        /* LEFT — Create */
         .st__create { display: flex; flex-direction: column; }
-        .st__drop { width: 100%; aspect-ratio: 16/10; border-radius: 16px; cursor: pointer;
-          border: 1.5px dashed rgba(251,247,240,0.3); background: rgba(251,247,240,0.04);
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
-          color: var(--paper); transition: border-color .4s var(--ease), background .4s var(--ease), transform .4s var(--ease); }
-        .st__drop:hover, .st__drop.is-drag { border-color: var(--brass-2); background: rgba(197,160,106,0.10); transform: translateY(-2px); }
-        .st__drop-t { font-family: var(--f-display); font-size: 1.35rem; }
-        .st__drop-s { font-size: 0.85rem; color: rgba(251,247,240,0.6); }
+        .st__drop { width: 100%; aspect-ratio: 16/9; border-radius: 18px; cursor: pointer;
+          border: 1.5px dashed rgba(251,247,240,0.28); background: rgba(251,247,240,0.04);
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.55rem;
+          color: var(--paper); text-align: center; padding: 1.4rem;
+          transition: border-color .4s var(--ease), background .4s var(--ease), transform .4s var(--ease); }
+        .st__drop:hover, .st__drop.is-drag { border-color: var(--brass); background: rgba(197,160,106,0.1); transform: translateY(-2px); }
+        .st__drop-ic { width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center;
+          background: rgba(197,160,106,0.14); margin-bottom: 0.3rem; }
+        .st__drop-t { font-family: var(--f-display), Georgia, serif; font-size: clamp(1.25rem, 2.4vw, 1.6rem); }
+        .st__drop-s { font-family: var(--f-sans); font-size: 0.84rem; color: rgba(251,247,240,0.6); }
 
-        .st__preview { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: clamp(0.5rem,1.6vw,1.1rem); }
-        .st__plate { position: relative; margin: 0; border-radius: 12px; overflow: hidden; background: #11100e;
-          border: 1px solid rgba(251,247,240,0.12); aspect-ratio: 4/3; }
-        .st__plate img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .st__plate figcaption { position: absolute; bottom: 0; inset-inline: 0; padding: 0.5rem 0.7rem;
-          font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(251,247,240,0.85);
-          background: linear-gradient(transparent, rgba(8,6,4,0.7)); }
-        .st__plate--iso { perspective: 900px; background: #0c0b09; }
-        .st__iso-inner { width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(52deg) rotateZ(-26deg); }
-        .st__iso-inner img { box-shadow: 0 30px 50px rgba(0,0,0,0.5); border-radius: 4px; }
-        .st__scan { position: absolute; inset: 0; pointer-events: none; height: 40%;
-          background: linear-gradient(180deg, transparent 0%, rgba(197,160,106,0.25) 50%, transparent 100%);
-          animation: stscan 2.6s var(--ease) infinite; }
-        @keyframes stscan { 0%{ transform: translateY(-100%);} 100%{ transform: translateY(280%);} }
-        .st__to { color: var(--brass-2); font-size: 1.5rem; }
-        html[dir="rtl"] .st__to { transform: scaleX(-1); }
-        .st__redo { grid-column: 1 / -1; justify-self: center; margin-top: 0.7rem; background: none; border: 0;
-          cursor: pointer; color: rgba(251,247,240,0.7); font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px; }
-        .st__redo:hover { color: var(--brass-2); }
+        .st__points { list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
+        .st__point { display: flex; align-items: flex-start; gap: 0.85rem; font-family: var(--f-sans);
+          color: rgba(251,247,240,0.86); font-size: 0.98rem; line-height: 1.5; }
+        .st__point-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+          font-family: var(--f-display); font-size: 0.82rem; color: var(--brass); border: 1px solid rgba(197,160,106,0.45); }
 
-        .st__steps { list-style: none; margin: auto 0 0; padding: 1.8rem 0 0; display: flex; flex-direction: column; gap: 0.85rem; }
-        .st__step { display: flex; align-items: center; gap: 0.9rem; color: rgba(251,247,240,0.88); font-size: 0.96rem; }
-        .st__step-n { flex: none; width: 27px; height: 27px; border-radius: 50%; display: grid; place-items: center;
-          font-family: var(--f-display); font-size: 0.85rem; color: var(--brass-2); border: 1px solid rgba(197,160,106,0.4); }
+        .st__cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: auto; padding-top: 1.8rem; }
+        .st__btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.95rem 1.6rem;
+          border-radius: 999px; font-family: var(--f-sans); font-weight: 600; font-size: 0.92rem; cursor: pointer;
+          border: 1px solid transparent; transition: transform .25s ease, background .25s ease, border-color .25s ease, filter .25s ease; }
+        .st__btn--solid { background: var(--brass); color: var(--ink); }
+        .st__btn--solid:hover { transform: translateY(-2px); filter: brightness(1.05); }
+        .st__btn--ghost { background: transparent; color: var(--paper); border-color: rgba(251,247,240,0.32); }
+        .st__btn--ghost:hover { background: rgba(251,247,240,0.08); border-color: var(--paper); }
 
-        /* FLOW connector */
-        .st__flow { position: relative; width: 64px; display: flex; align-items: center; justify-content: center; }
-        .st__flow-line { position: absolute; top: 0; bottom: 0; inset-inline-start: 50%; width: 2px; transform: translateX(-50%);
-          background: linear-gradient(180deg, transparent, rgba(197,160,106,0.35), transparent); }
-        .st__flow-spark { position: absolute; inset-inline-start: 50%; top: 0; width: 9px; height: 9px; transform: translateX(-50%);
-          border-radius: 50%; background: var(--brass-2); box-shadow: 0 0 14px 4px rgba(197,160,106,0.7);
-          offset-path: path("M 0 0 V 400"); }
-        .st__flow-label { position: absolute; top: 50%; inset-inline-start: 50%; transform: translate(-50%,-50%) rotate(-90deg);
-          transform-origin: center; font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; white-space: nowrap;
-          color: rgba(251,247,240,0.4); background: var(--ink); padding: 0.3rem 0.1rem; transition: color .5s var(--ease); }
-        .st__flow-label.is-on { color: var(--brass-2); }
-        html[dir="rtl"] .st__flow-label { transform: translate(50%,-50%) rotate(90deg); }
-
-        /* TRACK */
+        /* RIGHT — Track */
         .st__track { display: flex; flex-direction: column; }
-        .st__card { position: relative; flex: 1; background: rgba(251,247,240,0.05);
-          border: 1px solid rgba(251,247,240,0.12); border-radius: 18px; padding: 1.4rem 1.5rem;
-          transition: border-color .6s var(--ease), box-shadow .6s var(--ease); }
-        .st__track.is-live .st__card { border-color: rgba(197,160,106,0.4); box-shadow: 0 0 0 1px rgba(197,160,106,0.15), 0 30px 70px -40px rgba(197,160,106,0.5); }
-        .st__card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.2rem; }
-        .st__card-title { font-family: var(--f-display); font-size: 1.12rem; color: var(--paper); }
-        .st__badge { flex: none; font-size: 0.64rem; letter-spacing: 0.04em; padding: 0.28em 0.75em; border-radius: 999px;
-          color: rgba(251,247,240,0.55); border: 1px solid rgba(251,247,240,0.2); transition: all .5s var(--ease); }
-        .st__badge.is-on { color: var(--brass-2); border-color: rgba(197,160,106,0.5); }
+        .st__card { flex: 1; background: rgba(251,247,240,0.05); border: 1px solid rgba(197,160,106,0.38);
+          border-radius: 20px; padding: 1.1rem 1.2rem 1.3rem;
+          box-shadow: 0 0 0 1px rgba(197,160,106,0.12), 0 40px 90px -50px rgba(197,160,106,0.5); }
+        .st__film { position: relative; margin: 0 0 1.2rem; border-radius: 14px; overflow: hidden;
+          aspect-ratio: 16/10; background: #0c0b09; border: 1px solid rgba(251,247,240,0.1); }
+        .st__film video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .st__film figcaption { position: absolute; left: 0; bottom: 0; right: 0; display: flex; align-items: center; gap: 0.5rem;
+          padding: 0.6rem 0.8rem; font-family: var(--f-sans); font-size: 0.7rem; letter-spacing: 0.05em;
+          text-transform: uppercase; color: rgba(251,247,240,0.9);
+          background: linear-gradient(transparent, rgba(8,6,4,0.78)); }
+        .st__card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-bottom: 1.1rem; }
+        .st__card-title { font-family: var(--f-display), Georgia, serif; font-size: 1.12rem; color: var(--paper); }
+        .st__badge { flex: none; font-family: var(--f-sans); font-size: 0.64rem; letter-spacing: 0.05em;
+          padding: 0.3em 0.8em; border-radius: 999px; color: var(--brass); border: 1px solid rgba(197,160,106,0.5); }
 
         .st__journey { list-style: none; margin: 0; padding: 0; }
-        .st__j { display: flex; gap: 0.85rem; align-items: flex-start; padding-bottom: 0.7rem; }
+        .st__j { display: flex; gap: 0.85rem; align-items: flex-start; padding-bottom: 0.65rem; }
         .st__j:last-child { padding-bottom: 0; }
         .st__j-rail { display: flex; flex-direction: column; align-items: center; align-self: stretch; }
         .st__j-dot { width: 17px; height: 17px; border-radius: 50%; flex: none; display: grid; place-items: center;
           font-size: 0.56rem; color: #fff; background: transparent; border: 1.5px solid rgba(251,247,240,0.22);
           transition: background .45s var(--ease), border-color .45s var(--ease); }
-        .st__j-line { width: 1.5px; flex: 1; min-height: 14px; margin-top: 2px; background: rgba(251,247,240,0.14); transition: background .45s var(--ease); }
-        .st__j-label { font-size: 0.9rem; color: rgba(251,247,240,0.45); padding-top: 1px; display: flex; align-items: center; gap: 0.5rem;
-          transition: color .45s var(--ease); }
+        .st__j-line { width: 1.5px; flex: 1; min-height: 13px; margin-top: 2px; background: rgba(251,247,240,0.14); transition: background .45s var(--ease); }
+        .st__j-label { font-family: var(--f-sans); font-size: 0.9rem; color: rgba(251,247,240,0.45); padding-top: 1px;
+          display: flex; align-items: center; gap: 0.5rem; transition: color .45s var(--ease); }
         .st__j.is-lit .st__j-dot { background: var(--clay); border-color: var(--clay); }
         .st__j.is-lit .st__j-line { background: var(--clay); }
         .st__j.is-lit .st__j-label { color: var(--paper); }
         .st__j.is-active .st__j-dot { background: var(--brass); border-color: var(--brass); }
         .st__j.is-active .st__j-label { font-weight: 600; }
 
-        .st__card-veil { position: absolute; inset: 0; border-radius: 18px; display: grid; place-items: center; text-align: center;
-          padding: 1.5rem; background: linear-gradient(rgba(18,17,13,0.62), rgba(18,17,13,0.82)); backdrop-filter: blur(1.5px); }
-        .st__card-veil span { font-size: 0.86rem; color: rgba(251,247,240,0.78); max-width: 22ch; line-height: 1.5; }
-        .st__note { display: block; margin-top: 0.9rem; text-align: center; font-size: 0.78rem; color: rgba(251,247,240,0.5); }
+        .st__dash { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1.3rem;
+          font-family: var(--f-sans); font-weight: 600; font-size: 0.88rem; color: var(--brass);
+          text-decoration: none; transition: gap .25s ease, color .25s ease; }
+        .st__dash:hover { gap: 0.75rem; color: var(--paper); }
 
-        /* CTA */
-        .st__cta { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; margin-top: clamp(2.4rem, 5vw, 3.6rem); }
-        .st__btn-solid { background: var(--brass-2); color: var(--ink); border-color: var(--brass-2); }
-        .st__btn-solid:hover { transform: translateY(-2px); filter: brightness(1.05); }
-        .st__btn-ghost { background: transparent; color: var(--paper); border-color: rgba(251,247,240,0.32); }
-        .st__btn-ghost:hover { background: rgba(251,247,240,0.08); border-color: var(--paper); }
-
-        @media (max-width: 960px) {
-          .st__stage { grid-template-columns: 1fr; gap: 2rem; }
-          .st__flow { width: 100%; height: 56px; }
-          .st__flow-line { inset-inline: 0; inset-block: auto; top: 50%; height: 2px; width: auto; transform: translateY(-50%);
-            background: linear-gradient(90deg, transparent, rgba(197,160,106,0.35), transparent); }
-          .st__flow-spark { offset-path: path("M 0 0 H 400"); top: 50%; inset-inline-start: 0; transform: translateY(-50%); }
-          .st__flow-label { transform: translate(-50%,-50%) !important; }
-          .st__steps { margin-top: 1.6rem; }
+        @media (max-width: 900px) {
+          .st__grid { grid-template-columns: 1fr; gap: 2.4rem; }
+          .st__cta { margin-top: 1.6rem; }
         }
-        @media (prefers-reduced-motion: reduce) { .st__scan, .st__flow-spark { animation: none; } }
+        @media (prefers-reduced-motion: reduce) {
+          .st__film video { /* still frame via poster */ }
+        }
       `}</style>
     </section>
   );
@@ -364,7 +283,7 @@ function LiveDot() {
 
 function PlanIcon() {
   return (
-    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--brass-2)" strokeWidth="1.2" strokeLinejoin="round" aria-hidden>
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.3" strokeLinejoin="round" aria-hidden>
       <rect x="3" y="3" width="18" height="18" rx="1.5" />
       <path d="M3 10h7M10 3v7M10 14v7M14 14h7" />
     </svg>
