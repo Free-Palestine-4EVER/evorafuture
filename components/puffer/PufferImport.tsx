@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useStudio } from "@/lib/puffer/store";
 import { setImportLead } from "@/lib/puffer/importBridge";
 import { scanToProject, type ScanFile } from "@/lib/puffer/importScan";
+import { interactionsToScan, type SplatDetections } from "@/lib/puffer/splatScan";
 
 type Lead = { id: string; name: string; phone: string; planUrl?: string; sentToPuffer?: boolean; message?: string };
 type ScanProject = { id: string; title: string; ownerName?: string; ownerPhone: string; thumbnailUrl?: string; scanData?: string; sentToPuffer?: boolean };
@@ -85,6 +86,33 @@ export default function PufferImport() {
     finally { setBusy(false); }
   }
 
+  async function loadSplatDetections(det: SplatDetections) {
+    setBusy(true);
+    try {
+      // splat_analyzer 3D boxes → ScanFile → walls + true-size furniture slots
+      loadProject(scanToProject(interactionsToScan(det, { walls: true })));
+      setOpen(false);
+    } catch (e) { console.error("splat import failed", e); }
+    finally { setBusy(false); }
+  }
+  async function loadSplatDemo() {
+    try {
+      const det: SplatDetections = await fetch("/puffer/room-splat.json", { cache: "no-store" }).then((r) => r.json());
+      await loadSplatDetections(det);
+    } catch (e) { console.error("splat demo failed", e); }
+  }
+  function onSplatFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { loadSplatDetections(JSON.parse(String(reader.result)) as SplatDetections); }
+      catch (err) { console.error("bad detection file", err); }
+    };
+    reader.readAsText(f);
+    e.target.value = "";
+  }
+
   async function importPlan(l: Lead) {
     if (!l.planUrl) return;
     setBusy(true);
@@ -134,6 +162,25 @@ export default function PufferImport() {
               </div>
             ))}
           </div>
+
+          {/* Gaussian splat scan → furniture via splat_analyzer (local, no API) */}
+          <p className="mb-2 flex items-center gap-1.5 border-t border-neutral-800 pt-3 text-[11px] uppercase tracking-wide text-neutral-400">
+            <span className="text-violet-400">✦</span> Gaussian splat scan
+          </p>
+          <button
+            data-testid="demo-splat"
+            disabled={busy}
+            onClick={loadSplatDemo}
+            className="mb-2 w-full rounded-md border border-dashed border-violet-700 bg-violet-950/40 px-2 py-1.5 text-[11px] font-medium text-violet-300 hover:bg-violet-900/40 disabled:opacity-50">
+            ▶ Load splat scan (room demo)
+          </button>
+          <label className={`mb-2 block w-full cursor-pointer rounded-md border border-neutral-800 px-2 py-1.5 text-center text-[11px] font-medium text-neutral-300 hover:bg-neutral-900 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+            ⬆ Upload detection (interactions.json)
+            <input type="file" accept="application/json,.json" className="hidden" onChange={onSplatFile} />
+          </label>
+          <p className="mb-3 text-[11px] leading-snug text-neutral-500">
+            From <span className="text-neutral-400">splat_analyzer</span>: a Gaussian-splat room → furniture boxes. Detection sets the type + spot; Puffer keeps each piece&apos;s true mm size.
+          </p>
 
           <p className="mb-2 border-t border-neutral-800 pt-3 text-[11px] uppercase tracking-wide text-neutral-400">Client 2D plans to import</p>
           {items.length === 0 && <p className="text-xs text-neutral-500">No requests sent from the admin yet.</p>}
