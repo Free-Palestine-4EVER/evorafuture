@@ -14,6 +14,24 @@ type ScanProject = { id: string; title: string; ownerName?: string; ownerPhone: 
 function portalBase() {
   return typeof window === "undefined" ? "" : window.location.origin;
 }
+
+// A built-in sample LiDAR scan (a 4×3 m room with a few pieces) so Puffer import
+// can be demoed without running the iOS app. Same shape the app produces.
+const DEMO_SCAN: ScanFile = {
+  version: 1, units: "m",
+  walls: [
+    { x1: 0, z1: 0, x2: 4, z2: 0, height: 2.7 },
+    { x1: 4, z1: 0, x2: 4, z2: 3, height: 2.7 },
+    { x1: 4, z1: 3, x2: 0, z2: 3, height: 2.7 },
+    { x1: 0, z1: 3, x2: 0, z2: 0, height: 2.7 },
+  ],
+  objects: [
+    { type: "sofa", cx: 2, cz: 2.55, w: 2.0, d: 0.9, h: 0.85, angle: 0 },
+    { type: "table", cx: 2, cz: 1.4, w: 1.2, d: 0.7, h: 0.45, angle: 0 },
+    { type: "chair", cx: 3.3, cz: 1.4, w: 0.6, d: 0.6, h: 0.9, angle: 0 },
+    { type: "tv", cx: 2, cz: 0.12, w: 1.2, d: 0.1, h: 0.7, angle: 0 },
+  ],
+};
 function imgDims(url: string): Promise<{ w: number; h: number }> {
   return new Promise((res) => {
     const im = new Image(); im.crossOrigin = "anonymous";
@@ -93,6 +111,13 @@ export default function PufferImport() {
           <p className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-neutral-400">
             <span className="text-sky-400">◳</span> LiDAR room scans
           </p>
+          <button
+            data-testid="demo-scan"
+            disabled={busy}
+            onClick={() => { loadProject(scanToProject(DEMO_SCAN)); setOpen(false); }}
+            className="mb-2 w-full rounded-md border border-dashed border-sky-700 bg-sky-950/40 px-2 py-1.5 text-[11px] font-medium text-sky-300 hover:bg-sky-900/40 disabled:opacity-50">
+            ▶ Load demo scan (no app needed)
+          </button>
           {scans.length === 0 && <p className="mb-3 text-xs text-neutral-500">No room scans yet. Scan a room in the Evora app.</p>}
           <div className="mb-3 max-h-56 space-y-2 overflow-auto">
             {scans.map((p) => (
