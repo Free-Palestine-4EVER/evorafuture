@@ -116,6 +116,17 @@ export async function createClient(phone: string, name: string, password: string
 
 // ---- leads ----------------------------------------------------------------
 
+// Upload a data-URL (e.g. an uploaded floor plan) and get back a served URL.
+export async function uploadDataUrl(dataUrl: string): Promise<string> {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.*)$/);
+  if (!m) return dataUrl;
+  const mime = m[1];
+  const ext = mime.includes("svg") ? "svg" : mime.includes("png") ? "png" : mime.includes("jpeg") || mime.includes("jpg") ? "jpg" : mime.includes("webp") ? "webp" : mime.includes("pdf") ? "pdf" : "bin";
+  const r = await post("upload", { ext, dataBase64: m[2] });
+  if (!r.ok) return dataUrl;
+  return (await r.json()).url || dataUrl;
+}
+
 export async function listLeads(): Promise<Lead[]> { return getJSON("leads"); }
 export async function createLead(name: string, phone: string, message?: string, planUrl?: string): Promise<Lead> {
   return (await post("leads", { name, phone, message, planUrl })).json();

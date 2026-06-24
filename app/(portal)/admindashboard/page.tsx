@@ -114,7 +114,13 @@ export default function AdminPage() {
                   </div>
                   <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
                   {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
-                  {l.planUrl && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--ink-faint)" }}>View attached plan →</a>}
+                  {l.planUrl && !l.planUrl.endsWith(".pdf") && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: "0.5rem" }}>
+                      <img src={l.planUrl} alt="attached plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} />
+                    </a>
+                  )}
+                  {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay)", display: "inline-block", marginTop: "0.4rem" }}>View attached plan (PDF) →</a>}
                 </div>
                 <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                   {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (

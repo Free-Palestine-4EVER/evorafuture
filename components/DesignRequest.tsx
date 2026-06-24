@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
-import { createLead } from "@/lib/portal/store";
+import { createLead, uploadDataUrl } from "@/lib/portal/store";
 
 const T = {
   eyebrow: { en: "Start your future home", ar: "ابدأ منزل المستقبل" },
@@ -43,8 +43,12 @@ export default function DesignRequest() {
     e.preventDefault();
     if (!phone.trim()) return;
     setBusy(true);
-    try { await createLead(name.trim(), phone.trim(), message.trim(), planUrl); setDone(true); }
-    finally { setBusy(false); }
+    try {
+      // Upload the plan so it's a served URL (a data-URL link is blocked by browsers).
+      const served = planUrl.startsWith("data:") ? await uploadDataUrl(planUrl) : planUrl;
+      await createLead(name.trim(), phone.trim(), message.trim(), served);
+      setDone(true);
+    } finally { setBusy(false); }
   }
 
   const field: React.CSSProperties = {
