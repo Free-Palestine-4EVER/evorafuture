@@ -1,0 +1,27 @@
+EVORA — Kitchen island configurator: how to add your variant images
+====================================================================
+
+1. Put your full-scene images (the same kitchen frame, different table/stone
+   color) into THIS folder:  public/evora/configurator/
+
+2. Name each file exactly like the `image` field in  lib/configurator.ts :
+      surface-calacatta-gold.webp
+      surface-emperador.webp
+      surface-nero-marquina.webp
+      surface-verde-alpi.webp
+      surface-travertine.webp
+   (base.webp is already the last frame of the video = the default look.)
+
+3. Want different/more options or different names? Just edit the SURFACES list
+   in  lib/configurator.ts  — each entry is { id, label EN/AR, swatch color, image }.
+   Add as many as you like; the swatches appear automatically.
+
+4. Recommended: 1920x1080, exact same camera as base.webp, .webp (or .jpg/.png).
+
+Notes
+-----
+• Any variant whose file is missing just shows the base render — nothing breaks
+  while you’re still adding images.
+• There’s also a "＋" upload chip in the live UI to preview a local image instantly
+  (that one is preview-only / not saved).
+• Page: /configurator  (scroll down — the video scrubs, then the stone picker reveals)

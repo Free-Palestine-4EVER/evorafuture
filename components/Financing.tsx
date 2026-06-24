@@ -65,11 +65,15 @@ export default function Financing() {
               {/* big brass stat */}
               <Rise delay={0.3}>
                 <div className="fin-stat">
-                  <CountUp value="36" className="fin-stat-num" />
+                  <span className="fin-stat-upto">{ar ? "حتى" : "up to"}</span>
+                  <CountUp value="24" className="fin-stat-num" />
                   <span className="fin-stat-unit">
                     {ar ? "شهرًا" : "months"}
                   </span>
                 </div>
+                <p className="fin-stat-cap">
+                  {ar ? "بدون فوائد · بنفس سعر الكاش" : "Interest-free · at the same cash price"}
+                </p>
               </Rise>
 
               {/* the three financing points — diamond-marked list */}
@@ -214,8 +218,10 @@ export default function Financing() {
           line-height: 0.92;
         }
         html[dir="rtl"] .fin-stat { font-family: var(--font-ar); font-weight: 600; }
+        .fin-stat-upto { font-size: clamp(1rem, 2vw, 1.4rem); color: rgba(197,160,106,0.7); align-self: flex-start; margin-top: 0.4rem; }
         .fin-stat-num { font-size: clamp(3.4rem, 8vw, 5.2rem); }
         .fin-stat-unit { font-size: clamp(1.2rem, 2.6vw, 1.8rem); color: rgba(197,160,106,0.78); }
+        .fin-stat-cap { margin: 0.55rem 0 0; font-size: 0.82rem; letter-spacing: 0.02em; color: rgba(251,247,240,0.6); }
 
         /* points list */
         .fin-list {

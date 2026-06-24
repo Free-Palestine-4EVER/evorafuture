@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
 import Nav from "@/components/Nav";
-import CatalogBook from "@/components/CatalogBook";
-import Footer from "@/components/Footer";
+import LookbookApp from "@/components/lookbook/LookbookApp";
 
 export const metadata: Metadata = {
   title: "The Lookbook — Evora Future Home | Khalda, Amman",
   description:
-    "Browse the Evora 2026 lookbook — an interactive page-flip catalogue of bedrooms, living, sofas, dining and signature pieces.",
+    "Browse the ARGOS · Interior Design by Evora lookbook — a 31-page book of bedrooms, dressing rooms, majlis, dining and lounges, in three interactive views: Book, Reel and Gallery.",
 };
 
 export default function CatalogPage() {
   return (
     <main>
       <Nav pinnedSolid />
-      <CatalogBook />
-      <Footer />
+      <LookbookApp />
     </main>
   );
 }

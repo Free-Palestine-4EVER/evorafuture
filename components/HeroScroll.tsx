@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 
-// frame count + scroll length per hero film. Film "c" is a 60fps walk-through
-// (450 frames) so it gets a longer scrub to keep the motion buttery.
-const FRAME_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 718 };
-const SCROLL_VH: Record<HeroVariant, number> = { a: 500, b: 500, c: 760 };
+// frame count + scroll length per hero film. Film "c" is the new full-quality
+// walk-through: every native frame of the source clip (1920x1080 WebP), given a
+// long scrub so the motion stays buttery on scroll.
+const FRAME_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
+const SCROLL_VH: Record<HeroVariant, number> = { a: 500, b: 500, c: 600 };
 const pad = (n: number) => String(n).padStart(4, "0");
 
 export type HeroVariant = "a" | "b" | "c";
@@ -200,6 +201,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         />
         {!ready && <img src={frameSrc(1)} alt="" className="hs__poster" aria-hidden />}
         <div className="hs__scrim" />
+        <div className="hs__left" />
         <div className="hero__top" />
 
         <div ref={copyRef} className="hs__copy">
@@ -302,6 +304,9 @@ const heroCss = `
       linear-gradient(100deg, rgba(13,11,9,0.44) 0%, rgba(13,11,9,0.20) 24%, rgba(13,11,9,0.03) 48%, rgba(13,11,9,0) 66%),
       linear-gradient(0deg, rgba(8,6,4,0.26) 0%, rgba(8,6,4,0) 26%); }
   .hs--c .hero__top { height: 130px; background: linear-gradient(rgba(8,6,4,0.28), transparent); }
+  /* a little extra black overlay on the left edge */
+  .hs__left { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(90deg, rgba(8,6,4,0.6) 0%, rgba(8,6,4,0.3) 14%, rgba(8,6,4,0) 34%); }
   .hs--c .hero__title { text-shadow: 0 2px 22px rgba(8,6,4,0.7), 0 1px 4px rgba(8,6,4,0.45); }
   .hs--c .hero__sub { text-shadow: 0 1px 16px rgba(8,6,4,0.7), 0 1px 3px rgba(8,6,4,0.5); }
   .hs--c .hero__meta { color: rgba(251,247,240,0.85); text-shadow: 0 1px 8px rgba(8,6,4,0.6); }

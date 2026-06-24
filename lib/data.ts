@@ -165,34 +165,34 @@ export const stats: { value: string; label: "stat_homes" | "stat_followers" | "s
 export const processSteps: { n: string; title: Bi; body: Bi }[] = [
   {
     n: "01",
-    title: { en: "Consultation", ar: "الاستشارة" },
+    title: { en: "Your 2D blueprint", ar: "مخططك ثنائي الأبعاد" },
     body: {
-      en: "We visit, measure and listen — understanding how you live before we propose a single piece.",
-      ar: "نزورك، نقيس، ونستمع — نفهم أسلوب حياتك قبل أن نقترح أي قطعة.",
+      en: "You reach us with a bare floor plan — walls, rooms, dimensions. No furniture yet, just your empty space.",
+      ar: "تصل إلينا بمخطط فارغ — جدران وغرف وأبعاد. لا أثاث بعد، فقط مساحتك الفارغة.",
     },
   },
   {
     n: "02",
-    title: { en: "Design & 3D", ar: "التصميم والـ ٣D" },
+    title: { en: "Furnished in 2D", ar: "نؤثّثه ثنائيًا" },
     body: {
-      en: "Our studio returns a full concept — 3D visuals, materials and a fixed, transparent quote.",
-      ar: "يعيد لك الاستوديو تصميمًا كاملًا — مشاهد ثلاثية الأبعاد، مواد، وعرض سعر ثابت وواضح.",
+      en: "Our studio lays out the furniture on your plan — every piece placed and scaled to fit how you live.",
+      ar: "يوزّع الاستوديو الأثاث على مخططك — كل قطعة موضوعة ومقاسة لتناسب أسلوب حياتك.",
     },
   },
   {
     n: "03",
-    title: { en: "Crafted to order", ar: "يُصنع حسب الطلب" },
+    title: { en: "Brought to life in 3D", ar: "نحييه ثلاثي الأبعاد" },
     body: {
-      en: "Each piece is built and finished to order, quality-checked by hand at every stage.",
-      ar: "تُصنع كل قطعة وتُشطّب حسب الطلب، مع فحص يدوي للجودة في كل مرحلة.",
+      en: "We rebuild the furnished plan in interactive 3D — walk every room and see the pieces from any angle.",
+      ar: "نعيد بناء المخطط المؤثّث بثلاثية أبعاد تفاعلية — تجوّل في كل غرفة وشاهد القطع من أي زاوية.",
     },
   },
   {
     n: "04",
-    title: { en: "Delivered & styled", ar: "توصيل وتنسيق" },
+    title: { en: "Photoreal render to confirm", ar: "عرض واقعي للتأكيد" },
     body: {
-      en: "White-glove delivery — we carry, place and style every piece, then clear everything away.",
-      ar: "توصيل بعناية فائقة — نحمل ونضع وننسّق كل قطعة، ثم نرتّب ونغادر.",
+      en: "A photoreal render of the final look for your sign-off — once you approve, we start producing.",
+      ar: "عرض واقعي للمظهر النهائي لاعتماده — بمجرد موافقتك، نبدأ الإنتاج.",
     },
   },
 ];

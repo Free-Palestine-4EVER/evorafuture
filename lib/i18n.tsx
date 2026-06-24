@@ -127,8 +127,8 @@ export const STR = {
   design_before: { en: "Concept", ar: "التصميم" },
   design_after: { en: "Delivered", ar: "التنفيذ" },
 
-  services_eyebrow: { en: "Evora Promise", ar: "وعد إيفورا" },
-  services_title: { en: "More than a showroom", ar: "أكثر من مجرد معرض" },
+  services_eyebrow: { en: "More than a showroom", ar: "أكثر من مجرد معرض" },
+  services_title: { en: "One studio — from your idea to delivery", ar: "استوديو واحد — من فكرتك حتى التسليم" },
 
   visit_eyebrow: { en: "Visit Us", ar: "زورونا" },
   visit_title: { en: "Come find your space", ar: "تعال واكتشف مساحتك" },
@@ -164,7 +164,7 @@ export const STR = {
   },
 
   fin_eyebrow: { en: "Pay Your Way", ar: "ادفع بطريقتك" },
-  fin_title: { en: "Cash price. Up to 3 years to pay.", ar: "بسعر الكاش. وتقسيط حتى ٣ سنوات." },
+  fin_title: { en: "Cash price. Up to 2 years to pay.", ar: "بسعر الكاش. وتقسيط حتى سنتين." },
   fin_body: {
     en: "Furnish now and spread the cost with comfortable installments through Safwa Islamic Bank — at the same cash price, with no hidden cost.",
     ar: "أثّث الآن وقسّط التكلفة بمرونة عبر بنك صفوة الإسلامي — بنفس سعر الكاش، وبدون أي تكلفة خفية.",
