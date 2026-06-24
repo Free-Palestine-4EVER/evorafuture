@@ -80,8 +80,8 @@ export const STR = {
   hero_l2: { en: "beautifully", ar: "بكل" },
   hero_l3: { en: "furnished.", ar: "تفاصيله." },
   hero_sub: {
-    en: "Your home for furniture & beyond — every room, every detail, designed and delivered under one roof.",
-    ar: "وجهتك للأثاث وأكثر — كل غرفة، كل تفصيل، نصمّمه ونوصّله تحت سقف واحد.",
+    en: "See your home in 3D before it's built — then we design, craft and deliver every room. All under one roof in Amman.",
+    ar: "شاهد منزلك ثلاثي الأبعاد قبل أن يُبنى — ثم نصمّم ونصنع ونوصّل كل غرفة. كل ذلك تحت سقف واحد في عمّان.",
   },
   hero_cta1: { en: "Explore the Collection", ar: "اكتشف المجموعة" },
   hero_cta2: { en: "Enter the Showroom", ar: "ادخل المعرض" },
@@ -89,8 +89,8 @@ export const STR = {
 
   manifesto_eyebrow: { en: "Your Future Home", ar: "بيت المستقبل" },
   manifesto_lead: {
-    en: "We don't just sell furniture. We compose spaces — warm woods, soft tones, and quiet luxury, brought together for the way you actually live.",
-    ar: "نحن لا نبيع الأثاث فحسب. نحن نصمّم المساحات — أخشاب دافئة، ألوان ناعمة، وفخامة هادئة، مجتمعة لتناسب أسلوب حياتك.",
+    en: "We don't just sell furniture — we design the whole space. Warm woods, soft tones and quiet luxury, composed in 3D for the way you actually live.",
+    ar: "نحن لا نبيع الأثاث فحسب — نصمّم المساحة بأكملها. أخشاب دافئة، ألوان ناعمة، وفخامة هادئة، مُصمَّمة ثلاثية الأبعاد لتناسب أسلوب حياتك.",
   },
   manifesto_body: {
     en: "From a single statement piece to a fully designed home, Evora brings together craftsmanship, comfort and care — with flexible installments and a design team that sees it through, from concept to delivery.",
