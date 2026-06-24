@@ -53,7 +53,8 @@ export interface Project {
   plan2dUrl?: string;     // the original 2D floor plan image
   model3dUrl?: string;    // .glb produced by Puffer / live scan (for <model-viewer>)
   viewerUrl?: string;     // hosted Puffer 3D viewer link (iframe)
-  scanData?: string;      // JSON ScanFile from the live web scanner (re-editable)
+  scanData?: string;      // JSON ScanFile from the live web scanner / LiDAR app (re-editable)
+  sentToPuffer?: boolean;  // a LiDAR scan the app/admin queued for the Puffer designer
   notes?: string;
   approvedByClient?: boolean;
   // Journey: current stage key (see lib/portal/journey.ts) + posted updates.
