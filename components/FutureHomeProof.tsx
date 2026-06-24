@@ -143,13 +143,16 @@ export default function FutureHomeProof() {
           {/* tall walnut detail beside the quotes */}
           <Rise className="fh__voicesfig">
             <figure className="fh__figframe">
-              <img src="/evora/p10.jpg" alt="" />
+              <img src="/evora/p02.jpg" alt="" />
               <figcaption>{ar ? "صُمّم وسُلّم · عمّان" : "Designed & delivered · Amman"}</figcaption>
             </figure>
           </Rise>
 
           <div className="fh__voicescol">
-            <Rise as="h3" className="display fh__voicestitle">
+            <Rise as="span" className="eyebrow fh__voiceseyebrow">
+              {ar ? "محبوبون في عمّان" : "Loved across Amman"}
+            </Rise>
+            <Rise as="h3" delay={0.05} className="display fh__voicestitle">
               {ar ? "بكلماتهم" : "In their words"}
             </Rise>
             <Stagger className="fh__qlist" gap={0.12} delay={0.05}>
@@ -253,7 +256,11 @@ export default function FutureHomeProof() {
           background: linear-gradient(transparent, rgba(16,15,13,0.78)); }
         html[dir="rtl"] .fh__figframe figcaption { letter-spacing: 0.06em; }
 
-        .fh__voicestitle { color: var(--ink); font-size: clamp(1.7rem, 3vw, 2.4rem); font-weight: 380; margin: 0 0 1.8rem; }
+        .fh__voiceseyebrow { display: block; color: var(--brass); margin-bottom: 0.7rem; }
+        .fh__voicestitle { color: var(--ink); font-size: clamp(1.9rem, 3.4vw, 2.8rem); font-weight: 380; margin: 0 0 1.8rem; letter-spacing: -0.01em; }
+        .fh__quote::before { content: "\\201C"; position: absolute; top: 0.2rem; inset-inline-end: clamp(1rem, 2vw, 1.6rem);
+          font-family: var(--font-display); font-size: clamp(3.4rem, 6vw, 5rem); line-height: 1; color: var(--brass);
+          opacity: 0.16; pointer-events: none; }
         .fh__qlist { display: flex; flex-direction: column; gap: clamp(1.2rem, 2.4vw, 1.8rem); }
         .fh__quote { position: relative; margin: 0; padding: clamp(1.4rem, 2.6vw, 2rem); border-radius: 16px;
           background: rgba(255,255,255,0.6); border: 1px solid color-mix(in srgb, var(--brass) 26%, transparent);

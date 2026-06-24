@@ -26,18 +26,21 @@ export default function Visit() {
       label: en ? "The Showroom" : "المعرض",
       value: t("visit_addr"),
       sub: en ? "By appointment & walk-in" : "بموعد أو زيارة مباشرة",
+      href: MAPS_DIR,
     },
     {
       n: "02",
       label: en ? "Opening Hours" : "ساعات العمل",
       value: t("visit_hours"),
       sub: en ? "Friday — by appointment" : "الجمعة — بموعد مسبق",
+      href: undefined as string | undefined,
     },
     {
       n: "03",
       label: en ? "Find Us" : "تابعونا",
       value: "@evorafuturehome",
       sub: en ? "Follow us on Instagram" : "تابعونا على إنستغرام",
+      href: "https://instagram.com/evorafuturehome",
     },
   ];
 
@@ -126,16 +129,38 @@ export default function Visit() {
 
         {/* details strip under the unified stage */}
         <ul className="vst__details">
-          {registry.map((r) => (
-            <li className="vst__entry" key={r.n}>
-              <span className="vst__n">{r.n}</span>
-              <span className="vst__entry-body">
-                <span className="vst__label">{r.label}</span>
-                <span className="vst__value">{r.value}</span>
-                <span className="vst__sub">{r.sub}</span>
-              </span>
-            </li>
-          ))}
+          {registry.map((r) => {
+            const inner = (
+              <>
+                <span className="vst__n">{r.n}</span>
+                <span className="vst__entry-body">
+                  <span className="vst__label">{r.label}</span>
+                  <span className="vst__value">{r.value}</span>
+                  <span className="vst__sub">
+                    {r.sub}
+                    {r.href && <span className="vst__go" aria-hidden> ↗</span>}
+                  </span>
+                </span>
+              </>
+            );
+            return (
+              <li className="vst__entry" key={r.n}>
+                {r.href ? (
+                  <a
+                    className="vst__entry-in vst__entry-in--link"
+                    href={r.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor="hover"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <div className="vst__entry-in">{inner}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
@@ -229,10 +254,11 @@ export default function Visit() {
         .vst__entry:first-child { padding-top: 0; }
         .vst__n {
           font-family: var(--font-display);
-          font-size: 0.92rem;
+          font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+          line-height: 1;
           color: var(--brass);
-          padding-top: 0.35rem;
-          letter-spacing: 0.04em;
+          padding-top: 0.1rem;
+          letter-spacing: 0.02em;
         }
         .vst__entry-body { display: flex; flex-direction: column; gap: 0.3rem; }
         .vst__label {
@@ -353,17 +379,36 @@ export default function Visit() {
 
         /* details strip under the stage */
         .vst__details {
-          list-style: none; margin: clamp(1.8rem,3.5vw,2.6rem) 0 0; padding: clamp(1.7rem,3vw,2.2rem) 0 0;
-          display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.4rem, 3vw, 3rem);
+          list-style: none; margin: clamp(1.8rem,3.5vw,2.6rem) 0 0; padding: clamp(1.4rem,3vw,2rem) 0 0;
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.4rem, 1.2vw, 1.2rem);
           border-top: 1px solid var(--line);
         }
         .vst__details .vst__entry { padding: 0; }
+        .vst__entry-in {
+          display: grid; grid-template-columns: auto 1fr; align-items: start;
+          gap: clamp(0.9rem, 1.8vw, 1.5rem); height: 100%;
+          padding: clamp(1rem, 1.8vw, 1.5rem) clamp(0.9rem, 1.6vw, 1.4rem);
+          border-radius: 8px;
+          transition: background 0.4s var(--ease), transform 0.4s var(--ease);
+        }
+        a.vst__entry-in--link:hover { background: rgba(138,106,60,0.07); transform: translateY(-3px); }
+        .vst__entry + .vst__entry .vst__entry-in { position: relative; }
+        .vst__entry + .vst__entry .vst__entry-in::before {
+          content: ""; position: absolute; inset-inline-start: calc(-1 * clamp(0.2rem, 0.6vw, 0.6rem));
+          top: 14%; bottom: 14%; width: 1px; background: var(--line);
+        }
+        .vst__go { color: var(--brass); display: inline-block; transition: transform 0.4s var(--ease); }
+        html[dir="rtl"] .vst__go { transform: scaleX(-1); }
+        a.vst__entry-in--link:hover .vst__go { transform: translate(2px, -2px); }
+        html[dir="rtl"] a.vst__entry-in--link:hover .vst__go { transform: translate(-2px, -2px) scaleX(-1); }
 
         @media (max-width: 860px) {
           .vst__stage { grid-template-columns: 1fr; }
           .vst__stage > * { min-height: 0; }
           .vst__store { aspect-ratio: 16 / 11; }
-          .vst__details { grid-template-columns: 1fr; gap: 1.2rem; }
+          .vst__details { grid-template-columns: 1fr; gap: 0.4rem; }
+          .vst__entry + .vst__entry .vst__entry-in::before { display: none; }
+          .vst__entry + .vst__entry .vst__entry-in { border-top: 1px solid var(--line); }
         }
 
         /* ── map plate ── */
