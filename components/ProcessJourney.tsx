@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { processSteps } from "@/lib/data";
 import { JOURNEY } from "@/lib/portal/journey";
 import { Rise, motion } from "@/components/motion";
+import PlanToHome from "@/components/PlanToHome";
 
 /* Public "How Evora works" story: the exact client journey — a bare 2D plan,
  * furnished in 2D, rebuilt in 3D, rendered photoreal for sign-off, then built
@@ -39,24 +40,29 @@ export default function ProcessJourney() {
 
   return (
     <section dir={dir} style={{ position: "relative", paddingTop: "clamp(4rem,9vw,7rem)" }}>
-      {/* Header */}
-      <header className="container" style={{ maxWidth: "56ch" }}>
-        <Rise>
-          <span className="eyebrow" style={{ color: "var(--brass)" }}>
-            {ar ? "كيف تعمل إيفورا" : "How Evora works"}
-          </span>
+      {/* Header — text LEFT, animated 2D→3D plan RIGHT */}
+      <div className="container pj-intro">
+        <header className="pj-intro-text">
+          <Rise>
+            <span className="eyebrow" style={{ color: "var(--brass)" }}>
+              {ar ? "كيف تعمل إيفورا" : "How Evora works"}
+            </span>
+          </Rise>
+          <Rise delay={0.06} as="h2" className="display"
+            style={{ fontSize: "clamp(2.2rem,5vw,4rem)", lineHeight: 1.06, fontWeight: 360, margin: "1.1rem 0 0", color: "var(--ink)" }}>
+            {ar ? "من مخطط مسطّح إلى منزلك المكتمل" : "From a flat plan to your finished home"}
+          </Rise>
+          <Rise delay={0.12} as="p"
+            style={{ maxWidth: "52ch", marginTop: "1.5rem", color: "var(--ink-soft)", fontSize: "1.05rem", lineHeight: 1.7 }}>
+            {ar
+              ? "أربع خطوات تصميم تحوّل مخططك الفارغ إلى تصميم تعتمده — ثم نصنعه بينما تتابع كل مرحلة مباشرةً من لوحتك."
+              : "Four design steps turn your empty plan into a look you approve — then we build it while you follow every stage live from your dashboard."}
+          </Rise>
+        </header>
+        <Rise delay={0.1} className="pj-intro-visual">
+          <PlanToHome />
         </Rise>
-        <Rise delay={0.06} as="h2" className="display"
-          style={{ fontSize: "clamp(2.2rem,5.5vw,4.4rem)", lineHeight: 1.06, fontWeight: 360, margin: "1.1rem 0 0", color: "var(--ink)" }}>
-          {ar ? "من مخطط مسطّح إلى منزلك المكتمل" : "From a flat plan to your finished home"}
-        </Rise>
-        <Rise delay={0.12} as="p"
-          style={{ maxWidth: "54ch", marginTop: "1.5rem", color: "var(--ink-soft)", fontSize: "1.05rem", lineHeight: 1.7 }}>
-          {ar
-            ? "أربع خطوات تصميم تحوّل مخططك الفارغ إلى تصميم تعتمده — ثم نصنعه بينما تتابع كل مرحلة مباشرةً من لوحتك."
-            : "Four design steps turn your empty plan into a look you approve — then we build it while you follow every stage live from your dashboard."}
-        </Rise>
-      </header>
+      </div>
 
       {/* ---- Swap-column region ---- */}
       <div className="pj-swap container" style={{ position: "relative", marginTop: "clamp(2rem,5vw,4rem)" }}>
@@ -114,6 +120,17 @@ export default function ProcessJourney() {
       </div>
 
       <style>{`
+        .pj-intro {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+          gap: clamp(2rem, 5vw, 5rem);
+          align-items: center;
+        }
+        .pj-intro-text { max-width: 52ch; }
+        .pj-intro-visual { width: 100%; }
+        @media (max-width: 860px) {
+          .pj-intro { grid-template-columns: 1fr; gap: 2.2rem; }
+        }
         .pj-sticky {
           pointer-events: none;
           position: sticky; top: 0; z-index: 2;

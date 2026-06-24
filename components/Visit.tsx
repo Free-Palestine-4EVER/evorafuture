@@ -1,9 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n";
-import { Rise, RevealLines, Magnetic, motion } from "@/components/motion";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
+import { Rise, RevealLines, Magnetic } from "@/components/motion";
 // Evora Future Home — Wasfi Al-Tal St., Khalda, Amman
 const MAPS_DIR =
   "https://www.google.com/maps/dir/?api=1&destination=Evora+Future+Home%2C+Wasfi+Al-Tal+St%2C+Khalda%2C+Amman";
@@ -60,78 +58,42 @@ export default function Visit() {
           </Rise>
         </div>
 
-        {/* ── real storefront, cinematic banner ── */}
-        <Rise delay={0.05} className="vst__store">
-          <img
-            src="/evora/storefront.webp"
-            alt={en ? "Evora Future Home showroom — Khalda, Amman" : "معرض إيفورا فيوتشر هوم — خلدا، عمّان"}
-            className="vst__store-img"
-            loading="lazy"
-          />
-          <span className="vst__store-overlay" aria-hidden />
-          <span className="vst__store-grain" aria-hidden />
-          <div className="vst__store-cap">
-            <span className="vst__store-badge">{en ? "Our Showroom" : "معرضنا"}</span>
-            <span className="display vst__store-name">Evora Future Home</span>
-            <span className="vst__store-addr">
-              {en ? "Wasfi Al-Tal St · Khalda · Amman" : "شارع وصفي التل · خلدا · عمّان"}
-            </span>
-          </div>
-          <a
-            href={MAPS_DIR}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="vst__store-dir"
-          >
-            {en ? "Get directions" : "احصل على الاتجاهات"} <span aria-hidden>↗</span>
-          </a>
-        </Rise>
-
-        <div className="vst__grid">
-          {/* ── engraved card ── */}
-          <div className="vst__card">
-            <span className="vst__corner vst__corner--tl" aria-hidden />
-            <span className="vst__corner vst__corner--br" aria-hidden />
-
-            <RevealLines
-              lines={lines(t("visit_title"))}
-              className="display vst__title"
-              delay={0.08}
+        {/* ── ONE section: storefront photo (with the title on it) + live map ── */}
+        <div className="vst__stage">
+          {/* photo with "Come find your space" overlaid */}
+          <Rise className="vst__store">
+            <img
+              src="/evora/storefront.webp"
+              alt={en ? "Evora Future Home showroom — Khalda, Amman" : "معرض إيفورا فيوتشر هوم — خلدا، عمّان"}
+              className="vst__store-img"
+              loading="lazy"
             />
-
-            <ul className="vst__registry">
-              {registry.map((r, i) => (
-                <li className="vst__entry" key={r.n}>
-                  <span className="vst__n">{r.n}</span>
-                  <span className="vst__entry-body">
-                    <span className="vst__label">{r.label}</span>
-                    <span className="vst__value">{r.value}</span>
-                    <span className="vst__sub">{r.sub}</span>
-                  </span>
-                  {i < registry.length - 1 && <AnimRule />}
-                </li>
-              ))}
-            </ul>
-
-            <Rise delay={0.24} className="vst__cta">
-              <Magnetic strength={0.3}>
-                <a href="/visit" className="btn vst__btn-solid">
-                  {t("consult")} <span className="arrow">→</span>
+            <span className="vst__store-overlay" aria-hidden />
+            <span className="vst__store-grain" aria-hidden />
+            <div className="vst__store-cap">
+              <span className="vst__store-badge">{en ? "Our Showroom · Evora Future Home" : "معرضنا · إيفورا فيوتشر هوم"}</span>
+              <RevealLines
+                lines={lines(t("visit_title"))}
+                className="display vst__store-title"
+                delay={0.08}
+              />
+              <span className="vst__store-addr">
+                {en ? "Wasfi Al-Tal St · Khalda · Amman" : "شارع وصفي التل · خلدا · عمّان"}
+              </span>
+              <div className="vst__store-actions">
+                <Magnetic strength={0.3}>
+                  <a href="/visit" className="btn vst__btn-solid">
+                    {t("consult")} <span className="arrow">→</span>
+                  </a>
+                </Magnetic>
+                <a href={MAPS_DIR} target="_blank" rel="noopener noreferrer" className="vst__store-dir">
+                  {en ? "Get directions" : "احصل على الاتجاهات"} <span aria-hidden>↗</span>
                 </a>
-              </Magnetic>
-              <a
-                href={MAPS_DIR}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="vst__textlink"
-              >
-                {en ? "Get directions" : "احصل على الاتجاهات"}
-                <span aria-hidden>↗</span>
-              </a>
-            </Rise>
-          </div>
+              </div>
+            </div>
+          </Rise>
 
-          {/* ── tinted map plate ── */}
+          {/* live map — same frame, same height = one unit */}
           <Rise delay={0.14} className="vst__plate">
             <div className="vst__map">
               <iframe
@@ -161,6 +123,20 @@ export default function Visit() {
             </div>
           </Rise>
         </div>
+
+        {/* details strip under the unified stage */}
+        <ul className="vst__details">
+          {registry.map((r) => (
+            <li className="vst__entry" key={r.n}>
+              <span className="vst__n">{r.n}</span>
+              <span className="vst__entry-body">
+                <span className="vst__label">{r.label}</span>
+                <span className="vst__value">{r.value}</span>
+                <span className="vst__sub">{r.sub}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <style>{`
@@ -298,78 +274,96 @@ export default function Visit() {
         html[dir="rtl"] .vst__textlink::after { transform-origin: right; }
         .vst__textlink:hover::after { transform: scaleX(1); }
 
-        /* ── storefront cinematic banner ── */
-        .vst__store {
-          position: relative;
+        /* ── unified stage: photo + map framed as one section ── */
+        .vst__stage {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.95fr);
+          gap: 9px;
           margin-top: clamp(2.4rem, 5vw, 4rem);
-          border-radius: 4px;
-          overflow: hidden;
-          aspect-ratio: 21 / 9;
+          padding: 9px;
+          border-radius: 7px;
+          background: var(--paper);
           box-shadow:
             0 0 0 1px rgba(169,130,76,0.40),
-            0 0 0 7px var(--paper),
-            0 0 0 8px rgba(169,130,76,0.20),
+            0 0 0 8px rgba(169,130,76,0.16),
             0 50px 100px -54px rgba(27,25,22,0.55);
+        }
+        .vst__stage > * { min-height: clamp(440px, 58vh, 680px); }
+
+        /* photo cell with the title on it */
+        .vst__store {
+          position: relative; overflow: hidden; border-radius: 3px;
         }
         .vst__store-img {
           position: absolute; inset: 0;
           width: 100%; height: 100%; object-fit: cover;
           transform: scale(1.03);
-          transition: transform 1.4s var(--ease);
+          transition: transform 1.6s var(--ease);
         }
-        .vst__store:hover .vst__store-img { transform: scale(1.07); }
+        .vst__store:hover .vst__store-img { transform: scale(1.08); }
         .vst__store-overlay {
           position: absolute; inset: 0; z-index: 1; pointer-events: none;
           background:
-            linear-gradient(180deg, rgba(16,15,13,0.10) 0%, rgba(16,15,13,0) 30%),
-            linear-gradient(90deg, rgba(16,15,13,0.62) 0%, rgba(16,15,13,0.18) 40%, rgba(16,15,13,0) 70%),
-            linear-gradient(0deg, rgba(16,15,13,0.72) 0%, rgba(16,15,13,0) 52%);
+            linear-gradient(180deg, rgba(16,15,13,0.12) 0%, rgba(16,15,13,0) 28%),
+            linear-gradient(90deg, rgba(16,15,13,0.55) 0%, rgba(16,15,13,0.12) 46%, rgba(16,15,13,0) 72%),
+            linear-gradient(0deg, rgba(16,15,13,0.80) 0%, rgba(16,15,13,0) 58%);
         }
         .vst__store-grain {
           position: absolute; inset: 0; z-index: 1; pointer-events: none;
-          opacity: 0.25; mix-blend-mode: overlay;
+          opacity: 0.22; mix-blend-mode: overlay;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
           background-size: 160px;
         }
         .vst__store-cap {
           position: absolute; z-index: 2;
-          inset-inline-start: clamp(1.4rem, 3.5vw, 3rem);
-          bottom: clamp(1.4rem, 3.5vw, 2.6rem);
-          display: flex; flex-direction: column; gap: 0.5rem;
+          inset-inline-start: clamp(1.4rem, 3vw, 2.8rem);
+          inset-inline-end: clamp(1.4rem, 3vw, 2.8rem);
+          bottom: clamp(1.5rem, 3.5vw, 2.8rem);
+          display: flex; flex-direction: column; gap: 0.65rem;
           color: var(--paper);
         }
         .vst__store-badge {
           align-self: flex-start;
-          font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase;
+          font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
           color: var(--ink);
           background: rgba(251,247,240,0.92);
-          padding: 0.4em 0.85em; border-radius: 100px;
+          padding: 0.42em 0.9em; border-radius: 100px;
         }
-        html[dir="rtl"] .vst__store-badge { letter-spacing: 0.06em; }
-        .vst__store-name {
-          font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; color: var(--paper);
-          text-shadow: 0 2px 24px rgba(0,0,0,0.45);
+        html[dir="rtl"] .vst__store-badge { letter-spacing: 0.05em; }
+        .vst__store-title {
+          font-size: clamp(2rem, 4.4vw, 3.7rem); line-height: 1.0; color: var(--paper);
+          font-weight: 360; letter-spacing: -0.01em; margin: 0.15rem 0 0.1rem;
+          text-shadow: 0 2px 28px rgba(0,0,0,0.5);
         }
+        html[dir="rtl"] .vst__store-title { line-height: 1.18; letter-spacing: 0; }
         .vst__store-addr {
-          font-size: clamp(0.85rem, 1.2vw, 1rem); color: rgba(251,247,240,0.85);
-          letter-spacing: 0.02em; text-shadow: 0 1px 10px rgba(0,0,0,0.4);
+          font-size: clamp(0.86rem, 1.2vw, 1.02rem); color: rgba(251,247,240,0.88);
+          letter-spacing: 0.02em; text-shadow: 0 1px 10px rgba(0,0,0,0.45);
         }
+        .vst__store-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.7rem; }
         .vst__store-dir {
-          position: absolute; z-index: 2;
-          inset-inline-end: clamp(1.2rem, 3vw, 2.4rem);
-          bottom: clamp(1.2rem, 3vw, 2.4rem);
           display: inline-flex; align-items: center; gap: 0.4rem;
-          font-size: 0.84rem; font-weight: 600; color: var(--ink);
+          font-size: 0.86rem; font-weight: 600; color: var(--ink);
           background: rgba(251,247,240,0.95);
           backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
-          padding: 0.7rem 1.1rem; border-radius: 100px;
-          box-shadow: 0 12px 30px -16px rgba(0,0,0,0.6);
+          padding: 0.85rem 1.2rem; border-radius: 100px;
           transition: transform 0.4s var(--ease), background 0.4s var(--ease);
         }
         .vst__store-dir:hover { transform: translateY(-2px); background: var(--brass-2); }
+
+        /* details strip under the stage */
+        .vst__details {
+          list-style: none; margin: clamp(1.8rem,3.5vw,2.6rem) 0 0; padding: clamp(1.7rem,3vw,2.2rem) 0 0;
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.4rem, 3vw, 3rem);
+          border-top: 1px solid var(--line);
+        }
+        .vst__details .vst__entry { padding: 0; }
+
         @media (max-width: 860px) {
-          .vst__store { aspect-ratio: 16 / 10; }
-          .vst__store-dir { display: none; }
+          .vst__stage { grid-template-columns: 1fr; }
+          .vst__stage > * { min-height: 0; }
+          .vst__store { aspect-ratio: 16 / 11; }
+          .vst__details { grid-template-columns: 1fr; gap: 1.2rem; }
         }
 
         /* ── map plate ── */
@@ -441,17 +435,5 @@ export default function Visit() {
         }
       `}</style>
     </section>
-  );
-}
-
-function AnimRule() {
-  return (
-    <motion.span
-      className="rule"
-      initial={{ scaleX: 0 }}
-      whileInView={{ scaleX: 1 }}
-      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
-      transition={{ duration: 0.9, ease: EASE }}
-    />
   );
 }

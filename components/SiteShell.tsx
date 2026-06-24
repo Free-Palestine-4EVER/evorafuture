@@ -1,6 +1,8 @@
 import Nav from "@/components/Nav";
 import HeroScroll, { type HeroVariant } from "@/components/HeroScroll";
 import ProcessJourney from "@/components/ProcessJourney";
+import CreateYour2D3D from "@/components/CreateYour2D3D";
+import ShopSofa3D from "@/components/ShopSofa3D";
 import ConfiguratorScroll from "@/components/ConfiguratorScroll";
 import Marquee from "@/components/Marquee";
 import Manifesto from "@/components/Manifesto";
@@ -32,10 +34,14 @@ export default function SiteShell({
       <Collections />
       {/* then the Evora kitchen video → live configurator */}
       {showConfigurator && <ConfiguratorScroll />}
+      {/* How Evora works (text left, animated 2D→3D right) → create your own → shop 3D */}
       <ProcessJourney />
+      <CreateYour2D3D />
+      <ShopSofa3D />
       <Marquee />
       <Manifesto />
       <SofaShowcase />
+      {/* More than a showroom — the one-stop journey */}
       <Services />
       <Proof />
       <DesignRequest />
