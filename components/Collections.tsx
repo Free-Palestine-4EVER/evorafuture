@@ -195,25 +195,28 @@ function KitchenFinale() {
   const { lang } = useT();
   const en = lang === "en";
   const reduce = useReducedMotion();
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
 
-  // framed → fullscreen as the pinned section scrolls through
+  // its first frame sits framed like the films, then grows edge-to-edge and
+  // keeps a slow cinematic push while it plays — handing off to the configurator
   const clip = useTransform(
     scrollYProgress,
-    [0, 0.5],
-    ["inset(9% 7% 9% 7% round 8px)", "inset(0% 0% 0% 0% round 0px)"]
+    [0, 0.42],
+    ["inset(3.5% 4% 3.5% 4% round 6px)", "inset(0% 0% 0% 0% round 0px)"]
   );
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1.08, 1.0]);
-  const capO = useTransform(scrollYProgress, [0, 0.22, 0.5], [1, 1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.42, 1], [1.14, 1.02, 1.1]);
+  const capO = useTransform(scrollYProgress, [0, 0.3, 0.5], [1, 1, 0]);
   const hintO = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+  const titleO = useTransform(scrollYProgress, [0.42, 0.62, 0.9, 1], [0, 1, 1, 0]);
+  const titleY = useTransform(scrollYProgress, [0.42, 0.62], [40, 0]);
 
   return (
-    <section ref={ref} className="kfin" lang={lang} aria-label={en ? "The Kitchen" : "المطبخ"}>
+    <div ref={ref} className="kfin" lang={lang} aria-label={en ? "The Kitchen" : "المطبخ"}>
       <div className="kfin__sticky">
         <motion.div className="kfin__frame" style={reduce ? undefined : { clipPath: clip }}>
           <motion.video
@@ -229,10 +232,12 @@ function KitchenFinale() {
             <source src="/evora/room-kitchen.mp4" type="video/mp4" />
           </motion.video>
           <span className="kfin__scrim" />
+          <span className="kfin__vignette" aria-hidden />
           <span className="world__grain" aria-hidden />
 
           <span className="kfin__num display">05</span>
 
+          {/* framed-state label */}
           <motion.div className="kfin__cap" style={reduce ? undefined : { opacity: capO }}>
             <span className="world__count">{en ? "The Kitchen" : "المطبخ"}</span>
             <span className="kfin__t display">
@@ -245,12 +250,23 @@ function KitchenFinale() {
             </span>
           </motion.div>
 
+          {/* fullscreen-state hero line */}
+          <motion.div
+            className="kfin__hero"
+            style={reduce ? undefined : { opacity: titleO, y: titleY }}
+          >
+            <span className="kfin__herok">{en ? "The Kitchen" : "المطبخ"}</span>
+            <span className="kfin__herot display">
+              {en ? "Now make it yours." : "اجعله لك الآن."}
+            </span>
+          </motion.div>
+
           <motion.span className="kfin__hint" style={reduce ? undefined : { opacity: hintO }}>
             {en ? "Scroll to step inside" : "مرّر للدخول"}
           </motion.span>
         </motion.div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -259,7 +275,6 @@ export default function Collections() {
   const en = lang === "en";
 
   return (
-    <>
     <section id="collections" className="rooms" lang={lang}>
       {/* intro — the showroom film paired with the section heading */}
       <div className="container rooms__intro">
@@ -329,15 +344,18 @@ export default function Collections() {
         </a>
       </div>
 
-      {/* six cinematic films */}
+      {/* cinematic films */}
       <div className="rooms__worlds">
         {worlds.map((w, i) => (
           <WorldPanel key={w.id} world={w} i={i} />
         ))}
       </div>
 
+      {/* the kitchen finale — flush with the films, breaks full-bleed, into the configurator */}
+      <KitchenFinale />
+
       <style>{`
-        .rooms { position: relative; background: var(--paper); padding-block: clamp(3rem, 7vw, 6rem) clamp(4rem, 9vw, 8rem); }
+        .rooms { position: relative; background: var(--paper); padding-block: clamp(3rem, 7vw, 6rem) 0; }
 
         .rooms__head { margin-bottom: clamp(2rem, 4vw, 3.4rem); }
         .rooms__kick { display: flex; align-items: center; gap: 1rem; }
@@ -439,17 +457,25 @@ export default function Collections() {
         .rooms__resthead { margin-top: clamp(2.4rem, 5vw, 4rem); margin-bottom: clamp(1.4rem, 3vw, 2.4rem); }
         .rooms__resttitle { font-size: clamp(1.7rem, 3.6vw, 2.8rem); line-height: 1.04; }
 
-        /* ── kitchen finale: grows to fullscreen, plays, hands off to configurator ── */
-        .kfin { position: relative; height: 260vh; background: var(--paper); }
+        /* ── kitchen finale: first frame → grows full-bleed → plays → configurator ── */
+        .kfin { position: relative; height: 280vh; background: var(--paper); margin-top: clamp(1rem, 2.2vw, 2rem); }
         .kfin__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; }
-        .kfin__frame { position: relative; flex: 1; overflow: hidden; will-change: clip-path; }
+        .kfin__frame { position: relative; flex: 1; overflow: hidden; will-change: clip-path; background: var(--ink); }
         .kfin__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
-        .kfin__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,15,13,0.18) 0%, transparent 32%, transparent 52%, rgba(16,15,13,0.72) 100%); }
-        .kfin__num { position: absolute; top: clamp(1.2rem, 3vw, 2.4rem); inset-inline-end: clamp(1.4rem, 3vw, 2.8rem); color: rgba(251,247,240,0.5); font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1; }
-        .kfin__cap { position: absolute; inset-inline-start: clamp(1.6rem, 5vw, 4.5rem); bottom: clamp(2rem, 6vh, 4rem); max-width: 32ch; color: var(--paper); display: flex; flex-direction: column; gap: 0.55rem; }
+        .kfin__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,15,13,0.22) 0%, transparent 30%, transparent 48%, rgba(16,15,13,0.78) 100%); }
+        .kfin__vignette { position: absolute; inset: 0; pointer-events: none;
+          background: radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(16,15,13,0.5) 100%); }
+        .kfin__num { position: absolute; top: clamp(1.2rem, 3vw, 2.4rem); inset-inline-end: clamp(1.4rem, 3vw, 2.8rem); color: rgba(251,247,240,0.5); font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1; z-index: 2; }
+        .kfin__cap { position: absolute; inset-inline-start: clamp(1.6rem, 5vw, 4.5rem); bottom: clamp(2rem, 6vh, 4rem); max-width: 32ch; color: var(--paper); display: flex; flex-direction: column; gap: 0.55rem; z-index: 2; }
         .kfin__t { font-size: clamp(2.2rem, 6vw, 5rem); line-height: 0.98; }
         .kfin__blurb { font-size: clamp(0.95rem, 1.5vw, 1.15rem); color: rgba(251,247,240,0.85); max-width: 34ch; }
-        .kfin__hint { position: absolute; inset-inline: 0; bottom: clamp(1rem, 3vh, 2rem); text-align: center; color: rgba(251,247,240,0.8); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; }
+        /* fullscreen hero line, centred */
+        .kfin__hero { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; text-align: center; color: var(--paper); gap: 0.7rem; padding: 1.5rem; }
+        .kfin__herok { font-size: clamp(0.7rem, 1.4vw, 0.85rem); letter-spacing: 0.32em; text-transform: uppercase; color: var(--brass-2); }
+        html[dir="rtl"] .kfin__herok { letter-spacing: 0.1em; }
+        .kfin__herot { font-size: clamp(2.8rem, 8vw, 7rem); line-height: 0.96; text-shadow: 0 8px 50px rgba(0,0,0,0.4); }
+        .kfin__hint { position: absolute; inset-inline: 0; bottom: clamp(1rem, 3vh, 2rem); text-align: center; color: rgba(251,247,240,0.8); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; z-index: 2; }
 
         @media (max-width: 900px) {
           .rooms__grid { grid-template-columns: repeat(2, 1fr); }
@@ -463,7 +489,5 @@ export default function Collections() {
         }
       `}</style>
     </section>
-    <KitchenFinale />
-    </>
   );
 }
