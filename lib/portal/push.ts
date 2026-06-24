@@ -31,18 +31,21 @@ function withOneSignal(fn: (os: OneSignalLike) => void) {
 // hasn't loaded yet.
 export async function promptPush() {
   if (typeof window === "undefined") return;
-  const OS = (window as unknown as { OneSignal?: OneSignalLike }).OneSignal;
-  if (OS?.Notifications?.requestPermission) {
-    try { await OS.Notifications.requestPermission(); } catch { /* ignore */ }
-    try { await OS.User?.PushSubscription?.optIn?.(); } catch { /* ignore */ }
-    return currentPermission();
-  }
-  // SDK not ready yet → native prompt now, queue the OneSignal opt-in for later.
+  // 1) NATIVE prompt first, synchronously in the gesture — this ALWAYS shows the
+  //    browser popup, even if OneSignal's origin isn't configured yet.
+  let perm = currentPermission();
   try {
-    if (typeof Notification !== "undefined" && Notification.requestPermission) await Notification.requestPermission();
+    if (typeof Notification !== "undefined" && Notification.requestPermission && perm !== "granted") {
+      perm = await Notification.requestPermission();
+    }
   } catch { /* ignore */ }
-  withOneSignal(async (OneSignal) => { try { await OneSignal.User?.PushSubscription?.optIn?.(); } catch { /* ignore */ } });
-  return currentPermission();
+  // 2) Then hand off to OneSignal to register the subscription/user (best effort;
+  //    needs the Web Site URL configured in the OneSignal dashboard to stick).
+  withOneSignal(async (OS) => {
+    try { await OS.User?.PushSubscription?.optIn?.(); } catch { /* ignore */ }
+    try { if (perm === "granted") await OS.Notifications?.requestPermission?.(); } catch { /* ignore */ }
+  });
+  return perm;
 }
 
 // Auto (no gesture) — OneSignal's own slide prompt.
