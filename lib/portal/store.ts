@@ -103,8 +103,8 @@ export async function approveProject(id: string): Promise<void> {
 export async function setStage(id: string, stage: string): Promise<void> {
   await post("stage", { id, stage });
 }
-export async function addUpdate(id: string, text: string, stageKey?: string, by?: string): Promise<void> {
-  await post("update", { id, text, stageKey, by });
+export async function addUpdate(id: string, text: string, stageKey?: string, by?: string, imageUrl?: string): Promise<void> {
+  await post("update", { id, text, stageKey, by, imageUrl });
 }
 
 export async function createClient(phone: string, name: string, password: string): Promise<PortalUser> {

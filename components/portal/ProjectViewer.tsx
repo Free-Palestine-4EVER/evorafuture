@@ -112,7 +112,8 @@ export default function ProjectViewer({
                 <p style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.7rem" }}>{tp("updates", lang)}</p>
                 {project.updates.map((u) => (
                   <div key={u.id} style={{ padding: "0.7rem 0", borderTop: "1px solid var(--line-soft)" }}>
-                    <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.9rem", lineHeight: 1.5 }}>{u.text}</p>
+                    {u.imageUrl && <img src={u.imageUrl} alt="" style={{ width: "100%", borderRadius: 10, marginBottom: "0.5rem", maxHeight: 280, objectFit: "cover" }} />}
+                    {u.text && <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.9rem", lineHeight: 1.5 }}>{u.text}</p>}
                     <p style={{ margin: "0.2rem 0 0", color: "var(--ink-faint)", fontSize: "0.72rem" }}>{new Date(u.at).toLocaleDateString()}</p>
                   </div>
                 ))}

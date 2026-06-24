@@ -7,6 +7,7 @@ import CategoryRail from "@/components/CategoryRail";
 import SofaShowcase from "@/components/SofaShowcase";
 import Services from "@/components/Services";
 import Proof from "@/components/Proof";
+import DesignRequest from "@/components/DesignRequest";
 import Financing from "@/components/Financing";
 import Visit from "@/components/Visit";
 import Footer from "@/components/Footer";
@@ -25,6 +26,7 @@ export default function SiteShell({ heroVariant = "a" }: { heroVariant?: HeroVar
       <SofaShowcase />
       <Services />
       <Proof />
+      <DesignRequest />
       <Financing />
       <Visit />
       <Footer />

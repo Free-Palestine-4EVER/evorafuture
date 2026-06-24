@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
@@ -11,18 +11,29 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const { lang, dir } = useT();
   const [stage, setStageVal] = useState(project.stage || "blueprint");
   const [text, setText] = useState("");
+  const [image, setImage] = useState("");
+  const [imageName, setImageName] = useState("");
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const cur = stageIndex(stage);
 
   async function changeStage(key: string) {
     setStageVal(key);
     await setStage(project.id, key);
   }
+  function onImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setImageName(f.name);
+    const r = new FileReader();
+    r.onload = () => setImage(String(r.result || ""));
+    r.readAsDataURL(f);
+  }
   async function post() {
-    if (!text.trim()) return;
+    if (!text.trim() && !image) return;
     setBusy(true);
-    await addUpdate(project.id, text.trim(), stage, by);
-    setText(""); setBusy(false);
+    await addUpdate(project.id, text.trim(), stage, by, image || undefined);
+    setText(""); setImage(""); setImageName(""); setBusy(false);
   }
 
   return (
@@ -50,6 +61,12 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2}
           placeholder={lang === "ar" ? "مثال: تم الانتهاء من تصميم الأثاث وبانتظار موافقتك" : "e.g. Furniture design done — awaiting your approval"}
           style={{ width: "100%", marginTop: "0.5rem", padding: "0.7rem 0.85rem", border: "1px solid var(--line)", borderRadius: 10, fontFamily: "var(--f-sans)", fontSize: "0.92rem", color: "var(--ink)", resize: "vertical" }} />
+        <button type="button" onClick={() => fileRef.current?.click()}
+          style={{ width: "100%", marginTop: "0.5rem", padding: "0.65rem 0.85rem", border: "1px dashed var(--line)", borderRadius: 10, background: "transparent", textAlign: "start", cursor: "pointer", color: imageName ? "var(--ink)" : "var(--ink-faint)", fontSize: "0.86rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ color: "var(--clay)" }}>⤓</span> {imageName || (lang === "ar" ? "أرفق صورة (عرض، تشطيب…)" : "Attach a photo (render, finishing…)")}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" onChange={onImage} style={{ display: "none" }} />
+        {image && <img src={image} alt="" style={{ width: "100%", marginTop: "0.5rem", borderRadius: 10, maxHeight: 160, objectFit: "cover" }} />}
         <div style={{ display: "flex", gap: "0.7rem", marginTop: "1rem" }}>
           <button onClick={post} disabled={busy} style={{ flex: 1, padding: "0.8rem", borderRadius: 10, border: "none", background: "var(--clay)", color: "#fff", fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>{tp("post", lang)}</button>
           <button onClick={onClose} style={{ padding: "0.8rem 1.3rem", borderRadius: 10, border: "1px solid var(--line)", background: "transparent", color: "var(--ink)", cursor: "pointer" }}>{tp("close", lang)}</button>
@@ -59,7 +76,8 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
           <div style={{ marginTop: "1.4rem" }}>
             {project.updates.map((u) => (
               <div key={u.id} style={{ padding: "0.6rem 0", borderTop: "1px solid var(--line-soft)" }}>
-                <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.88rem" }}>{u.text}</p>
+                {u.imageUrl && <img src={u.imageUrl} alt="" style={{ width: "100%", borderRadius: 8, marginBottom: "0.4rem", maxHeight: 180, objectFit: "cover" }} />}
+                {u.text && <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.88rem" }}>{u.text}</p>}
                 <p style={{ margin: "0.15rem 0 0", color: "var(--ink-faint)", fontSize: "0.7rem" }}>{new Date(u.at).toLocaleString()}</p>
               </div>
             ))}
