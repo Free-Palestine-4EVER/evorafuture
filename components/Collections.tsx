@@ -7,6 +7,7 @@ import {
   useScroll,
   useTransform,
   useReducedMotion,
+  useMotionValueEvent,
 } from "framer-motion";
 import { Rise, RevealLines } from "@/components/motion";
 
@@ -215,15 +216,29 @@ function KitchenFinale() {
   const titleO = useTransform(scrollYProgress, [0.42, 0.62, 0.9, 1], [0, 1, 1, 0]);
   const titleY = useTransform(scrollYProgress, [0.42, 0.62], [40, 0]);
 
+  // only start the film once it has filled the screen; below that, hold the
+  // first frame (the poster) so the photo reads first
+  const vidRef = useRef<HTMLVideoElement>(null);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    const el = vidRef.current;
+    if (!el) return;
+    if (v >= 0.42) {
+      if (el.paused) el.play().catch(() => {});
+    } else if (!el.paused) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  });
+
   return (
     <div ref={ref} className="kfin" lang={lang} aria-label={en ? "The Kitchen" : "المطبخ"}>
       <div className="kfin__sticky">
         <motion.div className="kfin__frame" style={reduce ? undefined : { clipPath: clip }}>
           <motion.video
+            ref={vidRef}
             className="kfin__video"
             style={reduce ? undefined : { scale }}
             poster="/evora/room-kitchen.jpg"
-            autoPlay
             muted
             loop
             playsInline
