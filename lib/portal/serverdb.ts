@@ -7,6 +7,8 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { EventEmitter } from "events";
 import { rtdb } from "./admin";
+import { notifyAdmins, notifyUsers } from "./notify";
+import { stageByIndex, stageIndex } from "./journey";
 import type { Lead, LeadStatus, PortalUser, Project, ProjectUpdate, Role } from "./types";
 
 type StoredUser = PortalUser & { password?: string };
@@ -159,8 +161,13 @@ export async function approve(id: string): Promise<void> {
 }
 
 export async function setStage(id: string, stage: string): Promise<void> {
+  const proj = (await rtdb().ref(`projects/${id}`).get()).val() as Project | null;
   await rtdb().ref(`projects/${id}`).update({ stage, updatedAt: Date.now() });
   bus().emit("change");
+  if (proj?.ownerUid) {
+    const label = stageByIndex(stageIndex(stage)).en;
+    notifyUsers([proj.ownerUid], proj.title || "Your Evora project", `Moved to: ${label}`);
+  }
 }
 
 export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">): Promise<void> {
@@ -171,6 +178,7 @@ export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">)
   updates.unshift({ id: randomBytes(5).toString("hex"), at: Date.now(), ...u });
   await ref.update(clean({ updates, updatedAt: Date.now() }));
   bus().emit("change");
+  if (proj.ownerUid) notifyUsers([proj.ownerUid], proj.title || "Your Evora project", u.text || "New update", "/dashboard");
 }
 
 // ---- leads ----------------------------------------------------------------
@@ -180,6 +188,7 @@ export async function createLead(lead: Omit<Lead, "id" | "status" | "createdAt">
   const full: Lead = { ...lead, id, status: "new", createdAt: Date.now() };
   await rtdb().ref(`leads/${id}`).set(clean(full));
   bus().emit("change");
+  notifyAdmins("New design request", `${full.name || "Someone"} · ${full.phone}`);
   return full;
 }
 

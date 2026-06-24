@@ -4,6 +4,7 @@ import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import { PortalAuthProvider } from "@/lib/portal/auth";
 import OfflineReady from "@/components/portal/OfflineReady";
+import OneSignalInit from "@/components/portal/OneSignalInit";
 
 /* Third root layout (route group "(portal)") for the Client Portal and Admin
  * dashboard. Lean chrome — fonts + i18n + auth, no heavy 3D / smooth-scroll.
@@ -36,7 +37,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <style>{`body, body * { cursor: auto; } a, button, [role="button"], label, select { cursor: pointer; } input, textarea { cursor: text; }`}</style>
       <body style={{ background: "var(--paper)", cursor: "auto" }}>
         <I18nProvider>
-          <PortalAuthProvider>{children}</PortalAuthProvider>
+          <PortalAuthProvider>
+            {children}
+            <OneSignalInit />
+          </PortalAuthProvider>
         </I18nProvider>
         <OfflineReady />
       </body>
