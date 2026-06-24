@@ -19,6 +19,24 @@ function bus(): EventEmitter {
   return g.__evoraBus;
 }
 
+// Any mutation: ping the in-process SSE bus AND bump a tiny public /meta/rev
+// flag in RTDB. Clients subscribe to /meta/rev directly via Firebase → instant
+// realtime everywhere (works on Vercel serverless, where held SSE does not).
+function touched() {
+  bus().emit("change");
+  rtdb().ref("meta/rev").set(Date.now()).catch(() => {});
+}
+
+// Push to the studio: target admin accounts by uid (no segment setup needed),
+// plus the "Admins" segment as a fallback.
+async function notifyStaff(title: string, message: string, url = "/admindashboard") {
+  try {
+    const uids = (await allUsers()).filter((u) => u.role === "admin").map((u) => u.uid);
+    if (uids.length) await notifyUsers(uids, title, message, url);
+  } catch { /* ignore */ }
+  notifyAdmins(title, message, url);
+}
+
 // ---- helpers --------------------------------------------------------------
 
 const norm = (s: string) => { const d = (s || "").replace(/[^\d]/g, ""); return d.length ? d : (s || "").trim().toLowerCase(); };
@@ -99,7 +117,7 @@ export async function registerCustomer(phone: string, name: string, password: st
   const projects = await allProjects();
   await Promise.all(projects.filter((p) => norm(p.ownerPhone || "") === norm(phone) && p.ownerUid !== uid)
     .map((p) => rtdb().ref(`projects/${p.id}/ownerUid`).set(uid)));
-  bus().emit("change");
+  touched();
   return strip(user);
 }
 
@@ -146,26 +164,26 @@ export async function upsertProject(p: Project): Promise<Project> {
     updatedAt: Date.now(),
   };
   await rtdb().ref(`projects/${id}`).set(clean(stamped));
-  bus().emit("change");
+  touched();
   // New project saved (e.g. from Puffer) → tell the studio.
-  if (!existing) notifyAdmins("New design saved", `${stamped.title || "Untitled"} for ${stamped.ownerName || stamped.ownerPhone || "a customer"}`);
+  if (!existing) notifyStaff("New design saved", `${stamped.title || "Untitled"} for ${stamped.ownerName || stamped.ownerPhone || "a customer"}`);
   return stamped;
 }
 
 export async function deleteProject(id: string): Promise<void> {
   await rtdb().ref(`projects/${id}`).remove();
-  bus().emit("change");
+  touched();
 }
 
 export async function approve(id: string): Promise<void> {
   await rtdb().ref(`projects/${id}`).update({ approvedByClient: true, updatedAt: Date.now() });
-  bus().emit("change");
+  touched();
 }
 
 export async function setStage(id: string, stage: string): Promise<void> {
   const proj = (await rtdb().ref(`projects/${id}`).get()).val() as Project | null;
   await rtdb().ref(`projects/${id}`).update({ stage, updatedAt: Date.now() });
-  bus().emit("change");
+  touched();
   if (proj?.ownerUid) {
     const label = stageByIndex(stageIndex(stage)).en;
     notifyUsers([proj.ownerUid], proj.title || "Your Evora project", `Moved to: ${label}`);
@@ -179,7 +197,7 @@ export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">)
   const updates = proj.updates || [];
   updates.unshift({ id: randomBytes(5).toString("hex"), at: Date.now(), ...u });
   await ref.update(clean({ updates, updatedAt: Date.now() }));
-  bus().emit("change");
+  touched();
   if (proj.ownerUid) notifyUsers([proj.ownerUid], proj.title || "Your Evora project", u.text || "New update", "/dashboard");
 }
 
@@ -188,7 +206,7 @@ export async function deleteUpdate(id: string, updateId: string): Promise<void> 
   const proj = (await ref.get()).val() as Project | null;
   if (!proj) return;
   await ref.update(clean({ updates: (proj.updates || []).filter((u) => u.id !== updateId), updatedAt: Date.now() }));
-  bus().emit("change");
+  touched();
 }
 
 // ---- leads ----------------------------------------------------------------
@@ -197,8 +215,8 @@ export async function createLead(lead: Omit<Lead, "id" | "status" | "createdAt">
   const id = "l" + randomBytes(6).toString("hex");
   const full: Lead = { ...lead, id, status: "new", createdAt: Date.now() };
   await rtdb().ref(`leads/${id}`).set(clean(full));
-  bus().emit("change");
-  notifyAdmins("New design request", `${full.name || "Someone"} · ${full.phone}`);
+  touched();
+  notifyStaff("New design request 🏠", `${full.name || "Someone"} · ${full.phone}`);
   return full;
 }
 
@@ -209,13 +227,13 @@ export async function listLeads(): Promise<Lead[]> {
 
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
   await rtdb().ref(`leads/${id}`).update({ status, updatedAt: Date.now() });
-  bus().emit("change");
+  touched();
 }
 
 export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
   await rtdb().ref(`leads/${id}`).update({ sentToPuffer: on, updatedAt: Date.now() });
-  bus().emit("change");
-  if (on) notifyAdmins("2D plan queued for Puffer", "A design request is ready to import in /pufferweb");
+  touched();
+  if (on) notifyStaff("2D plan queued for Puffer", "A design request is ready to import in /pufferweb");
 }
 
 // ---- realtime -------------------------------------------------------------

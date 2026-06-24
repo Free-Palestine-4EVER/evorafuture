@@ -4,6 +4,7 @@
 
 import type { Lead, LeadStatus, PortalUser, Project } from "./types";
 import { mockBackend } from "./mock";
+import { onRev, realtimeConfigured } from "./realtime";
 
 type Mode = "sync" | "mock";
 let _mode: Mode | null = null;
@@ -64,6 +65,8 @@ export function watchAuth(cb: (u: PortalUser | null) => void): () => void {
 // ---- realtime -------------------------------------------------------------
 
 export function subscribe(onChange: () => void): () => void {
+  // Instant path: Firebase RTDB /meta/rev (works on Vercel). Falls back to SSE.
+  if (realtimeConfigured) return onRev(onChange);
   let es: EventSource | null = null;
   let closed = false;
   (async () => {
