@@ -147,6 +147,8 @@ export async function upsertProject(p: Project): Promise<Project> {
   };
   await rtdb().ref(`projects/${id}`).set(clean(stamped));
   bus().emit("change");
+  // New project saved (e.g. from Puffer) → tell the studio.
+  if (!existing) notifyAdmins("New design saved", `${stamped.title || "Untitled"} for ${stamped.ownerName || stamped.ownerPhone || "a customer"}`);
   return stamped;
 }
 
