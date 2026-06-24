@@ -71,8 +71,7 @@ export default function SofaShowcase() {
 
           {/* floating spec badge */}
           <Rise delay={0.4} className="sofa__badge">
-            <span className="sofa__badge-k">{en ? "From" : "من"}</span>
-            <span className="sofa__badge-v">1,890 JOD</span>
+            <span className="sofa__badge-k">{en ? "Signature" : "قطعة مميّزة"}</span>
             <span className="sofa__badge-s">{en ? "Made to order · 6 weeks" : "حسب الطلب · ٦ أسابيع"}</span>
           </Rise>
 

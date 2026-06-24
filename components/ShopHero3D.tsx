@@ -137,7 +137,6 @@ export default function ShopHero3D() {
         <div className="sh3__panel">
           <span className="sh3__ptag">{SOFA.tag[lang]}</span>
           <h3 className="sh3__pname display">{SOFA.name[lang]}</h3>
-          <span className="sh3__pprice">{SOFA.price}</span>
           <span className="sh3__swlabel">{en ? "Fabric" : "القماش"} — <b>{swName.name[lang]}</b></span>
           <div className="sh3__swatches" role="radiogroup" aria-label={en ? "Fabric" : "القماش"}>
             {SWATCHES.map((s) => (
@@ -170,7 +169,7 @@ export default function ShopHero3D() {
                 <span className="sh3__cardname display">{p.name[lang]}</span>
               </div>
               <div className="sh3__cardbottom">
-                <span className="sh3__cardprice">{p.price}</span>
+                <span className="sh3__cardview">{en ? "View piece" : "عرض القطعة"}</span>
                 <span className="sh3__cardarrow" aria-hidden>↗</span>
               </div>
             </div>
@@ -237,7 +236,7 @@ export default function ShopHero3D() {
         html[dir="rtl"] .sh3__cardtag { letter-spacing: 0.04em; }
         .sh3__cardname { font-size: clamp(1.1rem, 1.5vw, 1.35rem); color: var(--ink); line-height: 1.1; }
         .sh3__cardbottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-        .sh3__cardprice { font-size: 0.95rem; color: var(--brass); }
+        .sh3__cardview { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
         .sh3__cardarrow { color: var(--ink-faint); font-size: 1.1rem; transition: transform .5s var(--ease), color .3s var(--ease); }
         html[dir="rtl"] .sh3__cardarrow { transform: scaleX(-1); }
         .sh3__card:hover .sh3__cardarrow { color: var(--brass); transform: translate(3px, -3px); }

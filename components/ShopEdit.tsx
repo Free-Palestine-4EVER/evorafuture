@@ -113,7 +113,6 @@ export default function ShopEdit() {
             <span className="se__feattag">{featured.tag[lang]}</span>
             <span className="se__featname display">{featured.name[lang]}</span>
             <div className="se__featbottom">
-              <span className="se__featprice">{featured.price}</span>
               <span className="se__featcta">
                 {en ? "Shop sofa" : "تسوّق الكنبة"}
                 <span className="se__arrow" aria-hidden>↗</span>
@@ -141,7 +140,6 @@ export default function ShopEdit() {
               <div className="se__rowmeta">
                 <span className="se__rowtag">{p.tag[lang]}</span>
                 <span className="se__rowname display">{p.name[lang]}</span>
-                <span className="se__rowprice">{p.price}</span>
               </div>
               <span className="se__rowarrow" aria-hidden>↗</span>
             </motion.a>
