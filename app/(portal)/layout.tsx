@@ -20,11 +20,15 @@ export const metadata: Metadata = {
   description: "View and approve your saved Evora 3D home designs.",
   manifest: "/portal.webmanifest",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Evora Portal" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Evora" },
+  icons: {
+    icon: [{ url: "/icons/evora-192.png", sizes: "192x192", type: "image/png" }, { url: "/icons/evora-512.png", sizes: "512x512", type: "image/png" }],
+    apple: [{ url: "/icons/evora-apple.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16150F",
+  themeColor: "#0D0D0D",
   width: "device-width",
   initialScale: 1,
 };

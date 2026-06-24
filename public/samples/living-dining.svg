@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="450" viewBox="0 0 700 450">
+  <rect width="700" height="450" fill="#f8fafc"/>
+  <rect x="20" y="20" width="660" height="410" fill="#eef2f7"/>
+  <rect x="20" y="20" width="660" height="410" fill="none" stroke="#374151" stroke-width="8"/>
+
+  <!-- open-plan: a half partition between living and dining (a fin wall) -->
+  <line x1="380" y1="20" x2="380" y2="150" stroke="#374151" stroke-width="6"/>
+
+  <!-- balcony / window strip on the right (drawn as a double line) -->
+  <line x1="660" y1="120" x2="660" y2="330" stroke="#60a5fa" stroke-width="4"/>
+
+  <!-- entry door bottom-left -->
+  <line x1="120" y1="430" x2="180" y2="430" stroke="#eef2f7" stroke-width="10"/>
+  <path d="M120 430 A60 60 0 0 1 120 370" fill="none" stroke="#9aa6b2" stroke-width="2"/>
+
+  <text x="120" y="320" font-family="sans-serif" font-size="26" fill="#94a3b8">Living</text>
+  <text x="470" y="320" font-family="sans-serif" font-size="26" fill="#94a3b8">Dining</text>
+</svg>

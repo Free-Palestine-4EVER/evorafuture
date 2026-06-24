@@ -11,7 +11,8 @@ async function send(payload: Record<string, unknown>) {
   try {
     await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Basic ${REST_KEY}` },
+      // New OneSignal keys (os_v2_app_…) use "Key"; legacy keys use "Basic".
+      headers: { "Content-Type": "application/json", Authorization: `${REST_KEY!.startsWith("os_v2_") ? "Key" : "Basic"} ${REST_KEY}` },
       body: JSON.stringify({ app_id: APP_ID, ...payload }),
     });
   } catch { /* never let a notification failure break a write */ }
