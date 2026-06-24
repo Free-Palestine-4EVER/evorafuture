@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { createClient, deleteProject, listAllProjects, listClients, listLeads, saveProject, setLeadStatus, subscribe } from "@/lib/portal/store";
+import { createClient, deleteProject, listAllProjects, listClients, listLeads, saveProject, sendLeadToPuffer, setLeadStatus, subscribe } from "@/lib/portal/store";
 import { type Lead, type LeadStatus, type PortalUser, type Project } from "@/lib/portal/types";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [query, setQuery] = useState("");
   const [viewClient, setViewClient] = useState<PortalUser | null>(null);
   const [prefillOwner, setPrefillOwner] = useState<PortalUser | null>(null);
+  const [viewPlan, setViewPlan] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setProjects(await listAllProjects());
@@ -205,14 +206,24 @@ export default function AdminPage() {
                 </div>
                 <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
                 {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
-                {l.planUrl && !l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: "0.5rem" }}><img src={l.planUrl} alt="plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} /></a>}
+                {l.planUrl && !l.planUrl.endsWith(".pdf") && (
+                  <button onClick={() => setViewPlan(l.planUrl!)} title={t("Open plan", "افتح المخطط")} style={{ display: "inline-block", marginTop: "0.5rem", padding: 0, border: "none", background: "transparent", cursor: "zoom-in" }}>
+                    <img src={l.planUrl} alt="plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} />
+                  </button>
+                )}
                 {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay)", display: "inline-block", marginTop: "0.4rem" }}>{t("View plan (PDF) →", "عرض المخطط →")}</a>}
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                 {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
                   <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
                 ))}
-                <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
+                {l.planUrl && (
+                  <button onClick={async () => { await sendLeadToPuffer(l.id, !l.sentToPuffer); load(); }}
+                    style={{ ...miniBtn, ...(l.sentToPuffer ? { background: "var(--clay)", color: "#fff", border: "none" } : { borderColor: "var(--clay)", color: "var(--clay)" }) }}>
+                    {l.sentToPuffer ? `✓ ${t("In Puffer", "في بافر")}` : `↗ ${t("Send to Puffer", "أرسل لبافر")}`}
+                  </button>
+                )}
+                <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
               </div>
             </div>
           ))}
@@ -231,6 +242,12 @@ export default function AdminPage() {
       )}
       {addingClient && <AddClient onClose={() => setAddingClient(false)} onDone={() => { setAddingClient(false); load(); }} />}
       {managing && <ProjectManage project={projects.find((p) => p.id === managing.id) || managing} by={user.name} onClose={() => setManaging(null)} />}
+      {viewPlan && (
+        <div onClick={() => setViewPlan(null)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(13,13,13,0.92)", display: "grid", placeItems: "center", padding: "1.5rem", cursor: "zoom-out" }}>
+          <img src={viewPlan} alt="2D plan" style={{ maxWidth: "100%", maxHeight: "92dvh", objectFit: "contain", borderRadius: 8, background: "#fff" }} />
+          <a href={viewPlan} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", top: 18, insetInlineEnd: 18, background: "rgba(255,255,255,0.15)", color: "#fff", padding: "0.5em 1em", borderRadius: 999, fontSize: "0.82rem", textDecoration: "none" }}>{t("Open original ↗", "الأصل ↗")}</a>
+        </div>
+      )}
     </PortalShell>
   );
 }

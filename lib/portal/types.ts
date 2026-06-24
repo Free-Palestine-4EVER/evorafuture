@@ -29,6 +29,7 @@ export interface Lead {
   message?: string;
   planUrl?: string;
   status: LeadStatus;
+  sentToPuffer?: boolean;   // admin queued this 2D plan for the Puffer designer
   createdAt: number;
   updatedAt?: number;
 }

@@ -212,6 +212,12 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<voi
   bus().emit("change");
 }
 
+export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
+  await rtdb().ref(`leads/${id}`).update({ sentToPuffer: on, updatedAt: Date.now() });
+  bus().emit("change");
+  if (on) notifyAdmins("2D plan queued for Puffer", "A design request is ready to import in /pufferweb");
+}
+
 // ---- realtime -------------------------------------------------------------
 
 export function onChange(cb: () => void): () => void {

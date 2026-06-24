@@ -149,5 +149,8 @@ export async function createLead(name: string, phone: string, message?: string, 
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
   await post("lead-status", { id, status });
 }
+export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
+  await post("lead-to-puffer", { id, on });
+}
 
 export function newId() { return mockBackend.newId(); }

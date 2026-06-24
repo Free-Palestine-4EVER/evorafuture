@@ -2,6 +2,7 @@ import PlanEditor from "@/components/puffer/PlanEditor";
 import SceneView from "@/components/puffer/SceneView";
 import Inspector from "@/components/puffer/Inspector";
 import EvoraSync from "@/components/puffer/EvoraSync";
+import PufferImport from "@/components/puffer/PufferImport";
 import PufferWorkspace from "@/components/puffer/PufferWorkspace";
 
 /* Puffer — the staff tool, in-app at /pufferweb. Example build: turn a 2D plan
@@ -20,6 +21,7 @@ export default function PufferPage() {
         </h1>
         <div className="ml-auto flex items-center gap-3">
           <a href="/admindashboard" className="text-xs text-neutral-400 hover:text-neutral-200">← Admin</a>
+          <PufferImport />
           <EvoraSync />
         </div>
       </header>
