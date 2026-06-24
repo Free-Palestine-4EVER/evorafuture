@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import Logo from "./Logo";
 import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
 
 export default function Footer() {
   const { t, lang } = useT();
-  const [email, setEmail] = useState<string>("");
-  const [submitted, setSubmitted] = useState<boolean>(false);
   const en = lang === "en";
-
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (email.trim() !== "") setSubmitted(true);
-  };
 
   const explore: { href: string; en: string; ar: string }[] = [
     { href: "/shop", en: "Shop", ar: "تسوّق" },
@@ -158,34 +150,6 @@ export default function Footer() {
       `}</style>
 
       <div className="container">
-        {/* newsletter */}
-        <div className="ft__news">
-          <Rise>
-            <h2 className="ft__news-title">{t("news_title")}</h2>
-            <p className="ft__news-sub">{t("news_body")}</p>
-          </Rise>
-          <Rise delay={0.1}>
-            {submitted ? (
-              <span className="ft__thanks">{t("news_thanks")}</span>
-            ) : (
-              <form className="ft__form" onSubmit={onSubmit}>
-                <input
-                  type="email"
-                  required
-                  className="ft__input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t("news_placeholder")}
-                  aria-label={t("news_placeholder")}
-                  autoComplete="email"
-                  dir={en ? "ltr" : "rtl"}
-                />
-                <button type="submit" className="ft__btn">{t("news_cta")}</button>
-              </form>
-            )}
-          </Rise>
-        </div>
-
         {/* columns */}
         <div className="ft__cols">
           <Rise className="ft__brand">

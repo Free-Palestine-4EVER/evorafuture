@@ -2,7 +2,7 @@ import Nav from "@/components/Nav";
 import HeroScroll, { type HeroVariant } from "@/components/HeroScroll";
 import ProcessJourney from "@/components/ProcessJourney";
 import StartAndTrack from "@/components/StartAndTrack";
-import ShopEdit from "@/components/ShopEdit";
+import ShopHero3D from "@/components/ShopHero3D";
 import ConfiguratorScroll from "@/components/ConfiguratorScroll";
 import Marquee from "@/components/Marquee";
 import FutureHomeProof from "@/components/FutureHomeProof";
@@ -32,7 +32,7 @@ export default function SiteShell({
       {/* How Evora works (the 4-step transform film) → merged upload→3D + live-track showpiece → shop 3D */}
       <ProcessJourney showFinale={false} />
       <StartAndTrack />
-      <ShopEdit />
+      <ShopHero3D />
       <Marquee />
       {/* Your Future Home × Loved across Amman — one cinematic manifesto→proof→voices story */}
       <FutureHomeProof />
