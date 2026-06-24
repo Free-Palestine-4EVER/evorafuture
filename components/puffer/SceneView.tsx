@@ -87,14 +87,30 @@ function Furniture({ rect, imgW, imgH, s, selected, userProducts }: {
   rect: Rect; imgW: number; imgH: number; s: number; selected: boolean; userProducts: Product[];
 }) {
   const product = resolveProduct(rect.productId, userProducts);
-  if (!product) return null;
-
-  const { w, d } = product.dimensions_mm;
 
   const cx = rect.x + rect.w / 2;
   const cy = rect.y + rect.h / 2;
   const worldX = (cx - imgW / 2) * s;
   const worldZ = (cy - imgH / 2) * s;
+
+  // Imported scan furniture with no product yet → solid placeholder box at the
+  // scanned footprint + height (matches the app's 3D dollhouse look).
+  if (!product) {
+    if (!rect.scanType) return null;
+    const boxW = rect.w * s;
+    const boxD = rect.h * s;
+    const boxH = (rect.scanHmm ?? 700) / 1000;
+    return (
+      <group position={[worldX, 0, worldZ]} rotation={[0, (-rect.rotationDeg * Math.PI) / 180, 0]}>
+        <mesh position={[0, boxH / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[boxW, boxH, boxD]} />
+          <meshStandardMaterial color={selected ? "#7aa2ff" : "#b27457"} roughness={0.75} transparent opacity={0.92} />
+        </mesh>
+      </group>
+    );
+  }
+
+  const { w, d } = product.dimensions_mm;
 
   // true footprint vs drawn slot → flag oversize (geometry is sacred: never scale to fit)
   const slotW = rect.w * (s / 0.001); // back to mm

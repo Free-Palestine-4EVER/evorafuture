@@ -37,7 +37,11 @@ export function scanToProject(scan: ScanFile): ProjectFile {
   });
   const rectsOut: Rect[] = objects.map((o) => {
     const c = PX(o.cx, o.cz), wpx = m2px(o.w), dpx = m2px(o.d);
-    return { id: uid(), x: c.x - wpx / 2, y: c.y - dpx / 2, w: wpx, h: dpx, rotationDeg: o.angle ? -(o.angle * 180) / Math.PI : 0, productId: null };
+    return {
+      id: uid(), x: c.x - wpx / 2, y: c.y - dpx / 2, w: wpx, h: dpx,
+      rotationDeg: o.angle ? -(o.angle * 180) / Math.PI : 0, productId: null,
+      scanType: o.type || "object", scanHmm: Math.round((o.h ?? 0.7) * 1000),
+    };
   });
 
   // plan image: white floor + wall outline + faint object footprints (used as the 2D backdrop)

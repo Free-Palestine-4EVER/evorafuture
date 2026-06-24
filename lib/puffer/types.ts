@@ -30,6 +30,11 @@ export interface Rect {
   rotationDeg: number;
   /** linked catalog product, or null if the slot is still empty */
   productId: string | null;
+  /** from a LiDAR/room scan: detected category + real height (mm). When set and
+   *  no product is assigned, the scene shows a solid placeholder box at the
+   *  scanned size (so an imported scan looks like the app's 3D dollhouse). */
+  scanType?: string;
+  scanHmm?: number;
 }
 
 export type WallHeight = "none" | "half" | "full";
