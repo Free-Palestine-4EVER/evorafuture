@@ -143,8 +143,8 @@ export async function uploadFile(file: File): Promise<string> {
 }
 
 export async function listLeads(): Promise<Lead[]> { return getJSON("leads"); }
-export async function createLead(name: string, phone: string, message?: string, planUrl?: string): Promise<Lead> {
-  return (await post("leads", { name, phone, message, planUrl })).json();
+export async function createLead(name: string, phone: string, message?: string, planUrl?: string, email?: string): Promise<Lead> {
+  return (await post("leads", { name, phone, message, planUrl, email })).json();
 }
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
   await post("lead-status", { id, status });

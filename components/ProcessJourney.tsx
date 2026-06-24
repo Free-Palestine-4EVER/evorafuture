@@ -7,6 +7,7 @@ import { processSteps } from "@/lib/data";
 import { JOURNEY } from "@/lib/portal/journey";
 import { Rise, motion } from "@/components/motion";
 import TransformStage from "@/components/TransformStage";
+import { openStartProject } from "@/lib/startProject";
 
 /* Public "How Evora works" story: the exact client journey — a bare 2D plan,
  * furnished in 2D, rebuilt in 3D, rendered photoreal for sign-off, then built
@@ -258,9 +259,9 @@ function TrackingFinale({ ar }: { ar: boolean }) {
             <Link href="/dashboard" style={{ padding: "0.85rem 1.5rem", borderRadius: 999, background: "var(--clay)", color: "#fff", fontWeight: 600, fontSize: "0.92rem", textDecoration: "none" }}>
               {ar ? "افتح لوحتي" : "Open my dashboard"}
             </Link>
-            <Link href="/start" style={{ padding: "0.85rem 1.5rem", borderRadius: 999, border: "1px solid rgba(245,242,235,0.3)", color: "var(--paper)", fontWeight: 500, fontSize: "0.92rem", textDecoration: "none" }}>
+            <button type="button" onClick={openStartProject} style={{ padding: "0.85rem 1.5rem", borderRadius: 999, border: "1px solid rgba(245,242,235,0.3)", background: "transparent", color: "var(--paper)", fontWeight: 500, fontSize: "0.92rem", cursor: "pointer", fontFamily: "var(--f-sans)" }}>
               {ar ? "ابدأ مشروعًا" : "Start a project"}
-            </Link>
+            </button>
           </div>
         </div>
 

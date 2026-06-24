@@ -26,6 +26,7 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   message?: string;
   planUrl?: string;
   status: LeadStatus;

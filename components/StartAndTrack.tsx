@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { JOURNEY } from "@/lib/portal/journey";
+import { openStartProject } from "@/lib/startProject";
 
 /* ── Start & Track ─────────────────────────────────────────────────────────
  * The home page's merged showpiece. It fuses two beats into ONE story with a
@@ -213,7 +214,7 @@ export default function StartAndTrack() {
             {ar ? "ارفع مخططك" : "Upload your plan"} <span className="arrow" aria-hidden>↗</span>
           </button>
           <Link href="/dashboard" className="btn st__btn-ghost">{ar ? "افتح لوحتي" : "Open my dashboard"}</Link>
-          <Link href="/start" className="btn st__btn-ghost">{ar ? "ابدأ مشروعًا" : "Start a project"}</Link>
+          <button type="button" onClick={openStartProject} className="btn st__btn-ghost">{ar ? "ابدأ مشروعًا" : "Start a project"}</button>
         </div>
       </div>
 

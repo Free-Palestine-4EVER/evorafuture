@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import { useT } from "@/lib/i18n";
+import { openStartProject } from "@/lib/startProject";
 
 const LINKS: { id: string; key: "nav_shop" | "nav_catalog" | "nav_showroom" | "nav_visit" }[] = [
   { id: "/shop", key: "nav_shop" },
@@ -67,11 +68,12 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
               </li>
             ))}
             <li>
-              <a href="/start" style={{ fontSize: "0.82rem", fontWeight: 500, letterSpacing: "0.02em", color: fg, opacity: 0.85 }}
+              <button type="button" onClick={openStartProject}
+                style={{ fontSize: "0.82rem", fontWeight: 500, letterSpacing: "0.02em", color: fg, opacity: 0.85, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.85")}>
                 {lang === "ar" ? "صمّم منزلي" : "Design my home"}
-              </a>
+              </button>
             </li>
             <li>
               <a href="/dashboard" style={{ fontSize: "0.82rem", fontWeight: 500, letterSpacing: "0.02em", color: fg, opacity: 0.85 }}
@@ -131,7 +133,7 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
         </ul>
         <div style={{ marginTop: "2.5rem", display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
           <a href="/visit" onClick={() => setOpen(false)} className="btn" style={{ background: "var(--ink)", color: "var(--paper)" }}>{t("nav_book")} <span className="arrow">→</span></a>
-          <a href="/start" onClick={() => setOpen(false)} className="btn" style={{ background: "var(--clay)", color: "#fff" }}>{lang === "ar" ? "صمّم منزلي" : "Design my home"} <span className="arrow">→</span></a>
+          <button type="button" onClick={() => { setOpen(false); openStartProject(); }} className="btn" style={{ background: "var(--clay)", color: "#fff", border: "none", cursor: "pointer" }}>{lang === "ar" ? "صمّم منزلي" : "Design my home"} <span className="arrow">→</span></button>
           <a href="/dashboard" onClick={() => setOpen(false)} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>{lang === "ar" ? "بوابة العملاء" : "Client Portal"}</a>
           <button onClick={toggle} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)", fontFamily: lang === "en" ? "var(--f-ar)" : "var(--font-sans)" }}>
             {lang === "en" ? "العربية" : "English"}

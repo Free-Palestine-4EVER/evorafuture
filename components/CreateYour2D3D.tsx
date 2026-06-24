@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
+import { openStartProject } from "@/lib/startProject";
 
 // "Create your own 2D → 3D": drop a flat floor plan and watch it tilt into a
 // faux-3D preview, with a CTA to start the real project. Local-only preview
@@ -54,7 +55,7 @@ export default function CreateYour2D3D() {
             <button type="button" className="btn c23__btn-solid" onClick={() => inputRef.current?.click()}>
               {ar ? "ارفع مخططك" : "Upload your plan"} <span className="arrow" aria-hidden>↗</span>
             </button>
-            <a href="/start" className="btn c23__btn-ghost">{ar ? "ابدأ مشروعًا" : "Start a project"}</a>
+            <button type="button" onClick={openStartProject} className="btn c23__btn-ghost">{ar ? "ابدأ مشروعًا" : "Start a project"}</button>
           </div>
         </div>
 
