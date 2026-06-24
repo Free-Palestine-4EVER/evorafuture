@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
-import { applyColor, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
+import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
 import { formatPrice, type Product, type Category } from "@/lib/products";
 import { useT, type Lang } from "@/lib/i18n";
 
@@ -29,6 +29,17 @@ const FINISH_AR: Record<string, string> = {
   Espresso: "إسبريسو",
   Oxblood: "عنّابي",
   Black: "أسود",
+  // featured signature pieces
+  Navy: "كحلي",
+  Champagne: "شمبانيا",
+  Gray: "رمادي",
+  "Pale Pink": "وردي فاتح",
+  Carrara: "كرارا",
+  Sand: "رملي",
+  Graphite: "غرافيت",
+  Onyx: "أونيكس",
+  "Mango Velvet": "مخمل مانجو",
+  "Peacock Velvet": "مخمل طاووسي",
 };
 const finishLabel = (n: string, lang: Lang) => (lang === "ar" ? FINISH_AR[n] ?? n : n);
 
@@ -65,14 +76,16 @@ export default function ShopQuickView({
       const mv = el as unknown as MVElement;
       viewerRef.current = mv;
       targetIdx.current = pickUpholsteryIndices(mv, anchorHex);
-      applyColor(mv, targetIdx.current, product.colorways[color].hex);
+      const c = product.colorways[color];
+      applyFinish(mv, c.name, c.hex, targetIdx.current);
     },
     [anchorHex, color, product.colorways]
   );
 
   const pickColor = (i: number) => {
     setColor(i);
-    applyColor(viewerRef.current, targetIdx.current, product.colorways[i].hex);
+    const c = product.colorways[i];
+    applyFinish(viewerRef.current, c.name, c.hex, targetIdx.current);
   };
 
   return (
