@@ -29,33 +29,45 @@ type World = {
 
 const worlds: World[] = [
   {
-    id: "living",
+    id: "coffee",
     num: "01",
-    name: { en: "The Living Room", ar: "غرفة المعيشة" },
-    count: { en: "31 pieces", ar: "٣١ قطعة" },
+    name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" },
+    count: { en: "30 pieces", ar: "٣٠ قطعة" },
     blurb: {
-      en: "Where the day softens — sculpted sofas, brass light, the long evening.",
-      ar: "حيث يهدأ النهار — كنب منحوت، إضاءة نحاسية، أمسية طويلة.",
+      en: "Sculpted Patagonia stone on warm walnut — the quiet centre of the room.",
+      ar: "حجر باتاغونيا منحوت على جوز دافئ — قلب الغرفة الهادئ.",
     },
-    video: "/evora/room-living.mp4",
-    poster: "/evora/room-living.jpg",
+    video: "/evora/vid-coffee.mp4",
+    poster: "/evora/vid-coffee.jpg",
   },
   {
-    id: "bedrooms",
+    id: "sofa",
     num: "02",
-    name: { en: "The Bedroom", ar: "غرفة النوم" },
-    count: { en: "42 pieces", ar: "٤٢ قطعة" },
+    name: { en: "Sofas & Couches", ar: "كنب وأرائك" },
+    count: { en: "28 pieces", ar: "٢٨ قطعة" },
     blurb: {
-      en: "Linen, oak and quiet — a room that lowers your shoulders.",
-      ar: "كتان وبلوط وسكون — غرفة تُرخي كتفيك.",
+      en: "Deep cream bouclé, modular and soft — built to be lived in.",
+      ar: "بوكليه كريمي عميق، وحدات طريّة — صُنع ليُعاش.",
     },
-    video: "/evora/room-bedrooms.mp4",
-    poster: "/evora/room-bedrooms.jpg",
+    video: "/evora/vid-sofa.mp4",
+    poster: "/evora/vid-sofa.jpg",
+  },
+  {
+    id: "armchair",
+    num: "03",
+    name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" },
+    count: { en: "24 pieces", ar: "٢٤ قطعة" },
+    blurb: {
+      en: "A single sculptural seat — the detail that finishes a corner.",
+      ar: "مقعد منحوت واحد — اللمسة التي تُكمل الزاوية.",
+    },
+    video: "/evora/vid-armchair.mp4",
+    poster: "/evora/vid-armchair.jpg",
   },
   {
     id: "dining",
-    num: "03",
-    name: { en: "The Dining Hall", ar: "غرفة الطعام" },
+    num: "04",
+    name: { en: "Dining Tables", ar: "طاولات طعام" },
     count: { en: "36 pieces", ar: "٣٦ قطعة" },
     blurb: {
       en: "The table you gather around — long, warm, made for a full house.",
@@ -65,8 +77,20 @@ const worlds: World[] = [
     poster: "/evora/room-dining.jpg",
   },
   {
+    id: "bed",
+    num: "05",
+    name: { en: "Beds & Bedrooms", ar: "أسرّة وغرف نوم" },
+    count: { en: "42 pieces", ar: "٤٢ قطعة" },
+    blurb: {
+      en: "Linen, walnut and marble — a room that lowers your shoulders.",
+      ar: "كتان وجوز ورخام — غرفة تُرخي كتفيك.",
+    },
+    video: "/evora/vid-bed.mp4",
+    poster: "/evora/vid-bed.jpg",
+  },
+  {
     id: "kitchen",
-    num: "04",
+    num: "06",
     name: { en: "The Kitchen", ar: "المطبخ" },
     count: { en: "34 pieces", ar: "٣٤ قطعة" },
     blurb: {
@@ -75,30 +99,6 @@ const worlds: World[] = [
     },
     video: "/evora/room-kitchen.mp4",
     poster: "/evora/room-kitchen.jpg",
-  },
-  {
-    id: "sofas",
-    num: "05",
-    name: { en: "The Lounge", ar: "صالة الجلوس" },
-    count: { en: "28 sets", ar: "٢٨ طقم" },
-    blurb: {
-      en: "Deep seats, velvet and curve — sofa sets built to be lived in.",
-      ar: "مقاعد عميقة ومخمل وانحناء — أطقم كنب لتُعاش.",
-    },
-    video: "/evora/room-sofas.mp4",
-    poster: "/evora/room-sofas.jpg",
-  },
-  {
-    id: "garden",
-    num: "06",
-    name: { en: "Evora Garden", ar: "حديقة إيفورا" },
-    count: { en: "Outdoor", ar: "مساحات خارجية" },
-    blurb: {
-      en: "Beyond the glass — terraces, teak and the open Amman sky.",
-      ar: "خلف الزجاج — شُرفات وخشب التيك وسماء عمّان المفتوحة.",
-    },
-    video: "/evora/room-garden.mp4",
-    poster: "/evora/room-garden.jpg",
   },
 ];
 
@@ -243,20 +243,13 @@ export default function Collections() {
         </Rise>
       </div>
 
-      {/* six cinematic room films */}
-      <div className="rooms__worlds">
-        {worlds.map((w, i) => (
-          <WorldPanel key={w.id} world={w} i={i} />
-        ))}
-      </div>
-
-      {/* the rest — slide-in photo cards */}
+      {/* the finishing-piece cards — now ABOVE the films */}
       <div className="container rooms__resthead">
         <Rise as="span" className="eyebrow rooms__resteyebrow">
-          {en ? "And everything else" : "وكل ما عداها"}
+          {en ? "Explore the collection" : "استكشف المجموعة"}
         </Rise>
         <Rise delay={0.08} as="h3" className="display rooms__resttitle">
-          {en ? "The finishing pieces" : "قطع اللمسة الأخيرة"}
+          {en ? "Browse by category" : "تصفّح حسب الفئة"}
         </Rise>
       </div>
 
@@ -271,6 +264,13 @@ export default function Collections() {
           </span>
           <span className="rcard__ctaarrow" aria-hidden>→</span>
         </a>
+      </div>
+
+      {/* six cinematic films */}
+      <div className="rooms__worlds">
+        {worlds.map((w, i) => (
+          <WorldPanel key={w.id} world={w} i={i} />
+        ))}
       </div>
 
       <style>{`
