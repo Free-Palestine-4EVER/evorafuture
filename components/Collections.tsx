@@ -38,7 +38,7 @@ const worlds: World[] = [
       ar: "حيث يهدأ النهار — كنب منحوت، إضاءة نحاسية، أمسية طويلة.",
     },
     video: "/evora/room-living.mp4",
-    poster: "/evora/p06.jpg",
+    poster: "/evora/room-living.jpg",
   },
   {
     id: "bedrooms",
@@ -50,7 +50,7 @@ const worlds: World[] = [
       ar: "كتان وبلوط وسكون — غرفة تُرخي كتفيك.",
     },
     video: "/evora/room-bedrooms.mp4",
-    poster: "/evora/c-bedrooms.jpg",
+    poster: "/evora/room-bedrooms.jpg",
   },
   {
     id: "dining",
@@ -62,7 +62,7 @@ const worlds: World[] = [
       ar: "الطاولة التي تجمعكم — طويلة، دافئة، لبيت عامر.",
     },
     video: "/evora/room-dining.mp4",
-    poster: "/evora/p03.jpg",
+    poster: "/evora/room-dining.jpg",
   },
   {
     id: "kitchen",
@@ -86,7 +86,7 @@ const worlds: World[] = [
       ar: "مقاعد عميقة ومخمل وانحناء — أطقم كنب لتُعاش.",
     },
     video: "/evora/room-sofas.mp4",
-    poster: "/evora/p08.jpg",
+    poster: "/evora/room-sofas.jpg",
   },
   {
     id: "garden",
@@ -98,7 +98,7 @@ const worlds: World[] = [
       ar: "خلف الزجاج — شُرفات وخشب التيك وسماء عمّان المفتوحة.",
     },
     video: "/evora/room-garden.mp4",
-    poster: "/evora/p05.jpg",
+    poster: "/evora/room-garden.jpg",
   },
 ];
 

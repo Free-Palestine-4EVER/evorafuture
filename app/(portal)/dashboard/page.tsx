@@ -9,6 +9,7 @@ import { STATUS_LABEL, type Project } from "@/lib/portal/types";
 import LoginForm from "@/components/portal/LoginForm";
 import ProjectViewer from "@/components/portal/ProjectViewer";
 import PortalHeader from "@/components/portal/PortalHeader";
+import NotifyPrompt from "@/components/portal/NotifyPrompt";
 
 export default function DashboardPage() {
   const { lang } = useT();
@@ -39,6 +40,7 @@ export default function DashboardPage() {
       <PortalHeader name={user.name} />
 
       <section className="container" style={{ paddingTop: "2.8rem", paddingBottom: "5rem" }}>
+        <NotifyPrompt />
         <p style={{ fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay)", margin: 0 }}>
           {lang === "ar" ? `مرحبًا، ${user.name}` : `Welcome, ${user.name}`}
         </p>

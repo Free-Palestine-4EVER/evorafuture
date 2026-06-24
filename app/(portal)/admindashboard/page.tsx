@@ -11,6 +11,7 @@ import LoginForm from "@/components/portal/LoginForm";
 import PortalHeader from "@/components/portal/PortalHeader";
 import ProjectForm from "@/components/portal/ProjectForm";
 import ProjectManage from "@/components/portal/ProjectManage";
+import NotifyPrompt from "@/components/portal/NotifyPrompt";
 
 export default function AdminPage() {
   const { lang } = useT();
@@ -50,7 +51,7 @@ export default function AdminPage() {
       <PortalHeader name={user.name} admin />
 
       <section className="container" style={{ paddingTop: "2.2rem", paddingBottom: "5rem" }}>
-
+        <NotifyPrompt />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1.8rem" }}>
           <div style={{ display: "flex", gap: "0.6rem" }}>
             <button style={tabBtn("projects")} onClick={() => setTab("projects")}>{tp("projects", lang)} · {projects.length}</button>

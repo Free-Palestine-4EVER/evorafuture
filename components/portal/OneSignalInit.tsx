@@ -7,7 +7,7 @@
 
 import { useEffect } from "react";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { promptPush } from "@/lib/portal/push";
+import { softPrompt } from "@/lib/portal/push";
 
 const APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
@@ -50,8 +50,9 @@ export default function OneSignalInit() {
         OneSignal.User?.addTag("role", user.role);
       } catch { /* ignore */ }
     });
-    // Ask for permission shortly after login (and the header bell can re-trigger).
-    const t = setTimeout(() => promptPush(), 1500);
+    // Soft slide-prompt after login (gesture-free). The header bell / banner
+    // does the native prompt on click.
+    const t = setTimeout(() => softPrompt(), 1800);
     return () => clearTimeout(t);
   }, [user]);
 
