@@ -14,7 +14,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Bi = { en: string; ar: string };
 
-// ── The five cinematic "worlds" — each a full-bleed room film that
+// ── The six cinematic "worlds" — each a full-bleed room film that
 //    unmasks + parallaxes as it scrolls through the viewport.
 //    Drop the generated videos at the `video` path (poster shows until then).
 type World = {
@@ -65,8 +65,20 @@ const worlds: World[] = [
     poster: "/evora/p03.jpg",
   },
   {
-    id: "sofas",
+    id: "kitchen",
     num: "04",
+    name: { en: "The Kitchen", ar: "المطبخ" },
+    count: { en: "34 pieces", ar: "٣٤ قطعة" },
+    blurb: {
+      en: "Walnut, marble and brass — the warm heart the whole house turns toward.",
+      ar: "جوز ورخام ونحاس — القلب الدافئ الذي يتوجّه إليه البيت كله.",
+    },
+    video: "/evora/room-kitchen.mp4",
+    poster: "/evora/room-kitchen.jpg",
+  },
+  {
+    id: "sofas",
+    num: "05",
     name: { en: "The Lounge", ar: "صالة الجلوس" },
     count: { en: "28 sets", ar: "٢٨ طقم" },
     blurb: {
@@ -78,7 +90,7 @@ const worlds: World[] = [
   },
   {
     id: "garden",
-    num: "05",
+    num: "06",
     name: { en: "Evora Garden", ar: "حديقة إيفورا" },
     count: { en: "Outdoor", ar: "مساحات خارجية" },
     blurb: {
@@ -226,12 +238,12 @@ export default function Collections() {
         />
         <Rise delay={0.12} as="p" className="rooms__sub">
           {en
-            ? "Step through five rooms of Evora — then everything else that finishes the home."
-            : "تنقّل بين خمس غرف من إيفورا — ثم كل ما يكمّل البيت."}
+            ? "Step through six rooms of Evora — then everything else that finishes the home."
+            : "تنقّل بين ست غرف من إيفورا — ثم كل ما يكمّل البيت."}
         </Rise>
       </div>
 
-      {/* five cinematic room films */}
+      {/* six cinematic room films */}
       <div className="rooms__worlds">
         {worlds.map((w, i) => (
           <WorldPanel key={w.id} world={w} i={i} />

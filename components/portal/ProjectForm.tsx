@@ -19,12 +19,19 @@ export default function ProjectForm({
   const { lang, dir } = useT();
   const [p, setP] = useState<Project>(
     initial ?? {
-      id: newId(), ownerUid: clients[0]?.uid || "", ownerPhone: clients[0]?.phone || "",
-      ownerName: clients[0]?.name || "", title: "", room: "", status: "draft", approvedByClient: false,
+      id: newId(), ownerUid: "", ownerPhone: "", ownerName: "",
+      title: "", room: "", status: "draft", stage: "blueprint", approvedByClient: false,
     }
   );
 
   const set = (k: keyof Project, v: unknown) => setP((prev) => ({ ...prev, [k]: v }));
+  const norm = (s: string) => { const d = (s || "").replace(/[^\d]/g, ""); return d.length ? d : (s || "").trim().toLowerCase(); };
+  // Editing the phone auto-links to an existing client if it matches, else
+  // leaves it as a new customer (who self-registers via their sign-up link).
+  const setPhone = (v: string) => {
+    const match = clients.find((c) => c.phone && norm(c.phone) === norm(v));
+    setP((prev) => ({ ...prev, ownerPhone: v, ownerUid: match?.uid || "", ownerName: match?.name || prev.ownerName }));
+  };
 
   const field: React.CSSProperties = { width: "100%", padding: "0.7rem 0.85rem", marginTop: "0.35rem", border: "1px solid var(--line)", borderRadius: 10, fontFamily: "var(--f-sans)", fontSize: "0.92rem", color: "var(--ink)", background: "#fff" };
   const label: React.CSSProperties = { fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)", display: "block" };
@@ -37,13 +44,32 @@ export default function ProjectForm({
           {initial ? tp("edit", lang) : tp("add_project", lang)}
         </h2>
 
-        <label style={label}>{tp("owner", lang)}
-          <select style={field} value={p.ownerUid}
-            onChange={(e) => { const c = clients.find((x) => x.uid === e.target.value); set("ownerUid", c?.uid || ""); set("ownerPhone", c?.phone || ""); set("ownerName", c?.name || ""); }}>
-            {clients.length === 0 && <option value="">—</option>}
-            {clients.map((c) => <option key={c.uid} value={c.uid}>{c.name} · {c.phone}</option>)}
-          </select>
-        </label>
+        {clients.length > 0 && (
+          <>
+            <label style={label}>{lang === "ar" ? "اختر عميلاً موجوداً (اختياري)" : "Pick an existing client (optional)"}
+              <select style={field} value={p.ownerUid || ""}
+                onChange={(e) => {
+                  if (!e.target.value) { set("ownerUid", ""); return; }
+                  const c = clients.find((x) => x.uid === e.target.value);
+                  set("ownerUid", c?.uid || ""); set("ownerPhone", c?.phone || ""); set("ownerName", c?.name || "");
+                }}>
+                <option value="">{lang === "ar" ? "— عميل جديد بالهاتف —" : "— New customer by phone —"}</option>
+                {clients.map((c) => <option key={c.uid} value={c.uid}>{c.name} · {c.phone}</option>)}
+              </select>
+            </label>
+            <div style={{ height: "0.9rem" }} />
+          </>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+          <label style={label}>{tp("assign_phone", lang)}<input style={field} value={p.ownerPhone || ""} onChange={(e) => setPhone(e.target.value)} placeholder="07_ _______" required /></label>
+          <label style={label}>{tp("client_name", lang)}<input style={field} value={p.ownerName || ""} onChange={(e) => set("ownerName", e.target.value)} /></label>
+        </div>
+        <p style={{ fontSize: "0.74rem", color: "var(--ink-faint)", margin: "0.45rem 0 0", lineHeight: 1.5 }}>
+          {p.ownerUid
+            ? (lang === "ar" ? "مرتبط بحساب عميل موجود." : "Linked to an existing client account.")
+            : (lang === "ar" ? "عميل جديد — سيرى المشروع عند تسجيله بهذا الرقم على /join." : "New customer — they'll see this project once they sign up with this number at /join.")}
+        </p>
 
         <div style={{ height: "0.9rem" }} />
         <label style={label}>{tp("title", lang)}<input style={field} value={p.title} onChange={(e) => set("title", e.target.value)} required /></label>

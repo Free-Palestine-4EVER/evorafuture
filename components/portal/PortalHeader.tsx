@@ -3,6 +3,7 @@
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
+import { promptPush, pushConfigured } from "@/lib/portal/push";
 
 export default function PortalHeader({ name, admin = false }: { name?: string; admin?: boolean }) {
   const { lang, toggle } = useT();
@@ -24,6 +25,10 @@ export default function PortalHeader({ name, admin = false }: { name?: string; a
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
           {name && <span style={{ fontSize: "0.84rem", color: "var(--ink-soft)" }}>{name}</span>}
+          {pushConfigured && (
+            <button onClick={() => promptPush()} title={lang === "ar" ? "تفعيل الإشعارات" : "Enable notifications"}
+              style={{ ...btn, padding: "0.5em 0.7em" }} aria-label="Enable notifications">🔔</button>
+          )}
           <button onClick={toggle} style={{ ...btn, fontFamily: lang === "en" ? "var(--f-ar)" : "var(--f-sans)" }}>
             {lang === "en" ? "العربية" : "EN"}
           </button>

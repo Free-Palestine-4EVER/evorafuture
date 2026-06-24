@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { usePortalAuth } from "@/lib/portal/auth";
+import { promptPush } from "@/lib/portal/push";
 
 const APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
@@ -47,9 +48,11 @@ export default function OneSignalInit() {
       try {
         await OneSignal.login(user.uid);
         OneSignal.User?.addTag("role", user.role);
-        await OneSignal.Slidedown?.promptPush();
       } catch { /* ignore */ }
     });
+    // Ask for permission shortly after login (and the header bell can re-trigger).
+    const t = setTimeout(() => promptPush(), 1500);
+    return () => clearTimeout(t);
   }, [user]);
 
   return null;
