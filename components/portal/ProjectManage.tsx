@@ -6,6 +6,19 @@ import { tp } from "@/lib/portal/strings";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import { addUpdate, approveProject, deleteUpdate, saveProject, setStage, uploadFile } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project, type ProjectStatus } from "@/lib/portal/types";
+import LiveScanner from "@/components/portal/LiveScanner";
+import { scanToProject } from "@/lib/puffer/importScan";
+import { buildRoomGlbBlob } from "@/lib/puffer/liveScan";
+import type { ScanFile } from "@/lib/puffer/importScan";
+
+// dataURL → File so the live-scan plan image can ride the normal upload path.
+function dataUrlToFile(dataUrl: string, name: string): File {
+  const [head, b64] = dataUrl.split(",");
+  const mime = /data:([^;]+)/.exec(head)?.[1] || "image/png";
+  const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return new File([u8], name, { type: mime });
+}
 
 const STATUSES: ProjectStatus[] = ["draft", "approved", "in_production", "delivered"];
 
@@ -34,6 +47,42 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const plan2dRef = useRef<HTMLInputElement>(null);
   const modelRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+
+  // live scanner
+  const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
+
+  async function onScanComplete(scan: ScanFile) {
+    setScanning(false);
+    setBusy(true);
+    try {
+      setScanStatus(t("Building plan…", "بناء المخطط…"));
+      const pf = scanToProject(scan); // 2D plan image + walls + furniture rects
+      if (!pf.planImage) throw new Error("no plan image");
+      const planUrl = await uploadFile(dataUrlToFile(pf.planImage, "scan-plan.png"));
+      setPlan2d(planUrl);
+
+      setScanStatus(t("Building 3D room…", "بناء الغرفة ثلاثية الأبعاد…"));
+      let glbUrl = model3dUrl;
+      try {
+        const glb = await buildRoomGlbBlob(scan);
+        glbUrl = await uploadFile(new File([glb], "scan-room.glb", { type: "model/gltf-binary" }));
+        setModel3d(glbUrl);
+      } catch (e) { console.error("glb build failed", e); }
+
+      await saveProject({
+        ...project, plan2dUrl: planUrl, thumbnailUrl: project.thumbnailUrl || planUrl,
+        model3dUrl: glbUrl, scanData: JSON.stringify(scan),
+      });
+      const n = (scan.objects?.length ?? 0);
+      await addUpdate(project.id, t(`Room scanned on-site — ${scan.walls.length} walls, ${n} items detected.`, `تم مسح الغرفة في الموقع — ${scan.walls.length} جدار و${n} عنصر.`), stage, by);
+      setScanStatus(t("Scan saved ✓", "تم حفظ المسح ✓"));
+      setTimeout(() => setScanStatus(""), 2500);
+    } catch (e) {
+      console.error(e);
+      setScanStatus(t("Scan failed — try again.", "فشل المسح — حاول مجدداً."));
+    } finally { setBusy(false); }
+  }
 
   const signupLink = typeof window !== "undefined" ? `${window.location.origin}/join?phone=${encodeURIComponent(project.ownerPhone || "")}` : "";
 
@@ -68,6 +117,8 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const upBtn: React.CSSProperties = { padding: "0.45rem 0.8rem", borderRadius: 8, border: "1px dashed var(--line)", background: "transparent", color: "var(--ink-soft)", fontSize: "0.78rem", cursor: "pointer" };
 
   return (
+    <>
+    {scanning && <LiveScanner onClose={() => setScanning(false)} onComplete={onScanComplete} />}
     <div onClick={onClose} dir={dir} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.55)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "min(620px,100%)", maxHeight: "94dvh", overflow: "auto", background: "var(--paper)", borderRadius: 18, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem" }}>
@@ -94,6 +145,21 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
         <button onClick={saveDetails} disabled={busy} style={{ marginTop: "0.9rem", padding: "0.6rem 1.2rem", borderRadius: 10, border: "none", background: savedFlash ? "var(--clay)" : "var(--ink)", color: "#fff", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
           {savedFlash ? t("Saved ✓", "تم الحفظ ✓") : t("Save details", "حفظ التفاصيل")}
         </button>
+
+        {/* LIVE SCAN */}
+        <p style={{ ...sectionTitle, marginTop: "1.8rem" }}>{t("Scan the room (live)", "مسح الغرفة (مباشر)")}</p>
+        <div style={{ border: "1px solid rgba(178,116,87,0.25)", borderRadius: 14, padding: "1rem", background: "rgba(178,116,87,0.05)" }}>
+          <p style={{ margin: "0 0 0.7rem", fontSize: "0.82rem", color: "var(--ink-soft)", lineHeight: 1.55 }}>
+            {t("At the client's home, scan the room with the phone camera — it identifies the furniture and builds a 2D plan + 3D room automatically.",
+               "في منزل العميل، امسح الغرفة بكاميرا الهاتف — يتعرّف على الأثاث ويبني مخططاً ثنائياً وغرفة ثلاثية الأبعاد تلقائياً.")}
+          </p>
+          <button onClick={() => setScanning(true)} disabled={busy}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.7rem 1.3rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+            ◎ {t("Start live scan", "ابدأ المسح المباشر")}
+          </button>
+          {scanStatus && <span style={{ marginInlineStart: "0.8rem", fontSize: "0.8rem", color: "var(--clay)", fontWeight: 600 }}>{scanStatus}</span>}
+          {project.scanData && !scanStatus && <span style={{ marginInlineStart: "0.8rem", fontSize: "0.78rem", color: "var(--ink-faint)" }}>✓ {t("scan on file", "يوجد مسح محفوظ")}</span>}
+        </div>
 
         {/* FILES */}
         <p style={{ ...sectionTitle, marginTop: "1.8rem" }}>{t("2D plan & 3D room", "المخطط والغرفة ثلاثية الأبعاد")}</p>
@@ -173,5 +239,6 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
         </div>
       </div>
     </div>
+    </>
   );
 }

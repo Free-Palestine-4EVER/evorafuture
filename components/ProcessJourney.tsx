@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { processSteps } from "@/lib/data";
 import { JOURNEY } from "@/lib/portal/journey";
 import { Rise, motion } from "@/components/motion";
-import PlanToHome from "@/components/PlanToHome";
+import TransformStage from "@/components/TransformStage";
 
 /* Public "How Evora works" story: the exact client journey — a bare 2D plan,
  * furnished in 2D, rebuilt in 3D, rendered photoreal for sign-off, then built
@@ -40,7 +40,7 @@ export default function ProcessJourney() {
 
   return (
     <section dir={dir} style={{ position: "relative", paddingTop: "clamp(4rem,9vw,7rem)" }}>
-      {/* Header — text LEFT, animated 2D→3D plan RIGHT */}
+      {/* Header — centered lead-in; the 4-part film now lives in the swap panel below */}
       <div className="container pj-intro">
         <header className="pj-intro-text">
           <Rise>
@@ -53,15 +53,12 @@ export default function ProcessJourney() {
             {ar ? "من مخطط مسطّح إلى منزلك المكتمل" : "From a flat plan to your finished home"}
           </Rise>
           <Rise delay={0.12} as="p"
-            style={{ maxWidth: "52ch", marginTop: "1.5rem", color: "var(--ink-soft)", fontSize: "1.05rem", lineHeight: 1.7 }}>
+            style={{ maxWidth: "56ch", marginInline: "auto", marginTop: "1.5rem", color: "var(--ink-soft)", fontSize: "1.05rem", lineHeight: 1.7 }}>
             {ar
-              ? "أربع خطوات تصميم تحوّل مخططك الفارغ إلى تصميم تعتمده — ثم نصنعه بينما تتابع كل مرحلة مباشرةً من لوحتك."
-              : "Four design steps turn your empty plan into a look you approve — then we build it while you follow every stage live from your dashboard."}
+              ? "أربع خطوات تصميم تحوّل مخططك الفارغ إلى تصميم تعتمده — تابع التحول مرحلةً مرحلة بينما تتنقّل، ثم نصنعه وأنت تشاهد كل خطوة مباشرةً."
+              : "Four design steps turn your empty plan into a look you approve — watch it transform stage by stage as you scroll, then we build it while you follow every step live."}
           </Rise>
         </header>
-        <Rise delay={0.1} className="pj-intro-visual">
-          <PlanToHome />
-        </Rise>
       </div>
 
       {/* ---- Swap-column region ---- */}
@@ -69,15 +66,7 @@ export default function ProcessJourney() {
         {/* Sticky panel that springs side-to-side (desktop only) */}
         <div className="pj-sticky">
           <motion.div className="pj-panel" animate={{ left: panelRight ? "42%" : "0%" }} transition={SPRING}>
-            <AnimatePresence mode="wait">
-              <motion.div key={active}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.45, ease: EASE }}>
-                <StepMedia media={STEP_MEDIA[active]} ar={ar} />
-              </motion.div>
-            </AnimatePresence>
+            <TransformStage step={active} ar={ar} />
           </motion.div>
         </div>
 
@@ -106,7 +95,7 @@ export default function ProcessJourney() {
                 </p>
                 {/* Mobile inline visual (sticky panel is hidden < 760px) */}
                 <div className="pj-step-media-mobile">
-                  <StepMedia media={STEP_MEDIA[i]} ar={ar} />
+                  <TransformStage step={i} ar={ar} />
                 </div>
               </div>
             </motion.section>

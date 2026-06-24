@@ -65,20 +65,8 @@ const worlds: World[] = [
     poster: "/evora/vid-armchair.jpg",
   },
   {
-    id: "dining",
-    num: "04",
-    name: { en: "Dining Tables", ar: "طاولات طعام" },
-    count: { en: "36 pieces", ar: "٣٦ قطعة" },
-    blurb: {
-      en: "The table you gather around — long, warm, made for a full house.",
-      ar: "الطاولة التي تجمعكم — طويلة، دافئة، لبيت عامر.",
-    },
-    video: "/evora/room-dining.mp4",
-    poster: "/evora/room-dining.jpg",
-  },
-  {
     id: "bed",
-    num: "05",
+    num: "04",
     name: { en: "Beds & Bedrooms", ar: "أسرّة وغرف نوم" },
     count: { en: "42 pieces", ar: "٤٢ قطعة" },
     blurb: {
@@ -87,18 +75,6 @@ const worlds: World[] = [
     },
     video: "/evora/vid-bed.mp4",
     poster: "/evora/vid-bed.jpg",
-  },
-  {
-    id: "kitchen",
-    num: "06",
-    name: { en: "The Kitchen", ar: "المطبخ" },
-    count: { en: "34 pieces", ar: "٣٤ قطعة" },
-    blurb: {
-      en: "Walnut, marble and brass — the warm heart the whole house turns toward.",
-      ar: "جوز ورخام ونحاس — القلب الدافئ الذي يتوجّه إليه البيت كله.",
-    },
-    video: "/evora/room-kitchen.mp4",
-    poster: "/evora/room-kitchen.jpg",
   },
 ];
 
@@ -209,6 +185,81 @@ function SlideCard({ card, i }: { card: RoomCard; i: number }) {
         <span className="rcard__arrow" aria-hidden>↗</span>
       </div>
     </motion.a>
+  );
+}
+
+// ── The Kitchen finale — its first frame sits framed, then on scroll the
+//    frame grows to fullscreen and the film plays, handing off to the
+//    configurator section that follows.
+function KitchenFinale() {
+  const { lang } = useT();
+  const en = lang === "en";
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLElement>(null);
+  const vid = useRef<HTMLVideoElement>(null);
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  // framed → fullscreen as the pinned section scrolls through
+  const clip = useTransform(
+    scrollYProgress,
+    [0, 0.5],
+    ["inset(9% 7% 9% 7% round 8px)", "inset(0% 0% 0% 0% round 0px)"]
+  );
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1.08, 1.0]);
+  const capO = useTransform(scrollYProgress, [0, 0.22, 0.5], [1, 1, 0]);
+  const hintO = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+
+  // start the film once it's filling the viewport
+  const onChange = (v: number) => {
+    const el = vid.current;
+    if (!el) return;
+    if (v > 0.18) el.play().catch(() => {});
+  };
+  scrollYProgress.on?.("change", onChange);
+
+  return (
+    <section ref={ref} className="kfin" lang={lang} aria-label={en ? "The Kitchen" : "المطبخ"}>
+      <div className="kfin__sticky">
+        <motion.div className="kfin__frame" style={reduce ? undefined : { clipPath: clip }}>
+          <motion.video
+            ref={vid}
+            className="kfin__video"
+            style={reduce ? undefined : { scale }}
+            poster="/evora/room-kitchen.jpg"
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          >
+            <source src="/evora/room-kitchen.mp4" type="video/mp4" />
+          </motion.video>
+          <span className="kfin__scrim" />
+          <span className="world__grain" aria-hidden />
+
+          <span className="kfin__num display">05</span>
+
+          <motion.div className="kfin__cap" style={reduce ? undefined : { opacity: capO }}>
+            <span className="world__count">{en ? "The Kitchen" : "المطبخ"}</span>
+            <span className="kfin__t display">
+              {en ? "The heart of the home" : "قلب البيت"}
+            </span>
+            <span className="kfin__blurb">
+              {en
+                ? "Walnut, marble and brass — step in and make it yours."
+                : "جوز ورخام ونحاس — ادخل واجعله لك."}
+            </span>
+          </motion.div>
+
+          <motion.span className="kfin__hint" style={reduce ? undefined : { opacity: hintO }}>
+            {en ? "Scroll to step inside" : "مرّر للدخول"}
+          </motion.span>
+        </motion.div>
+      </div>
+    </section>
   );
 }
 

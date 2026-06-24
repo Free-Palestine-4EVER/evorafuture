@@ -49,8 +49,9 @@ export interface Project {
   status: ProjectStatus;
   thumbnailUrl?: string;  // 2D plan render / preview image
   plan2dUrl?: string;     // the original 2D floor plan image
-  model3dUrl?: string;    // .glb produced by Puffer (for <model-viewer>)
+  model3dUrl?: string;    // .glb produced by Puffer / live scan (for <model-viewer>)
   viewerUrl?: string;     // hosted Puffer 3D viewer link (iframe)
+  scanData?: string;      // JSON ScanFile from the live web scanner (re-editable)
   notes?: string;
   approvedByClient?: boolean;
   // Journey: current stage key (see lib/portal/journey.ts) + posted updates.

@@ -4,19 +4,32 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { approveProject, listProjectsForUser, subscribe } from "@/lib/portal/store";
+import { approveProject, listProjectsForUser, newId, saveProject, subscribe, uploadFile } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
 import ProjectViewer from "@/components/portal/ProjectViewer";
 import PortalHeader from "@/components/portal/PortalHeader";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
+import LiveScanner from "@/components/portal/LiveScanner";
+import { scanToProject, type ScanFile } from "@/lib/puffer/importScan";
+import { buildRoomGlbBlob } from "@/lib/puffer/liveScan";
+
+function dataUrlToFile(dataUrl: string, name: string): File {
+  const [head, b64] = dataUrl.split(",");
+  const mime = /data:([^;]+)/.exec(head)?.[1] || "image/png";
+  const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return new File([u8], name, { type: mime });
+}
 
 export default function DashboardPage() {
   const { lang } = useT();
   const { user, loading } = usePortalAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [active, setActive] = useState<Project | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -36,6 +49,37 @@ export default function DashboardPage() {
     load();
   }
 
+  async function onScanComplete(scan: ScanFile) {
+    if (!user) return;
+    setScanning(false);
+    try {
+      setScanStatus(lang === "ar" ? "بناء المخطط…" : "Building plan…");
+      const pf = scanToProject(scan);
+      if (!pf.planImage) throw new Error("no plan image");
+      const planUrl = await uploadFile(dataUrlToFile(pf.planImage, "scan-plan.png"));
+      setScanStatus(lang === "ar" ? "بناء الغرفة ثلاثية الأبعاد…" : "Building 3D room…");
+      let glbUrl: string | undefined;
+      try {
+        const glb = await buildRoomGlbBlob(scan);
+        glbUrl = await uploadFile(new File([glb], "scan-room.glb", { type: "model/gltf-binary" }));
+      } catch (e) { console.error(e); }
+      const n = scan.objects?.length ?? 0;
+      await saveProject({
+        id: newId(), ownerUid: user.uid, ownerPhone: user.phone, ownerName: user.name,
+        title: lang === "ar" ? "غرفة ممسوحة" : "Scanned room", room: lang === "ar" ? "مسح مباشر" : "Live scan",
+        status: "draft", stage: "blueprint", approvedByClient: false,
+        plan2dUrl: planUrl, thumbnailUrl: planUrl, model3dUrl: glbUrl, scanData: JSON.stringify(scan),
+        notes: `Self-scan: ${scan.walls.length} walls, ${n} items.`,
+      });
+      setScanStatus(lang === "ar" ? "تم حفظ المسح ✓" : "Scan saved ✓");
+      load();
+      setTimeout(() => setScanStatus(""), 2500);
+    } catch (e) {
+      console.error(e);
+      setScanStatus(lang === "ar" ? "فشل المسح" : "Scan failed");
+    }
+  }
+
   return (
     <main style={{ minHeight: "100dvh" }}>
       <PortalHeader name={user.name} />
@@ -45,9 +89,34 @@ export default function DashboardPage() {
         <p style={{ fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay)", margin: 0 }}>
           {lang === "ar" ? `مرحبًا، ${user.name}` : `Welcome, ${user.name}`}
         </p>
-        <h1 className="display" style={{ fontSize: "clamp(2.2rem,7vw,3.4rem)", color: "var(--ink)", margin: "0.4rem 0 2.2rem" }}>
+        <h1 className="display" style={{ fontSize: "clamp(2.2rem,7vw,3.4rem)", color: "var(--ink)", margin: "0.4rem 0 1.1rem" }}>
           {tp("my_designs", lang)}
         </h1>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.9rem", flexWrap: "wrap", marginBottom: "1.8rem" }}>
+          <button onClick={() => setScanning(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.55rem", padding: "0.8rem 1.5rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontWeight: 700, fontSize: "0.92rem", cursor: "pointer" }}>
+            ◎ {lang === "ar" ? "امسح غرفتك" : "Scan my room"}
+          </button>
+          {scanStatus
+            ? <span style={{ fontSize: "0.84rem", color: "var(--clay)", fontWeight: 600 }}>{scanStatus}</span>
+            : <span style={{ fontSize: "0.82rem", color: "var(--ink-faint)" }}>{lang === "ar" ? "امسح غرفتك بالكاميرا لنبدأ تصميمها" : "Scan a room with your camera to start designing it"}</span>}
+        </div>
+
+        {projects && projects.length > 0 && (
+          <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", padding: "1.1rem 1.4rem", border: "1px solid var(--line)", borderRadius: 14, marginBottom: "2.2rem", background: "#fff" }}>
+            {[
+              { v: projects.length, l: lang === "ar" ? "تصاميم" : "Designs" },
+              { v: projects.filter((p) => p.approvedByClient).length, l: lang === "ar" ? "موافق عليها" : "Approved" },
+              { v: projects.filter((p) => p.status === "delivered").length, l: lang === "ar" ? "تم تسليمها" : "Delivered" },
+            ].map((s) => (
+              <div key={s.l}>
+                <div className="display" style={{ fontSize: "1.8rem", lineHeight: 1, color: "var(--ink)" }}>{s.v}</div>
+                <div style={{ fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-faint)", marginTop: "0.3rem" }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {projects && projects.length === 0 && (
           <p style={{ color: "var(--ink-faint)", maxWidth: 460, lineHeight: 1.6 }}>{tp("no_projects", lang)}</p>
@@ -97,6 +166,7 @@ export default function DashboardPage() {
       </section>
 
       {active && <ProjectViewer project={projects?.find((p) => p.id === active.id) || active} onClose={() => setActive(null)} onApprove={approve} />}
+      {scanning && <LiveScanner onClose={() => setScanning(false)} onComplete={onScanComplete} />}
     </main>
   );
 }

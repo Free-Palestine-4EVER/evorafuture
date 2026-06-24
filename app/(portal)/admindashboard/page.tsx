@@ -11,6 +11,7 @@ import LoginForm from "@/components/portal/LoginForm";
 import PortalHeader from "@/components/portal/PortalHeader";
 import ProjectForm from "@/components/portal/ProjectForm";
 import ProjectManage from "@/components/portal/ProjectManage";
+import ClientDetail from "@/components/portal/ClientDetail";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
 
 export default function AdminPage() {
@@ -25,6 +26,8 @@ export default function AdminPage() {
   const [adding, setAdding] = useState(false);
   const [addingClient, setAddingClient] = useState(false);
   const [query, setQuery] = useState("");
+  const [viewClient, setViewClient] = useState<PortalUser | null>(null);
+  const [prefillOwner, setPrefillOwner] = useState<PortalUser | null>(null);
 
   const load = useCallback(async () => {
     setProjects(await listAllProjects());
@@ -113,12 +116,24 @@ export default function AdminPage() {
 
         {tab === "clients" && (
           <div style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
-            {clients.map((c, i) => (
-              <div key={c.uid} style={{ display: "flex", justifyContent: "space-between", padding: "1rem 1.2rem", borderTop: i ? "1px solid var(--line-soft)" : "none" }}>
-                <span style={{ color: "var(--ink)", fontWeight: 500 }}>{c.name}</span>
-                <span style={{ color: "var(--ink-faint)", fontFamily: "var(--f-sans)" }}>{c.phone}</span>
-              </div>
-            ))}
+            {clients.map((c, i) => {
+              const count = projects.filter((p) => p.ownerUid === c.uid || (c.phone && p.ownerPhone && p.ownerPhone.replace(/\D/g, "") === c.phone.replace(/\D/g, ""))).length;
+              return (
+                <button key={c.uid} onClick={() => setViewClient(c)}
+                  style={{ width: "100%", textAlign: "start", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "0.9rem 1.2rem", borderTop: i ? "1px solid var(--line-soft)" : "none", borderInline: "none", borderBottom: "none", background: "transparent", cursor: "pointer" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 999, background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--f-display)" }}>{(c.name || "?").trim().charAt(0).toUpperCase()}</span>
+                    <span>
+                      <span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{c.name || "—"}</span>
+                      <span style={{ display: "block", color: "var(--ink-faint)", fontSize: "0.82rem" }}>{c.phone}</span>
+                    </span>
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.8rem", color: "var(--ink-faint)", fontSize: "0.8rem" }}>
+                    {count} {lang === "ar" ? "مشروع" : count === 1 ? "project" : "projects"} <span style={{ color: "var(--clay)" }}>→</span>
+                  </span>
+                </button>
+              );
+            })}
             {clients.length === 0 && <p style={{ padding: "1.2rem", color: "var(--ink-faint)" }}>—</p>}
           </div>
         )}
@@ -147,6 +162,8 @@ export default function AdminPage() {
                   {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
                     <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
                   ))}
+                  <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }}
+                    style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}>→ {lang === "ar" ? "إنشاء مشروع" : "Create project"}</button>
                 </div>
               </div>
             ))}
@@ -155,7 +172,14 @@ export default function AdminPage() {
       </section>
 
       {(adding || editing) && (
-        <ProjectForm initial={editing} clients={clients} onCancel={() => { setAdding(false); setEditing(null); }} onSave={onSave} />
+        <ProjectForm initial={editing} clients={clients} prefillOwner={prefillOwner}
+          onCancel={() => { setAdding(false); setEditing(null); setPrefillOwner(null); }}
+          onSave={(p) => { onSave(p); setPrefillOwner(null); }} />
+      )}
+      {viewClient && (
+        <ClientDetail client={viewClient} projects={projects} onClose={() => setViewClient(null)}
+          onManage={(p) => { setViewClient(null); setManaging(p); }}
+          onAddProject={(c) => { setViewClient(null); setPrefillOwner(c); setAdding(true); }} />
       )}
       {addingClient && <AddClient onClose={() => setAddingClient(false)} onDone={() => { setAddingClient(false); load(); }} />}
       {managing && <ProjectManage project={projects.find((p) => p.id === managing.id) || managing} by={user.name} onClose={() => setManaging(null)} />}

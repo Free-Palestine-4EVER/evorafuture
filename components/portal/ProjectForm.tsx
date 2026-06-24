@@ -9,17 +9,18 @@ import type { PortalUser, Project, ProjectStatus } from "@/lib/portal/types";
 const STATUSES: ProjectStatus[] = ["draft", "approved", "in_production", "delivered"];
 
 export default function ProjectForm({
-  initial, clients, onCancel, onSave,
+  initial, clients, prefillOwner, onCancel, onSave,
 }: {
   initial?: Project | null;
   clients: PortalUser[];
+  prefillOwner?: PortalUser | null;
   onCancel: () => void;
   onSave: (p: Project) => void;
 }) {
   const { lang, dir } = useT();
   const [p, setP] = useState<Project>(
     initial ?? {
-      id: newId(), ownerUid: "", ownerPhone: "", ownerName: "",
+      id: newId(), ownerUid: prefillOwner?.uid || "", ownerPhone: prefillOwner?.phone || "", ownerName: prefillOwner?.name || "",
       title: "", room: "", status: "draft", stage: "blueprint", approvedByClient: false,
     }
   );
