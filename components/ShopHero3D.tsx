@@ -26,35 +26,37 @@ const SWATCHES: { name: Bi; hex: string }[] = [
   { name: { en: "Charcoal", ar: "فحمي" }, hex: "#33312e" },
 ];
 
-/* ── 3 best-sellers below ── */
-type Product = { id: string; name: Bi; tag: Bi; price: string; img: string };
+/* ── the top 3 shop pieces — real 3D models ── */
+type Product = { id: string; name: Bi; tag: Bi; price: string; model: string };
 const PRODUCTS: Product[] = [
-  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, price: "360 JOD", img: "/evora/vid-coffee.jpg" },
-  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, price: "430 JOD", img: "/evora/ig-chesterfield.jpg" },
-  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, price: "1,290 JOD", img: "/evora/vid-bed.jpg" },
+  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, price: "360 JOD", model: "/models/featured/hd-coffee-table.glb" },
+  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, price: "430 JOD", model: "/models/featured/src-chair.glb" },
+  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, price: "1,290 JOD", model: "/models/furni/bed.glb" },
 ];
 
-function Model({ url, color, onReady }: { url: string; color: string; onReady?: () => void }) {
+/* shared model — optionally recolours every material (only the sofa uses tint) */
+function Model({ url, tint, onReady }: { url: string; tint?: string; onReady?: () => void }) {
   const { scene } = useGLTF(url);
   useEffect(() => { onReady?.(); }, [onReady]);
   const model = useMemo(() => scene.clone(true), [scene]);
   useEffect(() => {
-    const tint = new THREE.Color(color);
+    const color = tint ? new THREE.Color(tint) : null;
     model.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
+      if (!color) return;
       const mat = mesh.material;
       if (!mat) return;
       const applyTint = (m: THREE.Material) => {
         const cloned = m.clone() as THREE.Material & { color?: THREE.Color };
-        if ("color" in cloned && cloned.color) cloned.color = tint.clone();
+        if ("color" in cloned && cloned.color) cloned.color = color.clone();
         return cloned;
       };
       mesh.material = Array.isArray(mat) ? mat.map(applyTint) : applyTint(mat);
     });
-  }, [model, color]);
+  }, [model, tint]);
   return (
     <Bounds fit clip observe margin={1.12}>
       <Center>
@@ -71,12 +73,30 @@ function SofaStage({ color, onReady }: { color: string; onReady: () => void }) {
       <directionalLight position={[5, 8, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
       <directionalLight position={[-6, 4, -4]} intensity={0.5} />
       <Suspense fallback={null}>
-        <Model url={SOFA.model} color={color} onReady={onReady} />
+        <Model url={SOFA.model} tint={color} onReady={onReady} />
       </Suspense>
       <Suspense fallback={null}>
         <ContactShadows position={[0, -1.18, 0]} opacity={0.4} scale={10} blur={2.8} far={4} resolution={512} color="#2a2622" />
       </Suspense>
       <OrbitControls makeDefault autoRotate autoRotateSpeed={0.85} enablePan={false} enableZoom minDistance={3} maxDistance={7} minPolarAngle={Math.PI / 4} maxPolarAngle={Math.PI / 1.9} />
+    </Canvas>
+  );
+}
+
+/* small always-on mini-viewer for the 3 pieces — slow autorotate, no controls */
+function Mini({ url }: { url: string }) {
+  return (
+    <Canvas dpr={[1, 1.5]} shadows camera={{ position: [2.6, 1.4, 3.6], fov: 34 }}>
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[4, 7, 4]} intensity={1.1} castShadow shadow-mapSize-width={512} shadow-mapSize-height={512} />
+      <directionalLight position={[-5, 3, -3]} intensity={0.4} />
+      <Suspense fallback={null}>
+        <Model url={url} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ContactShadows position={[0, -1.15, 0]} opacity={0.38} scale={9} blur={2.6} far={4} resolution={256} color="#2a2622" />
+      </Suspense>
+      <OrbitControls makeDefault autoRotate autoRotateSpeed={1.1} enablePan={false} enableZoom={false} enableRotate={false} minPolarAngle={Math.PI / 3.4} maxPolarAngle={Math.PI / 2} />
     </Canvas>
   );
 }
@@ -134,13 +154,16 @@ export default function ShopHero3D() {
         </div>
       </div>
 
-      {/* 3 more shop items */}
+      {/* the 3 top pieces — all live 3D */}
       <div className="container sh3__more">
         {PRODUCTS.map((p, i) => (
           <motion.a key={p.id} href="/shop" className="sh3__card" data-cursor="hover"
             initial={{ opacity: 0, y: 40, filter: "blur(6px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             viewport={{ once: true, margin: "0px 0px -10% 0px" }} transition={{ duration: 0.8, ease: EASE, delay: 0.06 * i }}>
-            <div className="sh3__cardimg"><img src={p.img} alt={p.name[lang]} loading="lazy" /></div>
+            <div className="sh3__cardstage">
+              <Mini url={p.model} />
+              <span className="sh3__card3d">{en ? "3D" : "ثلاثي"}</span>
+            </div>
             <div className="sh3__cardmeta">
               <div>
                 <span className="sh3__cardtag">{p.tag[lang]}</span>
@@ -202,13 +225,13 @@ export default function ShopHero3D() {
         .sh3__link { font-size: 0.84rem; color: var(--ink); border-bottom: 1px solid var(--brass); padding-bottom: 3px; transition: color .3s var(--ease); }
         .sh3__link:hover { color: var(--brass); }
 
-        /* 3 more */
+        /* 3 live-3D cards */
         .sh3__more { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(14px, 1.8vw, 26px); margin-top: clamp(2.4rem, 5vw, 4rem); }
-        .sh3__card { display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; background: var(--paper-2); border: 1px solid rgba(16,15,13,0.08); transition: border-color .4s var(--ease), box-shadow .4s var(--ease), transform .4s var(--ease); }
+        .sh3__card { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; background: var(--paper-2); border: 1px solid rgba(16,15,13,0.08); transition: border-color .4s var(--ease), box-shadow .4s var(--ease), transform .4s var(--ease); }
         .sh3__card:hover { border-color: rgba(138,106,60,0.4); box-shadow: 0 24px 60px -40px rgba(16,15,13,0.42); transform: translateY(-3px); }
-        .sh3__cardimg { aspect-ratio: 4 / 3; overflow: hidden; }
-        .sh3__cardimg img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.03); transition: transform 1.2s var(--ease); }
-        .sh3__card:hover .sh3__cardimg img { transform: scale(1.1); }
+        .sh3__cardstage { position: relative; aspect-ratio: 4 / 3.2; background: radial-gradient(120% 95% at 50% 14%, #fbf8f2, #ece5d9 80%); }
+        .sh3__cardstage canvas { display: block; touch-action: pan-y; }
+        .sh3__card3d { position: absolute; top: 0.7rem; inset-inline-start: 0.7rem; background: rgba(255,255,255,0.85); color: var(--brass); font-size: 0.56rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.4em 0.7em; border-radius: 100px; backdrop-filter: blur(4px); }
         .sh3__cardmeta { display: flex; flex-direction: column; gap: 0.8rem; justify-content: space-between; padding: 1.1rem 1.2rem 1.2rem; flex: 1; }
         .sh3__cardtag { display: block; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.35rem; }
         html[dir="rtl"] .sh3__cardtag { letter-spacing: 0.04em; }
@@ -236,3 +259,4 @@ export default function ShopHero3D() {
 }
 
 useGLTF.preload(SOFA.model);
+PRODUCTS.forEach((p) => useGLTF.preload(p.model));

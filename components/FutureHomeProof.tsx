@@ -139,44 +139,42 @@ export default function FutureHomeProof() {
 
       {/* ───────── III · VOICES (editorial, on bone) ───────── */}
       <div className="fh__voices">
-        <div className="container fh__voicesgrid">
-          {/* tall walnut detail beside the quotes */}
-          <Rise className="fh__voicesfig">
-            <figure className="fh__figframe">
-              <img src="/evora/p02.jpg" alt="" />
-              <figcaption>{ar ? "صُمّم وسُلّم · عمّان" : "Designed & delivered · Amman"}</figcaption>
-            </figure>
-          </Rise>
-
-          <div className="fh__voicescol">
+        <div className="container">
+          <div className="fh__vhead">
             <Rise as="span" className="eyebrow fh__voiceseyebrow">
               {ar ? "محبوبون في عمّان" : "Loved across Amman"}
             </Rise>
             <Rise as="h3" delay={0.05} className="display fh__voicestitle">
               {ar ? "بكلماتهم" : "In their words"}
             </Rise>
-            <Stagger className="fh__qlist" gap={0.12} delay={0.05}>
-              {testimonials.map((tm, i) => (
-                <StaggerItem key={i} className="fh__qitem">
-                  <figure className="fh__quote">
-                    <div className="fh__stars" aria-label={ar ? "خمس نجوم" : "Five stars"}>
-                      {Array.from({ length: 5 }).map((_, s) => (
-                        <Star key={s} />
-                      ))}
-                    </div>
-                    <blockquote className="fh__qtext">{tm.quote[lang]}</blockquote>
-                    <figcaption className="fh__qcap">
-                      <span className="fh__avatar" aria-hidden>{initials(tm.name)}</span>
-                      <span className="fh__qmeta">
-                        <span className="fh__qname">{tm.name}</span>
-                        <span className="fh__qrole">{tm.role[lang]}</span>
-                      </span>
-                    </figcaption>
-                  </figure>
-                </StaggerItem>
-              ))}
-            </Stagger>
+            <Rise as="p" delay={0.1} className="fh__vsub">
+              {ar
+                ? "عملاء حقيقيون في عمّان — صُمّم، سُلّم، وعِيش فيه."
+                : "Real homeowners across Amman — designed, delivered, and lived in."}
+            </Rise>
           </div>
+          <Stagger className="fh__qgrid" gap={0.1} delay={0.05}>
+            {testimonials.map((tm, i) => (
+              <StaggerItem key={i} className="fh__qitem">
+                <figure className="fh__quote">
+                  <span className="fh__qmark" aria-hidden>&ldquo;</span>
+                  <div className="fh__stars" aria-label={ar ? "خمس نجوم" : "Five stars"}>
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <Star key={s} />
+                    ))}
+                  </div>
+                  <blockquote className="fh__qtext">{tm.quote[lang]}</blockquote>
+                  <figcaption className="fh__qcap">
+                    <span className="fh__avatar" aria-hidden>{initials(tm.name)}</span>
+                    <span className="fh__qmeta">
+                      <span className="fh__qname">{tm.name}</span>
+                      <span className="fh__qrole">{tm.role[lang]}</span>
+                    </span>
+                  </figcaption>
+                </figure>
+              </StaggerItem>
+            ))}
+          </Stagger>
         </div>
       </div>
 
@@ -246,44 +244,33 @@ export default function FutureHomeProof() {
 
         /* ── III · voices ── */
         .fh__voices { background: var(--bone); padding-block: clamp(3.6rem, 8vw, 7rem); }
-        .fh__voicesgrid { display: grid; grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr); gap: clamp(2.4rem, 6vw, 5rem); align-items: start; }
-        .fh__voicesfig { position: sticky; top: clamp(5rem, 12vh, 9rem); }
-        .fh__figframe { position: relative; margin: 0; border-radius: 16px; overflow: hidden; aspect-ratio: 3/4;
-          box-shadow: 0 50px 100px -45px rgba(22,21,15,0.5); border: 1px solid var(--line); }
-        .fh__figframe img { width: 100%; height: 100%; object-fit: cover; }
-        .fh__figframe figcaption { position: absolute; bottom: 0; inset-inline: 0; padding: 1.4rem 1.2rem 1.1rem;
-          font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,247,240,0.92);
-          background: linear-gradient(transparent, rgba(16,15,13,0.78)); }
-        html[dir="rtl"] .fh__figframe figcaption { letter-spacing: 0.06em; }
+        .fh__vhead { max-width: 62ch; margin: 0 auto clamp(2.4rem, 5vw, 3.8rem); text-align: center; }
+        .fh__voiceseyebrow { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--brass); }
+        .fh__voiceseyebrow::before, .fh__voiceseyebrow::after { content: ""; width: 26px; height: 1px; background: var(--brass); opacity: 0.55; }
+        .fh__voicestitle { color: var(--ink); font-size: clamp(2.1rem, 4vw, 3.4rem); font-weight: 380; margin: 0.7rem 0 0; letter-spacing: -0.01em; }
+        .fh__vsub { color: var(--ink-soft); font-size: clamp(0.98rem, 1.4vw, 1.1rem); margin: 0.9rem auto 0; max-width: 50ch; }
 
-        .fh__voiceseyebrow { display: block; color: var(--brass); margin-bottom: 0.7rem; }
-        .fh__voicestitle { color: var(--ink); font-size: clamp(1.9rem, 3.4vw, 2.8rem); font-weight: 380; margin: 0 0 1.8rem; letter-spacing: -0.01em; }
-        .fh__quote::before { content: "\\201C"; position: absolute; top: 0.2rem; inset-inline-end: clamp(1rem, 2vw, 1.6rem);
-          font-family: var(--font-display); font-size: clamp(3.4rem, 6vw, 5rem); line-height: 1; color: var(--brass);
-          opacity: 0.16; pointer-events: none; }
-        .fh__qlist { display: flex; flex-direction: column; gap: clamp(1.2rem, 2.4vw, 1.8rem); }
-        .fh__quote { position: relative; margin: 0; padding: clamp(1.4rem, 2.6vw, 2rem); border-radius: 16px;
-          background: rgba(255,255,255,0.6); border: 1px solid color-mix(in srgb, var(--brass) 26%, transparent);
-          box-shadow: 0 24px 60px -40px rgba(22,21,15,0.35); transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease); }
-        .fh__quote:hover { transform: translateY(-4px); box-shadow: 0 36px 80px -42px rgba(22,21,15,0.45); }
-        .fh__stars { display: flex; gap: 3px; color: var(--brass); margin-bottom: 0.9rem; }
+        .fh__qgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: clamp(16px, 2vw, 28px); align-items: stretch; }
+        .fh__qitem { display: flex; }
+        .fh__quote { position: relative; margin: 0; padding: clamp(1.6rem, 2.6vw, 2.2rem); border-radius: 16px; width: 100%; display: flex; flex-direction: column; overflow: hidden;
+          background: var(--paper); border: 1px solid rgba(16,15,13,0.07);
+          box-shadow: 0 26px 64px -44px rgba(22,21,15,0.4); transition: transform 0.5s var(--ease), box-shadow 0.5s var(--ease), border-color 0.5s var(--ease); }
+        .fh__quote:hover { transform: translateY(-5px); border-color: rgba(138,106,60,0.35); box-shadow: 0 42px 90px -46px rgba(22,21,15,0.5); }
+        .fh__qmark { position: absolute; top: -0.6rem; inset-inline-end: 0.8rem; font-family: var(--font-display); font-size: clamp(4.5rem, 8vw, 7rem); line-height: 1; color: var(--brass); opacity: 0.12; pointer-events: none; }
+        .fh__stars { position: relative; display: flex; gap: 3px; color: var(--brass); margin-bottom: 0.9rem; }
         html[dir="rtl"] .fh__stars { justify-content: flex-start; }
-        .fh__qtext { margin: 0; font-family: var(--font-display); font-size: clamp(1.2rem, 1.7vw, 1.5rem); line-height: 1.45; font-weight: 360; color: var(--ink); }
-        .fh__qcap { display: flex; align-items: center; gap: 0.85rem; margin-top: 1.4rem; padding-top: 1.2rem;
-          border-top: 1px solid color-mix(in srgb, var(--brass) 32%, transparent); }
-        .fh__avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
-          font-family: var(--font-display); font-size: 0.92rem; color: var(--ink);
+        .fh__qtext { margin: 0; font-family: var(--font-display); font-size: clamp(1.05rem, 1.4vw, 1.28rem); line-height: 1.5; font-weight: 360; color: var(--ink); flex: 1; }
+        .fh__qcap { display: flex; align-items: center; gap: 0.85rem; margin-top: 1.6rem; padding-top: 1.2rem; border-top: 1px solid rgba(16,15,13,0.1); }
+        .fh__avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+          font-family: var(--font-display); font-size: 0.95rem; color: var(--paper);
           background: linear-gradient(150deg, var(--brass-2), color-mix(in srgb, var(--brass) 70%, #7a5c2e));
           box-shadow: inset 0 1px 1px rgba(255,255,255,0.4); }
-        .fh__qmeta { display: flex; flex-direction: column; gap: 0.1rem; }
-        .fh__qname { font-family: var(--font-display); font-size: 1.02rem; color: var(--ever); }
+        .fh__qmeta { display: flex; flex-direction: column; gap: 0.12rem; }
+        .fh__qname { font-family: var(--font-display); font-size: 1.05rem; color: var(--ever); }
         .fh__qrole { font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
         html[dir="rtl"] .fh__qrole { letter-spacing: 0.02em; }
 
         @media (max-width: 960px) {
-          .fh__voicesgrid { grid-template-columns: 1fr; gap: 2.4rem; }
-          .fh__voicesfig { position: static; }
-          .fh__figframe { aspect-ratio: 16/10; }
           .fh__stats { grid-template-columns: 1fr 1fr; gap: 1.8rem 1rem; }
           .fh__stat:nth-child(3)::before, .fh__stat:nth-child(2)::before { content: none; }
         }
