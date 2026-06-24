@@ -34,19 +34,27 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
       <div className="container pj-intro">
         <header className="pj-intro-text">
           <Rise>
-            <span className="eyebrow" style={{ color: "var(--brass)" }}>
+            <span className="pj-kicker">
+              <span className="pj-kicker-rule" />
               {ar ? "كيف تعمل إيفورا" : "How Evora works"}
+              <span className="pj-kicker-rule" />
             </span>
           </Rise>
-          <Rise delay={0.06} as="h2" className="display"
-            style={{ fontSize: "clamp(2.2rem,5vw,4rem)", lineHeight: 1.06, fontWeight: 360, margin: "1.1rem 0 0", color: "var(--ink)" }}>
-            {ar ? "من مخطط مسطّح إلى منزلك المكتمل" : "From a flat plan to your finished home"}
+          <Rise delay={0.06} as="h2" className="pj-title">
+            {ar ? (
+              <>
+                من مخطط مسطّح <em>إلى منزلك المكتمل</em>
+              </>
+            ) : (
+              <>
+                From a flat plan <em>to your finished home</em>
+              </>
+            )}
           </Rise>
-          <Rise delay={0.12} as="p"
-            style={{ maxWidth: "56ch", marginInline: "auto", marginTop: "1.5rem", color: "var(--ink-soft)", fontSize: "1.05rem", lineHeight: 1.7 }}>
+          <Rise delay={0.12} as="p" className="pj-lede">
             {ar
               ? "أربع خطوات تصميم تحوّل مخططك الفارغ إلى تصميم تعتمده — تابع التحول مرحلةً مرحلة بينما تتنقّل، ثم نصنعه وأنت تشاهد كل خطوة مباشرةً."
-              : "Four design steps turn your empty plan into a look you approve — watch it transform stage by stage as you scroll, then we build it while you follow every step live."}
+              : "Four design steps turn your empty plan into a look you approve — watch it transform, stage by stage, as you scroll. Then we build it while you follow every step live."}
           </Rise>
         </header>
       </div>
@@ -74,15 +82,14 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
               style={{ justifyContent: textRight ? "flex-end" : "flex-start" }}
             >
               <div className="pj-step-text">
-                <span style={{ fontFamily: "var(--f-display)", fontSize: "clamp(2.6rem,6vw,4rem)", color: "var(--clay)", lineHeight: 1, display: "block" }}>
-                  {step.n}
+                <span className="pj-step-count">
+                  <b>{step.n}</b>
+                  <span className="pj-step-rule" />
+                  <span className="pj-step-total">{ar ? "من ٠٤" : "of 04"}</span>
                 </span>
-                <h3 className="display" style={{ fontSize: "clamp(1.6rem,3.4vw,2.4rem)", color: "var(--ink)", margin: "0.6rem 0 0.7rem", fontWeight: 380 }}>
-                  {step.title[lang]}
-                </h3>
-                <p style={{ color: "var(--ink-soft)", fontSize: "1.02rem", lineHeight: 1.7, maxWidth: "42ch" }}>
-                  {step.body[lang]}
-                </p>
+                <span className="pj-step-ghost" aria-hidden>{step.n}</span>
+                <h3 className="pj-step-title">{step.title[lang]}</h3>
+                <p className="pj-step-body">{step.body[lang]}</p>
                 {/* Mobile inline visual (sticky panel is hidden < 760px) */}
                 <div className="pj-step-media-mobile">
                   <TransformStage step={i} ar={ar} />
@@ -104,10 +111,51 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
       <style>{`
         .pj-intro {
           text-align: center;
-          max-width: 64ch;
+          max-width: 70ch;
           margin-inline: auto;
         }
         .pj-intro-text { width: 100%; }
+
+        /* Kicker — centered label between two hairline rules */
+        .pj-kicker {
+          display: inline-flex; align-items: center; gap: 0.9rem;
+          font-family: var(--f-sans);
+          font-size: 0.72rem; font-weight: 600;
+          letter-spacing: 0.28em; text-transform: uppercase;
+          color: var(--brass-2, #8a6d3f);
+        }
+        .pj-kicker-rule {
+          display: inline-block; width: clamp(28px, 6vw, 64px); height: 1px;
+          background: linear-gradient(to right, transparent, var(--brass) 50%, transparent);
+        }
+
+        /* Display headline — Fraunces, optically sized, with an italic accent */
+        .pj-title {
+          font-family: var(--f-display), Georgia, serif;
+          font-optical-sizing: auto;
+          font-variation-settings: "opsz" 140, "SOFT" 0, "WONK" 1;
+          font-weight: 340;
+          font-size: clamp(2.5rem, 6.4vw, 5.25rem);
+          line-height: 0.98;
+          letter-spacing: -0.022em;
+          margin: 1.25rem 0 0;
+          color: var(--ink);
+          text-wrap: balance;
+        }
+        .pj-title em {
+          font-style: italic;
+          font-variation-settings: "opsz" 140, "SOFT" 60, "WONK" 1;
+          color: var(--ever, #2f5d4a);
+        }
+
+        .pj-lede {
+          max-width: 54ch; margin-inline: auto; margin-top: 1.6rem;
+          font-family: var(--f-sans);
+          color: var(--ink-soft);
+          font-size: clamp(1.02rem, 1.4vw, 1.18rem);
+          line-height: 1.72;
+          text-wrap: pretty;
+        }
         .pj-sticky {
           pointer-events: none;
           position: sticky; top: 0; z-index: 2;
@@ -121,7 +169,50 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           display: flex; align-items: center;
           min-height: 100vh;
         }
-        .pj-step-text { width: 38%; }
+        .pj-step-text { width: 38%; position: relative; }
+
+        /* Step counter — "01 — of 04" with a hairline */
+        .pj-step-count {
+          display: inline-flex; align-items: center; gap: 0.7rem;
+          font-family: var(--f-sans);
+          font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase;
+          color: var(--ink-soft);
+        }
+        .pj-step-count b { color: var(--clay); font-weight: 700; }
+        .pj-step-rule { width: 34px; height: 1px; background: var(--line); display: inline-block; }
+        .pj-step-total { color: var(--ink-faint, #9a948b); }
+
+        /* Oversized ghost numeral behind the title */
+        .pj-step-ghost {
+          position: absolute; z-index: -1;
+          inset-block-start: -0.35em; inset-inline-start: -0.08em;
+          font-family: var(--f-display), Georgia, serif;
+          font-variation-settings: "opsz" 144, "WONK" 1;
+          font-size: clamp(7rem, 13vw, 11rem);
+          line-height: 0.8; font-weight: 360;
+          color: var(--brass);
+          opacity: 0.12;
+          pointer-events: none; user-select: none;
+        }
+
+        .pj-step-title {
+          font-family: var(--f-display), Georgia, serif;
+          font-optical-sizing: auto;
+          font-variation-settings: "opsz" 60, "SOFT" 40;
+          font-weight: 380;
+          font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+          line-height: 1.06; letter-spacing: -0.012em;
+          color: var(--ink);
+          margin: 0.9rem 0 0.7rem;
+          text-wrap: balance;
+        }
+        .pj-step-body {
+          font-family: var(--f-sans);
+          color: var(--ink-soft);
+          font-size: clamp(1.0rem, 1.3vw, 1.08rem);
+          line-height: 1.72; max-width: 42ch;
+          text-wrap: pretty;
+        }
         .pj-step-media-mobile { display: none; margin-top: 1.6rem; }
 
         @media (max-width: 760px) {
