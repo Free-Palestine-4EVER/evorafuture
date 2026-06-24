@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
 import { featured } from "@/lib/featured";
-import { formatPrice, type Product } from "@/lib/products";
+import { type Product } from "@/lib/products";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
 import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
 import ShopQuickView, { AnimatePresence } from "@/components/ShopQuickView";
@@ -54,7 +54,6 @@ function FeaturedCard({ product, onOpen }: { product: Product; onOpen: () => voi
             <h3 className="display feat-name">{product.name}</h3>
             <p className="feat-tag">{product.tagline}</p>
           </div>
-          <span className="feat-price">{formatPrice(product)}</span>
         </div>
         <div className="feat-finish">
           <span className="feat-finish-label">{finishLabel(product.colorways[color].name, lang)}</span>

@@ -31,7 +31,7 @@ export default function ShoppableRoom() {
                 <div key={h.id} className="hs" style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, transform: "translate(-50%,-50%)", zIndex: open ? 5 : 2 }}
                   onMouseEnter={() => setActive(h.id)} onClick={() => setActive(h.id)}
                   onTouchStart={() => setActive(h.id)} data-cursor="hover">
-                  <button aria-label={`${h.name[lang]} — ${h.price}`} aria-pressed={open}
+                  <button aria-label={h.name[lang]} aria-pressed={open}
                     style={{ position: "relative", width: 26, height: 26, borderRadius: "50%", border: "none", cursor: "none", background: open ? "var(--brass-2)" : "rgba(251,247,240,0.9)", display: "grid", placeItems: "center", transition: "background .35s var(--ease), transform .35s var(--ease)", transform: open ? "scale(1.12)" : "scale(1)" }}>
                     <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1.5px solid rgba(251,247,240,0.8)", animation: "pulse-ring 2.4s var(--ease) infinite" }} />
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--ink)" }} />
@@ -43,7 +43,6 @@ export default function ShoppableRoom() {
                     opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "all .4s var(--ease)", boxShadow: "0 20px 40px -16px rgba(0,0,0,0.5)",
                   }}>
                     <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "1.05rem", lineHeight: 1.2 }}>{h.name[lang]}</span>
-                    <span style={{ display: "block", marginTop: 4, fontSize: "0.85rem", fontWeight: 600, color: "var(--ever-2)" }}>{h.price}</span>
                   </div>
                 </div>
               );

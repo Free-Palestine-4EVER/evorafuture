@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
-import { formatPrice, type Product, type Category } from "@/lib/products";
+import { type Product, type Category } from "@/lib/products";
 import { useT, type Lang } from "@/lib/i18n";
 
 const CAT_AR: Record<Category, string> = {
@@ -171,10 +171,6 @@ export default function ShopQuickView({
           </div>
 
           <div className="qv-foot">
-            <div className="qv-price">
-              <span className="qv-label">{t("qv_price")}</span>
-              <strong>{formatPrice(product)}</strong>
-            </div>
             <div className="qv-cta">
               <a href={`/showroom?p=${product.id}`} className="qv-btn qv-btn-dark" data-cursor="hover">
                 <ArIcon />

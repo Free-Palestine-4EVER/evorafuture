@@ -86,7 +86,6 @@ export default function ProductAR() {
               </div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem" }}>{m.name[lang]}</div>
               <div style={{ color: "var(--ink-faint)", fontSize: "0.9rem", marginTop: 4 }}>{m.tagline[lang]}</div>
-              <div style={{ marginTop: "0.9rem", fontWeight: 600, color: "var(--ever-2)", fontSize: "1.05rem" }}>{m.price}</div>
 
               <a href="/showroom" data-cursor="hover" className="ar-fulllink">
                 {lang === "en" ? "Enter the full AR showroom" : "ادخل معرض الواقع المعزّز الكامل"} <span className="arrow">→</span>

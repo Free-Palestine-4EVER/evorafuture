@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import ModelViewer, { type ViewerEl } from "./ModelViewer";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
-import { formatPrice, type Product } from "@/lib/products";
+import { type Product } from "@/lib/products";
 
 interface Props {
   product: Product;
@@ -158,10 +158,6 @@ export default function ProductDialog({ product, onClose }: Props) {
           </div>
 
           <div className="dlg-foot">
-            <div className="dlg-price">
-              <span className="dlg-label">Price</span>
-              <strong>{formatPrice(product)}</strong>
-            </div>
             <div className="dlg-cta">
               <button className="btn btn-clay" onClick={tryInRoom}>
                 <ArIcon />

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductDialog from "./ProductDialog";
-import { formatPrice, type Product } from "@/lib/products";
+import { type Product } from "@/lib/products";
 import { vantages, type Vantage } from "@/lib/showroomLayout";
 import type { ViewerEl } from "./ModelViewer";
 
@@ -97,7 +97,6 @@ export default function ShowroomExperience() {
             >
               <span className="eyebrow">{hover.category}</span>
               <strong>{hover.name}</strong>
-              <span className="room-hud-price">{formatPrice(hover)}</span>
               <span className="room-hud-cta">Click to view & try in AR →</span>
             </motion.div>
           )}

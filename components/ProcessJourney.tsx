@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AnimatePresence } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { processSteps } from "@/lib/data";
 import { JOURNEY } from "@/lib/portal/journey";
@@ -21,16 +20,7 @@ import TransformStage from "@/components/TransformStage";
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 
-// Visual per step. Steps 1–2 draw an SVG plan (empty / furnished); steps 3–4
-// use real photography from /public/evora.
-const STEP_MEDIA = [
-  { kind: "plan", furnished: false },
-  { kind: "plan", furnished: true },
-  { kind: "photo", src: "/evora/p01.jpg", badge3d: true },
-  { kind: "photo", src: "/evora/c-bedrooms.jpg", badge3d: false },
-] as const;
-
-export default function ProcessJourney() {
+export default function ProcessJourney({ showFinale = true }: { showFinale?: boolean }) {
   const { lang, dir } = useT();
   const ar = lang === "ar";
   const [active, setActive] = useState(0);
@@ -103,23 +93,21 @@ export default function ProcessJourney() {
         })}
       </div>
 
-      {/* Finale — live production tracking */}
-      <div className="container">
-        <TrackingFinale ar={ar} />
-      </div>
+      {/* Finale — live production tracking. Suppressed on the home page, where
+          StartAndTrack merges this with the upload→3D beat into one showpiece. */}
+      {showFinale && (
+        <div className="container">
+          <TrackingFinale ar={ar} />
+        </div>
+      )}
 
       <style>{`
         .pj-intro {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-          gap: clamp(2rem, 5vw, 5rem);
-          align-items: center;
+          text-align: center;
+          max-width: 64ch;
+          margin-inline: auto;
         }
-        .pj-intro-text { max-width: 52ch; }
-        .pj-intro-visual { width: 100%; }
-        @media (max-width: 860px) {
-          .pj-intro { grid-template-columns: 1fr; gap: 2.2rem; }
-        }
+        .pj-intro-text { width: 100%; }
         .pj-sticky {
           pointer-events: none;
           position: sticky; top: 0; z-index: 2;
@@ -144,85 +132,6 @@ export default function ProcessJourney() {
         }
       `}</style>
     </section>
-  );
-}
-
-/* ---------- Step visual ---------- */
-
-function StepMedia({ media, ar }: { media: (typeof STEP_MEDIA)[number]; ar: boolean }) {
-  const frame: React.CSSProperties = {
-    position: "relative", width: "100%", aspectRatio: "4/3", borderRadius: 16,
-    overflow: "hidden", background: "#f3f0ea", border: "1px solid var(--line)",
-    boxShadow: "0 40px 90px -45px rgba(22,21,15,0.5)",
-  };
-  if (media.kind === "plan") {
-    return (
-      <div style={frame}>
-        <FloorPlan furnished={media.furnished} />
-        <Tag>{media.furnished ? (ar ? "مخطط مؤثّث" : "Furnished plan") : (ar ? "مخطط فارغ" : "Empty plan")}</Tag>
-      </div>
-    );
-  }
-  return (
-    <div style={frame}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={media.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-      <Tag>{media.badge3d ? (ar ? "ثلاثي الأبعاد تفاعلي" : "Interactive 3D") : (ar ? "عرض نهائي" : "Final render")}</Tag>
-      {media.badge3d && (
-        <span style={{ position: "absolute", bottom: 12, insetInlineEnd: 12, fontSize: "0.7rem", fontWeight: 600, color: "#fff", background: "rgba(22,21,15,0.7)", padding: "0.3em 0.7em", borderRadius: 999, backdropFilter: "blur(4px)" }}>
-            ⟲ 360°
-        </span>
-      )}
-    </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span style={{ position: "absolute", top: 12, insetInlineStart: 12, fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.04em", color: "var(--ink)", background: "rgba(255,255,255,0.85)", padding: "0.35em 0.8em", borderRadius: 999, backdropFilter: "blur(4px)" }}>
-      {children}
-    </span>
-  );
-}
-
-/* An SVG floor plan: same rooms, furniture toggled on when `furnished`. */
-function FloorPlan({ furnished }: { furnished: boolean }) {
-  const wall = "var(--ink)";
-  const furn = "var(--clay)";
-  return (
-    <svg viewBox="0 0 400 300" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
-      <rect x="0" y="0" width="400" height="300" fill="#f6f3ee" />
-      {/* Outer walls + partitions */}
-      <g stroke={wall} strokeWidth="4" fill="none" strokeLinejoin="round">
-        <rect x="24" y="24" width="352" height="252" />
-        <line x1="220" y1="24" x2="220" y2="160" />
-        <line x1="220" y1="160" x2="376" y2="160" />
-        <line x1="150" y1="160" x2="150" y2="276" />
-        <line x1="24" y1="160" x2="150" y2="160" />
-      </g>
-      {/* door gaps */}
-      <g stroke="#f6f3ee" strokeWidth="6">
-        <line x1="220" y1="96" x2="220" y2="124" />
-        <line x1="150" y1="200" x2="150" y2="228" />
-      </g>
-      {/* top dimension line */}
-      <g stroke="var(--line)" strokeWidth="1.5">
-        <line x1="24" y1="14" x2="376" y2="14" />
-        <line x1="24" y1="10" x2="24" y2="18" />
-        <line x1="376" y1="10" x2="376" y2="18" />
-      </g>
-      {/* Furniture — fades in when furnished */}
-      <g fill="none" stroke={furn} strokeWidth="3" strokeLinejoin="round"
-        style={{ opacity: furnished ? 1 : 0, transition: "opacity .6s ease" }}>
-        <rect x="48" y="56" width="120" height="40" rx="6" />
-        <rect x="80" y="110" width="56" height="34" rx="4" />
-        <line x1="48" y1="140" x2="168" y2="140" strokeDasharray="4 5" />
-        <rect x="250" y="50" width="96" height="70" rx="6" />
-        <line x1="250" y1="74" x2="346" y2="74" />
-        <circle cx="290" cy="220" r="34" />
-        <rect x="44" y="244" width="90" height="18" rx="3" />
-      </g>
-    </svg>
   );
 }
 

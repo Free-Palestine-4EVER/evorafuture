@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
-import { products, CATEGORIES, formatPrice, posterFor, type Category, type Product } from "@/lib/products";
+import { products, CATEGORIES, posterFor, type Category, type Product } from "@/lib/products";
 import { Rise, RevealLines, Stagger, StaggerItem, motion } from "@/components/motion";
 import ShopQuickView, { AnimatePresence } from "@/components/ShopQuickView";
 
@@ -20,7 +20,7 @@ const BADGE_AR: Record<string, string> = {
 };
 const catLabel = (c: Category, lang: Lang) => (lang === "ar" ? CAT_AR[c] : c);
 
-type Sort = "featured" | "price_asc" | "price_desc" | "az";
+type Sort = "featured" | "az";
 
 export default function Shop() {
   const { t, lang } = useT();
@@ -40,12 +40,8 @@ export default function Shop() {
           .includes(q)
       );
     }
-    if (sort !== "featured") {
-      list = [...list].sort((a, b) =>
-        sort === "price_asc" ? a.price - b.price
-        : sort === "price_desc" ? b.price - a.price
-        : a.name.localeCompare(b.name)
-      );
+    if (sort === "az") {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
   }, [active, query, sort]);
@@ -84,8 +80,6 @@ export default function Shop() {
               <span>{t("shop_sort")}</span>
               <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} data-cursor="hover" aria-label={t("shop_sort")}>
                 <option value="featured">{t("shop_sort_featured")}</option>
-                <option value="price_asc">{t("shop_sort_price_asc")}</option>
-                <option value="price_desc">{t("shop_sort_price_desc")}</option>
                 <option value="az">{t("shop_sort_az")}</option>
               </select>
             </label>
@@ -125,7 +119,6 @@ export default function Shop() {
                   <div className="shop-card-meta">
                     <div className="shop-card-head">
                       <span className="shop-cat">{catLabel(p.category, lang)}</span>
-                      <span className="shop-price">{formatPrice(p)}</span>
                     </div>
                     <h3 className="shop-name display">{p.name}</h3>
                     <p className="shop-tag">{p.tagline}</p>

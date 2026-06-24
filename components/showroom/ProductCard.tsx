@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { formatPrice, posterFor, type Product } from "@/lib/products";
+import { posterFor, type Product } from "@/lib/products";
 
 interface Props {
   product: Product;
@@ -42,7 +42,6 @@ export default function ProductCard({ product, index, onOpen }: Props) {
           <h3 className="card-name">{product.name}</h3>
           <p className="card-tag">{product.tagline}</p>
         </div>
-        <span className="card-price">{formatPrice(product)}</span>
       </div>
 
       <div className="card-dots">
