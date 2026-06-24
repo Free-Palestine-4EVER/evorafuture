@@ -196,7 +196,6 @@ function KitchenFinale() {
   const en = lang === "en";
   const reduce = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
-  const vid = useRef<HTMLVideoElement>(null);
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -213,23 +212,15 @@ function KitchenFinale() {
   const capO = useTransform(scrollYProgress, [0, 0.22, 0.5], [1, 1, 0]);
   const hintO = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
-  // start the film once it's filling the viewport
-  const onChange = (v: number) => {
-    const el = vid.current;
-    if (!el) return;
-    if (v > 0.18) el.play().catch(() => {});
-  };
-  scrollYProgress.on?.("change", onChange);
-
   return (
     <section ref={ref} className="kfin" lang={lang} aria-label={en ? "The Kitchen" : "المطبخ"}>
       <div className="kfin__sticky">
         <motion.div className="kfin__frame" style={reduce ? undefined : { clipPath: clip }}>
           <motion.video
-            ref={vid}
             className="kfin__video"
             style={reduce ? undefined : { scale }}
             poster="/evora/room-kitchen.jpg"
+            autoPlay
             muted
             loop
             playsInline
@@ -268,38 +259,59 @@ export default function Collections() {
   const en = lang === "en";
 
   return (
+    <>
     <section id="collections" className="rooms" lang={lang}>
-      <div className="container rooms__head">
-        <div className="rooms__kick">
-          <motion.span
-            className="rooms__rule"
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true, margin: "0px 0px -12% 0px" }}
-            transition={{ duration: 0.9, ease: EASE }}
+      {/* intro — the showroom film paired with the section heading */}
+      <div className="container rooms__intro">
+        <div className="rooms__introtext">
+          <div className="rooms__kick">
+            <motion.span
+              className="rooms__rule"
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true, margin: "0px 0px -12% 0px" }}
+              transition={{ duration: 0.9, ease: EASE }}
+            />
+            <Rise as="span" className="eyebrow rooms__eyebrow">
+              {en ? "Explore the collection" : "استكشف المجموعة"}
+            </Rise>
+          </div>
+          <RevealLines
+            lines={en ? ["Six worlds,", "one address."] : ["ستة عوالم،", "عنوان واحد."]}
+            className="display rooms__title"
+            delay={0.06}
           />
-          <Rise as="span" className="eyebrow rooms__eyebrow">
-            {en ? "Explore by room" : "استكشف حسب الغرفة"}
+          <Rise delay={0.12} as="p" className="rooms__sub">
+            {en
+              ? "Step through six rooms of Evora — then everything else that finishes the home."
+              : "تنقّل بين ست غرف من إيفورا — ثم كل ما يكمّل البيت."}
           </Rise>
         </div>
-        <RevealLines
-          lines={en ? ["Six worlds,", "one address."] : ["ستة عوالم،", "عنوان واحد."]}
-          className="display rooms__title"
-          delay={0.06}
-        />
-        <Rise delay={0.12} as="p" className="rooms__sub">
-          {en
-            ? "Step through six rooms of Evora — then everything else that finishes the home."
-            : "تنقّل بين ست غرف من إيفورا — ثم كل ما يكمّل البيت."}
-        </Rise>
+
+        <a href="/showroom" className="rooms__film" data-cursor="hover">
+          <video
+            className="rooms__filmvideo"
+            src="/evora/hero-c.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+          <span className="rooms__filmscrim" />
+          <span className="rooms__filmbadge">{en ? "Showroom film" : "فيلم المعرض"}</span>
+          <div className="rooms__filmcap">
+            <span className="rooms__filmt display">
+              {en ? "Step inside Evora" : "ادخل إلى إيفورا"}
+            </span>
+            <span className="rooms__filmarrow" aria-hidden>↗</span>
+          </div>
+        </a>
       </div>
 
-      {/* the finishing-piece cards — now ABOVE the films */}
+      {/* browse-by-category label above the cards */}
       <div className="container rooms__resthead">
-        <Rise as="span" className="eyebrow rooms__resteyebrow">
-          {en ? "Explore the collection" : "استكشف المجموعة"}
-        </Rise>
-        <Rise delay={0.08} as="h3" className="display rooms__resttitle">
+        <Rise delay={0.04} as="h3" className="display rooms__resttitle">
           {en ? "Browse by category" : "تصفّح حسب الفئة"}
         </Rise>
       </div>
@@ -411,14 +423,47 @@ export default function Collections() {
         .rcard--cta:hover .rcard__ctaarrow { transform: translateX(6px); }
         html[dir="rtl"] .rcard__ctaarrow { transform: scaleX(-1); }
 
+        /* ── intro: showroom film + heading ── */
+        .rooms__intro { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(1.6rem, 4vw, 3.6rem); align-items: center; margin-bottom: clamp(2rem, 4vw, 3.4rem); }
+        .rooms__introtext { min-width: 0; }
+        .rooms__film { position: relative; display: block; overflow: hidden; border-radius: 8px; aspect-ratio: 16 / 10; box-shadow: 0 30px 80px -40px rgba(16,15,13,0.5); }
+        .rooms__filmvideo { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.02); transition: transform 1.2s var(--ease); }
+        .rooms__film:hover .rooms__filmvideo { transform: scale(1.06); }
+        .rooms__filmscrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,15,13,0.05) 0%, transparent 40%, rgba(16,15,13,0.62) 100%); }
+        .rooms__filmbadge { position: absolute; top: 1rem; inset-inline-start: 1rem; background: rgba(251,247,240,0.92); color: var(--ink); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.45em 0.8em; border-radius: 100px; }
+        .rooms__filmcap { position: absolute; inset-inline: 1.2rem; bottom: 1.1rem; display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; color: var(--paper); }
+        .rooms__filmt { font-size: clamp(1.5rem, 2.4vw, 2.4rem); line-height: 1.03; }
+        .rooms__filmarrow { color: var(--brass-2); font-size: 1.4rem; transition: transform .5s var(--ease); }
+        .rooms__film:hover .rooms__filmarrow { transform: translate(3px, -3px); }
+        html[dir="rtl"] .rooms__filmarrow { transform: scaleX(-1); }
+        .rooms__resthead { margin-top: clamp(2.4rem, 5vw, 4rem); margin-bottom: clamp(1.4rem, 3vw, 2.4rem); }
+        .rooms__resttitle { font-size: clamp(1.7rem, 3.6vw, 2.8rem); line-height: 1.04; }
+
+        /* ── kitchen finale: grows to fullscreen, plays, hands off to configurator ── */
+        .kfin { position: relative; height: 260vh; background: var(--paper); }
+        .kfin__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; }
+        .kfin__frame { position: relative; flex: 1; overflow: hidden; will-change: clip-path; }
+        .kfin__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+        .kfin__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,15,13,0.18) 0%, transparent 32%, transparent 52%, rgba(16,15,13,0.72) 100%); }
+        .kfin__num { position: absolute; top: clamp(1.2rem, 3vw, 2.4rem); inset-inline-end: clamp(1.4rem, 3vw, 2.8rem); color: rgba(251,247,240,0.5); font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1; }
+        .kfin__cap { position: absolute; inset-inline-start: clamp(1.6rem, 5vw, 4.5rem); bottom: clamp(2rem, 6vh, 4rem); max-width: 32ch; color: var(--paper); display: flex; flex-direction: column; gap: 0.55rem; }
+        .kfin__t { font-size: clamp(2.2rem, 6vw, 5rem); line-height: 0.98; }
+        .kfin__blurb { font-size: clamp(0.95rem, 1.5vw, 1.15rem); color: rgba(251,247,240,0.85); max-width: 34ch; }
+        .kfin__hint { position: absolute; inset-inline: 0; bottom: clamp(1rem, 3vh, 2rem); text-align: center; color: rgba(251,247,240,0.8); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; }
+
         @media (max-width: 900px) {
           .rooms__grid { grid-template-columns: repeat(2, 1fr); }
+          .rooms__intro { grid-template-columns: 1fr; }
+          .rooms__film { aspect-ratio: 16 / 11; }
         }
         @media (max-width: 520px) {
           .rooms__grid { grid-template-columns: 1fr; }
           .world__frame { height: clamp(320px, 64vh, 520px); }
+          .kfin { height: 200vh; }
         }
       `}</style>
     </section>
+    <KitchenFinale />
+    </>
   );
 }

@@ -1,17 +1,13 @@
 import Nav from "@/components/Nav";
 import HeroScroll, { type HeroVariant } from "@/components/HeroScroll";
 import ProcessJourney from "@/components/ProcessJourney";
-import CreateYour2D3D from "@/components/CreateYour2D3D";
+import StartAndTrack from "@/components/StartAndTrack";
 import ShopSofa3D from "@/components/ShopSofa3D";
 import ConfiguratorScroll from "@/components/ConfiguratorScroll";
 import Marquee from "@/components/Marquee";
 import Manifesto from "@/components/Manifesto";
 import Collections from "@/components/Collections";
-import CategoryRail from "@/components/CategoryRail";
-import SofaShowcase from "@/components/SofaShowcase";
-import Services from "@/components/Services";
 import Proof from "@/components/Proof";
-import DesignRequest from "@/components/DesignRequest";
 import Financing from "@/components/Financing";
 import Visit from "@/components/Visit";
 import Footer from "@/components/Footer";
@@ -29,22 +25,18 @@ export default function SiteShell({
     <main>
       <Nav />
       <HeroScroll variant={heroVariant} />
-      {/* the two bound carousels: big pinned rail + smaller swipe carousel */}
-      <CategoryRail />
+      {/* Explore the collection: showroom film + heading + category cards + films,
+          ending on the kitchen finale that grows fullscreen into the configurator */}
       <Collections />
       {/* then the Evora kitchen video → live configurator */}
       {showConfigurator && <ConfiguratorScroll />}
-      {/* How Evora works (text left, animated 2D→3D right) → create your own → shop 3D */}
-      <ProcessJourney />
-      <CreateYour2D3D />
+      {/* How Evora works (the 4-step transform film) → merged upload→3D + live-track showpiece → shop 3D */}
+      <ProcessJourney showFinale={false} />
+      <StartAndTrack />
       <ShopSofa3D />
       <Marquee />
       <Manifesto />
-      <SofaShowcase />
-      {/* More than a showroom — the one-stop journey */}
-      <Services />
       <Proof />
-      <DesignRequest />
       <Financing />
       <Visit />
       <Footer />
