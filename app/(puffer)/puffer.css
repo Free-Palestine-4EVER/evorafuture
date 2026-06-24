@@ -4,3 +4,23 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+
+/* ── iPad / iPhone PWA usability ──────────────────────────────────────────
+   Lock the app shell so swipes/pinches drive the editor & 3D view instead of
+   scrolling or zooming the page. (The 2D <svg> already sets touch-action:none
+   for drawing; the WebGL <canvas> needs it so OrbitControls gets the gestures.) */
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+}
+/* 3D viewport owns one-finger rotate + two-finger pan/pinch-zoom */
+canvas { touch-action: none; }
+/* kill iOS double-tap-to-zoom on controls, keep instant taps */
+button, a, [role="button"], label, summary { touch-action: manipulation; }
+/* hide native scrollbars inside the tool panes on touch, keep scrollability */
+.pf-scroll { -webkit-overflow-scrolling: touch; }
