@@ -12,6 +12,7 @@ export const pushConfigured = !!APP_ID;
 interface OneSignalLike {
   Notifications?: { permission?: boolean; requestPermission?: () => Promise<unknown> };
   Slidedown?: { promptPush?: (o?: { force?: boolean }) => Promise<unknown> };
+  User?: { PushSubscription?: { optIn?: () => Promise<unknown> } };
 }
 
 function withOneSignal(fn: (os: OneSignalLike) => void) {
@@ -21,16 +22,26 @@ function withOneSignal(fn: (os: OneSignalLike) => void) {
   w.OneSignalDeferred.push(fn);
 }
 
-// From a user click — native browser prompt (most reliable). Falls back to slidedown.
-export function promptPush() {
+// MUST be called directly from a click handler. We invoke the NATIVE
+// Notification.requestPermission() synchronously here so the browser keeps the
+// user-gesture context (going through OneSignal's async queue loses it and the
+// prompt is silently dropped). Then we tell OneSignal to subscribe.
+export async function promptPush() {
+  if (typeof window === "undefined") return;
+  let perm: NotificationPermission = currentPermission() as NotificationPermission;
+  try {
+    if (typeof Notification !== "undefined" && Notification.requestPermission && perm === "default") {
+      perm = await Notification.requestPermission(); // native prompt, in-gesture
+    }
+  } catch { /* ignore */ }
+  // Hand off to OneSignal to register the worker + create the subscription.
   withOneSignal(async (OneSignal) => {
     try {
-      if (OneSignal.Notifications?.requestPermission) await OneSignal.Notifications.requestPermission();
-      else await OneSignal.Slidedown?.promptPush?.({ force: true });
-    } catch {
-      try { await OneSignal.Slidedown?.promptPush?.({ force: true }); } catch { /* ignore */ }
-    }
+      await OneSignal.User?.PushSubscription?.optIn?.();
+      if (perm !== "granted") await OneSignal.Notifications?.requestPermission?.();
+    } catch { /* ignore */ }
   });
+  return perm;
 }
 
 // Auto (no gesture) — OneSignal's own slide prompt.
