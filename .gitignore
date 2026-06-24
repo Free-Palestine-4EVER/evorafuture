@@ -44,3 +44,4 @@ next-env.d.ts
 # portal local data store
 /.evora-data.json
 /service-account.json
+/.evora-uploads/

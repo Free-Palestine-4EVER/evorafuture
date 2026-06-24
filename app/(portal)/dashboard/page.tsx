@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { approveProject, isLive, listProjectsForUser, subscribe } from "@/lib/portal/store";
+import { approveProject, listProjectsForUser, subscribe } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
 import LoginForm from "@/components/portal/LoginForm";
 import ProjectViewer from "@/components/portal/ProjectViewer";
@@ -38,9 +38,9 @@ export default function DashboardPage() {
     <main style={{ minHeight: "100dvh" }}>
       <PortalHeader name={user.name} />
 
-      <section className="container" style={{ paddingTop: "2.5rem", paddingBottom: "5rem" }}>
-        <p style={{ fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-faint)", margin: 0 }}>
-          {isLive ? "" : tp("demo_mode", lang)}
+      <section className="container" style={{ paddingTop: "2.8rem", paddingBottom: "5rem" }}>
+        <p style={{ fontSize: "0.72rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay)", margin: 0 }}>
+          {lang === "ar" ? `مرحبًا، ${user.name}` : `Welcome, ${user.name}`}
         </p>
         <h1 className="display" style={{ fontSize: "clamp(2.2rem,7vw,3.4rem)", color: "var(--ink)", margin: "0.4rem 0 2.2rem" }}>
           {tp("my_designs", lang)}
@@ -53,10 +53,10 @@ export default function DashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.4rem" }}>
           {projects?.map((p) => (
             <button key={p.id} onClick={() => setActive(p)}
-              style={{ textAlign: "start", border: "1px solid var(--line)", borderRadius: 16, overflow: "hidden", background: "var(--paper)", cursor: "pointer", padding: 0 }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}>
-              <div style={{ position: "relative", aspectRatio: "4/3", background: "#f3f0ea", transition: "transform .4s var(--ease)" }}>
+              style={{ textAlign: "start", border: "1px solid var(--line)", borderRadius: 16, overflow: "hidden", background: "var(--paper)", cursor: "pointer", padding: 0, transition: "transform .45s var(--ease), box-shadow .45s var(--ease)", willChange: "transform" }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(22,21,15,0.12)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ position: "relative", aspectRatio: "4/3", background: "#f3f0ea", overflow: "hidden" }}>
                 {p.thumbnailUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.thumbnailUrl} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />

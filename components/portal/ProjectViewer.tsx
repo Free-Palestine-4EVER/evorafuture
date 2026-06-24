@@ -61,20 +61,38 @@ export default function ProjectViewer({
           {project.plan2dUrl && <Tab active={tab === "2d"} onClick={() => setTab("2d")}>{tp("view_2d", lang)}</Tab>}
         </div>
 
+        <style>{`@keyframes evoraSpin { to { transform: rotate(360deg); } }`}</style>
         <div style={{ padding: "1rem 1.6rem", flex: 1 }}>
-          <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: "#f3f0ea", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: "radial-gradient(120% 120% at 50% 30%, #faf8f4 0%, #ece7df 100%)", borderRadius: 12, overflow: "hidden" }}>
             {tab === "3d" && project.viewerUrl && (
               <iframe src={project.viewerUrl} title={project.title} allow="fullscreen; xr-spatial-tracking"
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} />
             )}
             {tab === "3d" && !project.viewerUrl && project.model3dUrl && (
-              // model-viewer custom element, self-hosted (see useEffect import)
-              <model-viewer src={project.model3dUrl} camera-controls auto-rotate ar tone-mapping="neutral" shadow-intensity="1"
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "#f3f0ea" }} />
+              <>
+                {/* spinnable furnished room, self-hosted model-viewer */}
+                <model-viewer src={project.model3dUrl} camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
+                  tone-mapping="neutral" shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05"
+                  camera-orbit="40deg 68deg 105%" min-camera-orbit="auto 0deg auto" max-camera-orbit="auto 95deg auto"
+                  rotation-per-second="22deg" auto-rotate-delay="600" interaction-prompt="none"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", "--poster-color": "transparent" } as React.CSSProperties} />
+                <span style={{ position: "absolute", bottom: 12, insetInlineStart: 12, padding: "0.4em 0.85em", borderRadius: 999, background: "rgba(22,21,15,0.7)", color: "#fff", fontSize: "0.72rem", letterSpacing: "0.04em", pointerEvents: "none", display: "flex", alignItems: "center", gap: "0.4em" }}>
+                  <span style={{ display: "inline-block", animation: "evoraSpin 3s linear infinite" }}>↻</span> {lang === "ar" ? "اسحب لتدوير الغرفة" : "Drag to spin your room"}
+                </span>
+              </>
             )}
-            {tab === "2d" && project.plan2dUrl && (
+            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && (
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem", color: "var(--ink-faint)" }}>
+                <div>
+                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem", opacity: 0.5 }}>◳</div>
+                  <p style={{ margin: 0, fontSize: "0.9rem" }}>{lang === "ar" ? "نموذجك ثلاثي الأبعاد قيد التحضير" : "Your 3D room is being prepared"}</p>
+                </div>
+              </div>
+            )}
+            {tab === "2d" && (project.plan2dUrl
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={project.plan2dUrl} alt={project.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              ? <img src={project.plan2dUrl} alt={project.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#fff" }} />
+              : <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--ink-faint)", fontSize: "0.9rem" }}>{lang === "ar" ? "لم يُرفع مخطط بعد" : "No 2D plan uploaded yet"}</div>
             )}
           </div>
 
