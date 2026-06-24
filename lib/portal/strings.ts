@@ -46,6 +46,29 @@ export const P = {
   demo_admin: { en: "Demo admin — admin · admin", ar: "مشرف تجريبي — admin · admin" },
   not_admin: { en: "This account is not an administrator.", ar: "هذا الحساب ليس مشرفًا." },
   back_site: { en: "Back to site", ar: "العودة للموقع" },
+  // registration
+  first_time: { en: "First time? Create your account", ar: "أول مرة؟ أنشئ حسابك" },
+  have_account: { en: "Already have an account? Sign in", ar: "لديك حساب؟ سجّل الدخول" },
+  create_account: { en: "Create account", ar: "إنشاء حساب" },
+  register_sub: { en: "Enter your phone number — the same one Evora used for your project — and set a password.", ar: "أدخل رقم هاتفك — نفس الرقم الذي استخدمته إيفورا لمشروعك — واختر كلمة مرور." },
+  full_name: { en: "Full name", ar: "الاسم الكامل" },
+  creating: { en: "Creating…", ar: "جارٍ الإنشاء…" },
+  already_registered: { en: "This number already has an account — sign in instead.", ar: "هذا الرقم لديه حساب — سجّل الدخول بدلاً من ذلك." },
+  staff_hint: { en: "Staff login (e.g. bakri@evorafuture.com)", ar: "دخول الموظفين (مثل bakri@evorafuture.com)" },
+  // journey
+  journey: { en: "Your project journey", ar: "رحلة مشروعك" },
+  updates: { en: "Updates", ar: "التحديثات" },
+  no_updates: { en: "No updates yet — we'll post progress here.", ar: "لا توجد تحديثات بعد — سننشر التقدم هنا." },
+  // admin manage
+  manage: { en: "Manage", ar: "إدارة" },
+  current_stage: { en: "Current stage", ar: "المرحلة الحالية" },
+  post_update: { en: "Post an update", ar: "نشر تحديث" },
+  post: { en: "Post", ar: "نشر" },
+  leads: { en: "Leads", ar: "الطلبات" },
+  assign_phone: { en: "Customer phone", ar: "هاتف العميل" },
+  share_link: { en: "Customer sign-up link", ar: "رابط تسجيل العميل" },
+  copy: { en: "Copy", ar: "نسخ" },
+  copied: { en: "Copied", ar: "تم النسخ" },
 } as const;
 
 export type PKey = keyof typeof P;

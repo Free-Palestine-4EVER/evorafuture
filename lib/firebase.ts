@@ -51,5 +51,7 @@ export function getSecondaryApp(): FirebaseApp | null {
 // email derived from the normalized phone number.
 export function phoneToEmail(phone: string): string {
   const digits = phone.replace(/[^\d]/g, "").replace(/^0+/, "");
-  return `c${digits}@clients.evora`;
+  // Real phone -> digits; word handles like "admin"/"client" -> the slug.
+  const id = digits.length ? digits : phone.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
+  return `c${id}@clients.evora`;
 }

@@ -9,7 +9,7 @@
  *   online visit — so the portal, its chunks, fonts and images all keep working.
  */
 
-const CACHE = "evora-portal-v1";
+const CACHE = "evora-portal-v2";
 const PRECACHE = ["/portal.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -31,6 +31,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Only ever touch same-origin requests; let cross-origin (e.g. Firebase) pass.
   if (url.origin !== self.location.origin) return;
+  // Never intercept the live API or SSE stream — buffering an event-stream
+  // would break realtime. Let these go straight to the network.
+  if (url.pathname.startsWith("/api/") || req.headers.get("accept") === "text/event-stream") return;
   // Don't interfere with Next.js HMR / dev websockets.
   if (url.pathname.startsWith("/_next/webpack-hmr") || url.pathname.includes("__nextjs")) return;
 

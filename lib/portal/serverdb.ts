@@ -1,121 +1,202 @@
-// Server-side shared store for the portal — a tiny file-backed "database" plus
-// an in-process event bus for realtime (SSE). Runs inside the Next server
-// (`next start`), so the Evora portal, the admin dashboard and Puffer all read
-// and write the SAME data, and every client gets live updates. Swap for
-// Firebase later by changing lib/portal/store.ts.
-//
-// NOTE: server-only. Never import this from a client component.
+// Server-side store backed by Firebase Realtime Database (Admin SDK).
+// The single source of truth for the whole platform: staff/customer accounts,
+// projects + their journey, timeline updates, and homepage leads. Realtime is
+// driven both by our own writes and by an RTDB listener (so external changes
+// also push to connected clients). Server-only — never import on the client.
 
-import { promises as fs } from "fs";
-import path from "path";
+import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { EventEmitter } from "events";
-import type { PortalUser, Project } from "./types";
+import { rtdb } from "./admin";
+import type { Lead, LeadStatus, PortalUser, Project, ProjectUpdate, Role } from "./types";
 
-const FILE = path.join(process.cwd(), ".evora-data.json");
+type StoredUser = PortalUser & { password?: string };
 
-type StoredUser = PortalUser & { password: string };
-interface DB { users: StoredUser[]; projects: Project[] }
-
-// Survive dev/HMR module reloads by hanging the bus + cache off globalThis.
-const g = globalThis as unknown as { __evoraBus?: EventEmitter; __evoraCache?: DB };
-
+const g = globalThis as unknown as { __evoraBus?: EventEmitter; __evoraWatch?: boolean };
 function bus(): EventEmitter {
-  if (!g.__evoraBus) { g.__evoraBus = new EventEmitter(); g.__evoraBus.setMaxListeners(200); }
+  if (!g.__evoraBus) { g.__evoraBus = new EventEmitter(); g.__evoraBus.setMaxListeners(500); }
   return g.__evoraBus;
 }
 
-function seed(): DB {
-  const now = Date.now();
-  return {
-    users: [
-      { uid: "demo-client", phone: "client", name: "Rana Haddad", role: "client", password: "client" },
-      { uid: "demo-admin", phone: "admin", name: "Evora Studio", role: "admin", password: "admin" },
-    ],
-    projects: [
-      { id: "p1", ownerUid: "demo-client", ownerPhone: "client", ownerName: "Rana Haddad",
-        title: "Khalda Apartment — Living Room", room: "Living room", status: "approved",
-        thumbnailUrl: "/evora/p07.jpg", plan2dUrl: "/evora/p07.jpg",
-        notes: "Cream Chesterfield sofa, walnut console, brass accents.",
-        approvedByClient: true, createdAt: now - 86400000 * 9, updatedAt: now - 86400000 * 2 },
-      { id: "p2", ownerUid: "demo-client", ownerPhone: "client", ownerName: "Rana Haddad",
-        title: "Master Bedroom Suite", room: "Master bedroom", status: "in_production",
-        thumbnailUrl: "/evora/p03.jpg", plan2dUrl: "/evora/p03.jpg",
-        notes: "Built-in wardrobe wall + upholstered headboard.",
-        approvedByClient: true, createdAt: now - 86400000 * 6, updatedAt: now - 86400000 },
-    ],
-  };
+// ---- helpers --------------------------------------------------------------
+
+const norm = (s: string) => { const d = (s || "").replace(/[^\d]/g, ""); return d.length ? d : (s || "").trim().toLowerCase(); };
+const emailNorm = (s: string) => (s || "").trim().toLowerCase();
+
+function hashPw(pw: string): string {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(pw, salt, 32).toString("hex")}`;
+}
+function verifyPw(pw: string, stored?: string): boolean {
+  if (!stored || !stored.includes(":")) return false;
+  const [salt, hash] = stored.split(":");
+  const a = Buffer.from(hash, "hex");
+  const b = scryptSync(pw, salt, 32);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+const strip = (u: StoredUser): PortalUser => ({ uid: u.uid, phone: u.phone, email: u.email, name: u.name, role: u.role });
+// RTDB rejects `undefined` values — drop them (and any functions) before writing.
+const clean = <T>(o: T): T => JSON.parse(JSON.stringify(o));
+
+async function allUsers(): Promise<StoredUser[]> {
+  const snap = await rtdb().ref("users").get();
+  const v = snap.val() || {};
+  return Object.values(v) as StoredUser[];
+}
+async function allProjects(): Promise<Project[]> {
+  const snap = await rtdb().ref("projects").get();
+  const v = snap.val() || {};
+  return Object.values(v) as Project[];
 }
 
-async function read(): Promise<DB> {
-  if (g.__evoraCache) return g.__evoraCache;
-  try {
-    g.__evoraCache = JSON.parse(await fs.readFile(FILE, "utf8")) as DB;
-  } catch {
-    g.__evoraCache = seed();
-    await fs.writeFile(FILE, JSON.stringify(g.__evoraCache, null, 2)).catch(() => {});
+// Attach a single RTDB listener so changes from anywhere push to SSE clients.
+function ensureWatch() {
+  if (g.__evoraWatch) return;
+  g.__evoraWatch = true;
+  rtdb().ref("projects").on("value", () => bus().emit("change"));
+  rtdb().ref("leads").on("value", () => bus().emit("change"));
+  rtdb().ref("users").on("value", () => bus().emit("change"));
+}
+
+// ---- bootstrap ------------------------------------------------------------
+
+export async function bootstrap(): Promise<void> {
+  ensureWatch();
+  const users = await allUsers();
+  if (!users.some((u) => emailNorm(u.email || "") === "bakri@evorafuture.com")) {
+    const uid = "staff-bakri";
+    await rtdb().ref(`users/${uid}`).set(clean({
+      uid, phone: "", email: "bakri@evorafuture.com", name: "Bakri", role: "admin", password: hashPw("alhamdulillah"),
+    }));
   }
-  return g.__evoraCache;
 }
 
-async function write(db: DB): Promise<void> {
-  g.__evoraCache = db;
-  await fs.writeFile(FILE, JSON.stringify(db, null, 2)).catch(() => {});
+// ---- auth -----------------------------------------------------------------
+
+export async function signIn(identifier: string, password: string): Promise<PortalUser | null> {
+  await bootstrap();
+  const id = identifier.trim();
+  const users = await allUsers();
+  const u = users.find((x) =>
+    (x.email && emailNorm(x.email) === emailNorm(id)) || (x.phone && norm(x.phone) === norm(id))
+  );
+  if (!u || !verifyPw(password, u.password)) return null;
+  return strip(u);
+}
+
+// Customer self-registration via the link an employee shares. Links any
+// projects already assigned to this phone number to the new account.
+export async function registerCustomer(phone: string, name: string, password: string): Promise<PortalUser> {
+  await bootstrap();
+  const users = await allUsers();
+  const existing = users.find((x) => x.phone && norm(x.phone) === norm(phone));
+  if (existing?.password) throw new Error("ALREADY_REGISTERED");
+  const uid = existing?.uid || "u" + norm(phone);
+  const user: StoredUser = { uid, phone, name: name || existing?.name || "", role: "client", password: hashPw(password) };
+  await rtdb().ref(`users/${uid}`).set(clean(user));
+  // back-link existing projects assigned by phone
+  const projects = await allProjects();
+  await Promise.all(projects.filter((p) => norm(p.ownerPhone || "") === norm(phone) && p.ownerUid !== uid)
+    .map((p) => rtdb().ref(`projects/${p.id}/ownerUid`).set(uid)));
   bus().emit("change");
+  return strip(user);
 }
 
-const norm = (s: string) => { const d = s.replace(/[^\d]/g, ""); return d.length ? d : s.trim().toLowerCase(); };
-const strip = (u: StoredUser): PortalUser => ({ uid: u.uid, phone: u.phone, name: u.name, role: u.role });
-
-export async function signIn(phone: string, password: string): Promise<PortalUser | null> {
-  const db = await read();
-  const u = db.users.find((x) => norm(x.phone) === norm(phone) && x.password === password);
-  return u ? strip(u) : null;
+// Staff creates a client account directly (from Puffer / admin).
+export async function createClient(phone: string, name: string, password: string): Promise<PortalUser> {
+  return registerCustomer(phone, name, password);
 }
+
+export async function isPhoneRegistered(phone: string): Promise<boolean> {
+  const users = await allUsers();
+  return users.some((x) => x.phone && norm(x.phone) === norm(phone) && !!x.password);
+}
+
+// ---- people ---------------------------------------------------------------
 
 export async function listClients(): Promise<PortalUser[]> {
-  return (await read()).users.filter((u) => u.role === "client").map(strip);
+  return (await allUsers()).filter((u) => u.role === "client").map(strip);
 }
 
+// ---- projects -------------------------------------------------------------
+
 export async function listAll(): Promise<Project[]> {
-  return [...(await read()).projects].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return (await allProjects()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 export async function listForUser(uid: string): Promise<Project[]> {
-  return (await read()).projects.filter((p) => p.ownerUid === uid).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const users = await allUsers();
+  const me = users.find((u) => u.uid === uid);
+  const phone = me?.phone ? norm(me.phone) : null;
+  return (await allProjects())
+    .filter((p) => p.ownerUid === uid || (phone && norm(p.ownerPhone || "") === phone))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 export async function upsertProject(p: Project): Promise<Project> {
-  const db = await read();
-  const id = p.id || "p" + Math.abs(Date.now()).toString(36);
-  const stamped: Project = { ...p, id, updatedAt: Date.now(), createdAt: p.createdAt || Date.now() };
-  const i = db.projects.findIndex((x) => x.id === id);
-  if (i >= 0) db.projects[i] = stamped; else db.projects.unshift(stamped);
-  await write(db);
+  const id = p.id || "p" + randomBytes(6).toString("hex");
+  const existing = (await rtdb().ref(`projects/${id}`).get()).val() as Project | null;
+  const stamped: Project = {
+    ...existing, ...p, id,
+    stage: p.stage || existing?.stage || "blueprint",
+    status: p.status || existing?.status || "draft",
+    updates: p.updates || existing?.updates || [],
+    createdAt: existing?.createdAt || p.createdAt || Date.now(),
+    updatedAt: Date.now(),
+  };
+  await rtdb().ref(`projects/${id}`).set(clean(stamped));
+  bus().emit("change");
   return stamped;
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const db = await read();
-  db.projects = db.projects.filter((p) => p.id !== id);
-  await write(db);
+  await rtdb().ref(`projects/${id}`).remove();
+  bus().emit("change");
 }
 
 export async function approve(id: string): Promise<void> {
-  const db = await read();
-  const i = db.projects.findIndex((x) => x.id === id);
-  if (i >= 0) { db.projects[i] = { ...db.projects[i], status: "approved", approvedByClient: true, updatedAt: Date.now() }; await write(db); }
+  await rtdb().ref(`projects/${id}`).update({ approvedByClient: true, updatedAt: Date.now() });
+  bus().emit("change");
 }
 
-export async function createClient(phone: string, name: string, password: string): Promise<PortalUser> {
-  const db = await read();
-  if (db.users.some((u) => norm(u.phone) === norm(phone))) throw new Error("PHONE_EXISTS");
-  const u: StoredUser = { uid: "c" + norm(phone), phone, name, role: "client", password };
-  db.users.push(u);
-  await write(db);
-  return strip(u);
+export async function setStage(id: string, stage: string): Promise<void> {
+  await rtdb().ref(`projects/${id}`).update({ stage, updatedAt: Date.now() });
+  bus().emit("change");
 }
+
+export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">): Promise<void> {
+  const ref = rtdb().ref(`projects/${id}`);
+  const proj = (await ref.get()).val() as Project | null;
+  if (!proj) return;
+  const updates = proj.updates || [];
+  updates.unshift({ id: randomBytes(5).toString("hex"), at: Date.now(), ...u });
+  await ref.update(clean({ updates, updatedAt: Date.now() }));
+  bus().emit("change");
+}
+
+// ---- leads ----------------------------------------------------------------
+
+export async function createLead(lead: Omit<Lead, "id" | "status" | "createdAt">): Promise<Lead> {
+  const id = "l" + randomBytes(6).toString("hex");
+  const full: Lead = { ...lead, id, status: "new", createdAt: Date.now() };
+  await rtdb().ref(`leads/${id}`).set(clean(full));
+  bus().emit("change");
+  return full;
+}
+
+export async function listLeads(): Promise<Lead[]> {
+  const snap = await rtdb().ref("leads").get();
+  return (Object.values(snap.val() || {}) as Lead[]).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
+  await rtdb().ref(`leads/${id}`).update({ status, updatedAt: Date.now() });
+  bus().emit("change");
+}
+
+// ---- realtime -------------------------------------------------------------
 
 export function onChange(cb: () => void): () => void {
+  ensureWatch();
   const b = bus();
   b.on("change", cb);
   return () => b.off("change", cb);

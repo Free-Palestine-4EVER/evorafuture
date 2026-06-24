@@ -75,7 +75,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {active && <ProjectViewer project={active} onClose={() => setActive(null)} onApprove={approve} />}
+      {active && <ProjectViewer project={projects?.find((p) => p.id === active.id) || active} onClose={() => setActive(null)} onApprove={approve} />}
     </main>
   );
 }

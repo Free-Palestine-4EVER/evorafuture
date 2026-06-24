@@ -38,6 +38,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
 
   if (head === "health") return json({ ok: true });
   if (head === "clients") return json(await db.listClients());
+  if (head === "leads") return json(await db.listLeads());
+  if (head === "registered") return json({ registered: await db.isPhoneRegistered(req.nextUrl.searchParams.get("phone") || "") });
   if (head === "projects") {
     const uid = req.nextUrl.searchParams.get("uid");
     return json(uid ? await db.listForUser(uid) : await db.listAll());
@@ -66,19 +68,26 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const body = await req.json().catch(() => ({}));
 
   if (head === "signin") {
-    const u = await db.signIn(String(body.phone || ""), String(body.password || ""));
+    const u = await db.signIn(String(body.phone || body.identifier || ""), String(body.password || ""));
     return u ? json(u) : json({ error: "invalid" }, 401);
   }
+  if (head === "register") {
+    try { return json(await db.registerCustomer(String(body.phone), String(body.name || ""), String(body.password || ""))); }
+    catch (e) { return json({ error: (e as Error).message }, 409); }
+  }
   if (head === "clients") {
-    try {
-      const u = await db.createClient(String(body.phone), String(body.name || ""), String(body.password || ""));
-      return json(u);
-    } catch (e) {
-      return json({ error: (e as Error).message }, 409);
-    }
+    try { return json(await db.createClient(String(body.phone), String(body.name || ""), String(body.password || ""))); }
+    catch (e) { return json({ error: (e as Error).message }, 409); }
   }
   if (head === "projects") return json(await db.upsertProject(body));
   if (head === "approve") { await db.approve(String(body.id)); return json({ ok: true }); }
+  if (head === "stage") { await db.setStage(String(body.id), String(body.stage)); return json({ ok: true }); }
+  if (head === "update") {
+    await db.addUpdate(String(body.id), { text: String(body.text || ""), stageKey: body.stageKey, by: body.by, imageUrl: body.imageUrl });
+    return json({ ok: true });
+  }
+  if (head === "leads") return json(await db.createLead({ name: String(body.name || ""), phone: String(body.phone || ""), message: body.message, planUrl: body.planUrl }));
+  if (head === "lead-status") { await db.setLeadStatus(String(body.id), body.status); return json({ ok: true }); }
   return json({ error: "not_found" }, 404);
 }
 

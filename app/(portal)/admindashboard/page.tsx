@@ -4,25 +4,30 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { createClient, deleteProject, isLive, listAllProjects, listClients, saveProject, subscribe } from "@/lib/portal/store";
-import { STATUS_LABEL, type PortalUser, type Project } from "@/lib/portal/types";
+import { createClient, deleteProject, listAllProjects, listClients, listLeads, saveProject, setLeadStatus, subscribe } from "@/lib/portal/store";
+import { type Lead, type LeadStatus, type PortalUser, type Project } from "@/lib/portal/types";
+import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
 import PortalHeader from "@/components/portal/PortalHeader";
 import ProjectForm from "@/components/portal/ProjectForm";
+import ProjectManage from "@/components/portal/ProjectManage";
 
 export default function AdminPage() {
   const { lang } = useT();
   const { user, loading } = usePortalAuth();
-  const [tab, setTab] = useState<"projects" | "clients">("projects");
+  const [tab, setTab] = useState<"projects" | "clients" | "leads">("projects");
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<PortalUser[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [editing, setEditing] = useState<Project | null>(null);
+  const [managing, setManaging] = useState<Project | null>(null);
   const [adding, setAdding] = useState(false);
   const [addingClient, setAddingClient] = useState(false);
 
   const load = useCallback(async () => {
     setProjects(await listAllProjects());
     setClients(await listClients());
+    try { setLeads(await listLeads()); } catch { /* leads optional */ }
   }, []);
 
   useEffect(() => { if (user?.role === "admin") load(); }, [user, load]);
@@ -34,7 +39,7 @@ export default function AdminPage() {
   async function onSave(p: Project) { await saveProject(p); setEditing(null); setAdding(false); load(); }
   async function onDelete(id: string) { await deleteProject(id); load(); }
 
-  const tabBtn = (key: "projects" | "clients"): React.CSSProperties => ({
+  const tabBtn = (key: "projects" | "clients" | "leads"): React.CSSProperties => ({
     padding: "0.5rem 1.1rem", borderRadius: 999, cursor: "pointer", fontSize: "0.85rem", fontWeight: 500,
     border: "1px solid", borderColor: tab === key ? "var(--ink)" : "var(--line)",
     background: tab === key ? "var(--ink)" : "transparent", color: tab === key ? "#fff" : "var(--ink-soft)",
@@ -45,12 +50,12 @@ export default function AdminPage() {
       <PortalHeader name={user.name} admin />
 
       <section className="container" style={{ paddingTop: "2.2rem", paddingBottom: "5rem" }}>
-        {!isLive && <p style={{ fontSize: "0.78rem", color: "var(--clay)", marginTop: 0 }}>{tp("demo_mode", lang)}</p>}
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1.8rem" }}>
           <div style={{ display: "flex", gap: "0.6rem" }}>
             <button style={tabBtn("projects")} onClick={() => setTab("projects")}>{tp("projects", lang)} · {projects.length}</button>
             <button style={tabBtn("clients")} onClick={() => setTab("clients")}>{tp("clients", lang)} · {clients.length}</button>
+            <button style={tabBtn("leads")} onClick={() => setTab("leads")}>{tp("leads", lang)} · {leads.filter((l) => l.status === "new").length}</button>
           </div>
           <div style={{ display: "flex", gap: "0.6rem" }}>
             {tab === "projects" && <button onClick={() => setAdding(true)} style={primaryBtn}>+ {tp("add_project", lang)}</button>}
@@ -69,9 +74,13 @@ export default function AdminPage() {
                   )}
                 </div>
                 <div style={{ padding: "1rem 1.1rem" }}>
-                  <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", margin: 0 }}>{p.ownerName || p.ownerPhone} · {STATUS_LABEL[p.status][lang]}</p>
-                  <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: "0.2rem 0 0.8rem" }}>{p.title}</h3>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", margin: 0 }}>{p.ownerName || p.ownerPhone}</p>
+                  <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: "0.2rem 0 0.5rem" }}>{p.title}</h3>
+                  <p style={{ fontSize: "0.74rem", color: "var(--clay)", margin: "0 0 0.8rem", fontWeight: 600 }}>
+                    {stageIndex(p.stage || "blueprint") + 1}/{JOURNEY.length} · {(lang === "ar" ? JOURNEY[stageIndex(p.stage || "blueprint")].ar : JOURNEY[stageIndex(p.stage || "blueprint")].en)}
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <button onClick={() => setManaging(p)} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>{tp("manage", lang)}</button>
                     <button onClick={() => setEditing(p)} style={miniBtn}>{tp("edit", lang)}</button>
                     <button onClick={() => onDelete(p.id)} style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
                   </div>
@@ -92,12 +101,37 @@ export default function AdminPage() {
             {clients.length === 0 && <p style={{ padding: "1.2rem", color: "var(--ink-faint)" }}>—</p>}
           </div>
         )}
+
+        {tab === "leads" && (
+          <div style={{ display: "grid", gap: "0.9rem" }}>
+            {leads.length === 0 && <p style={{ color: "var(--ink-faint)" }}>No design requests yet.</p>}
+            {leads.map((l) => (
+              <div key={l.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: "1.1rem 1.3rem", background: "#fff", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ minWidth: 200 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
+                    <span style={{ fontSize: "0.66rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{l.status}</span>
+                  </div>
+                  <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
+                  {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
+                  {l.planUrl && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--ink-faint)" }}>View attached plan →</a>}
+                </div>
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                  {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
+                    <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {(adding || editing) && (
         <ProjectForm initial={editing} clients={clients} onCancel={() => { setAdding(false); setEditing(null); }} onSave={onSave} />
       )}
       {addingClient && <AddClient onClose={() => setAddingClient(false)} onDone={() => { setAddingClient(false); load(); }} />}
+      {managing && <ProjectManage project={projects.find((p) => p.id === managing.id) || managing} by={user.name} onClose={() => setManaging(null)} />}
     </main>
   );
 }

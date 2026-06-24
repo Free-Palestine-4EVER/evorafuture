@@ -9,12 +9,14 @@ interface AuthCtx {
   loading: boolean;
   signIn: (phone: string, password: string) => Promise<PortalUser>;
   signOut: () => Promise<void>;
+  refresh: () => void;
 }
 
 const Ctx = createContext<AuthCtx>({
   user: null, loading: true,
   signIn: async () => { throw new Error("no provider"); },
   signOut: async () => {},
+  refresh: () => {},
 });
 
 export function usePortalAuth() { return useContext(Ctx); }
@@ -34,6 +36,7 @@ export function PortalAuthProvider({ children }: { children: React.ReactNode }) 
     return u;
   };
   const signOut = async () => { await signOutPortal(); setUser(null); };
+  const refresh = () => watchAuth((u) => setUser(u));
 
-  return <Ctx.Provider value={{ user, loading, signIn, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, signIn, signOut, refresh }}>{children}</Ctx.Provider>;
 }

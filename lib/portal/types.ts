@@ -5,8 +5,32 @@ export type Role = "client" | "admin";
 export interface PortalUser {
   uid: string;
   phone: string;
+  email?: string;
   name: string;
   role: Role;
+}
+
+// A timeline entry an employee posts against a project (visible to the customer).
+export interface ProjectUpdate {
+  id: string;
+  at: number;
+  text: string;
+  stageKey?: string;
+  by?: string;
+  imageUrl?: string;
+}
+
+// A homepage "design my 2D→3D" enquiry the team reviews + calls to qualify.
+export type LeadStatus = "new" | "called" | "qualified" | "rejected" | "converted";
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  message?: string;
+  planUrl?: string;
+  status: LeadStatus;
+  createdAt: number;
+  updatedAt?: number;
 }
 
 export type ProjectStatus =
@@ -29,6 +53,9 @@ export interface Project {
   viewerUrl?: string;     // hosted Puffer 3D viewer link (iframe)
   notes?: string;
   approvedByClient?: boolean;
+  // Journey: current stage key (see lib/portal/journey.ts) + posted updates.
+  stage?: string;
+  updates?: ProjectUpdate[];
   createdAt?: number;
   updatedAt?: number;
 }

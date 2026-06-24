@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
+import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 
 export default function ProjectViewer({
   project, onClose, onApprove,
@@ -78,6 +79,46 @@ export default function ProjectViewer({
           </div>
 
           {project.notes && <p style={{ color: "var(--ink-soft)", marginTop: "1.2rem", lineHeight: 1.6 }}>{project.notes}</p>}
+
+          {/* live journey */}
+          <div style={{ marginTop: "1.8rem", paddingTop: "1.6rem", borderTop: "1px solid var(--line-soft)" }}>
+            <p style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 1.1rem" }}>{tp("journey", lang)}</p>
+            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.1rem" }}>
+              {JOURNEY.map((s, i) => {
+                const cur = stageIndex(project.stage || "blueprint");
+                const done = i < cur, active = i === cur;
+                return (
+                  <li key={s.key} style={{ display: "flex", gap: "0.85rem", alignItems: "flex-start", paddingBottom: i < JOURNEY.length - 1 ? "0.9rem" : 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", alignSelf: "stretch" }}>
+                      <span style={{ width: 18, height: 18, borderRadius: 999, flexShrink: 0, display: "grid", placeItems: "center", fontSize: "0.6rem", color: "#fff",
+                        background: done ? "var(--clay)" : active ? "var(--ink)" : "transparent", border: done || active ? "none" : "1.5px solid var(--line)" }}>
+                        {done ? "✓" : active ? "●" : ""}
+                      </span>
+                      {i < JOURNEY.length - 1 && <span style={{ width: 1.5, flex: 1, background: done ? "var(--clay)" : "var(--line)", marginTop: 2 }} />}
+                    </div>
+                    <div style={{ paddingBottom: "0.2rem" }}>
+                      <p style={{ margin: 0, fontWeight: active ? 600 : 500, color: done || active ? "var(--ink)" : "var(--ink-faint)", fontSize: "0.96rem" }}>
+                        {lang === "ar" ? s.ar : s.en}
+                      </p>
+                      {active && <p style={{ margin: "0.15rem 0 0", fontSize: "0.82rem", color: "var(--ink-faint)", lineHeight: 1.5 }}>{lang === "ar" ? s.hint_ar : s.hint_en}</p>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {project.updates && project.updates.length > 0 && (
+              <div style={{ marginTop: "1.4rem" }}>
+                <p style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.7rem" }}>{tp("updates", lang)}</p>
+                {project.updates.map((u) => (
+                  <div key={u.id} style={{ padding: "0.7rem 0", borderTop: "1px solid var(--line-soft)" }}>
+                    <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.9rem", lineHeight: 1.5 }}>{u.text}</p>
+                    <p style={{ margin: "0.2rem 0 0", color: "var(--ink-faint)", fontSize: "0.72rem" }}>{new Date(u.at).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {onApprove && project.status === "draft" && (
