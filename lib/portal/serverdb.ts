@@ -183,6 +183,14 @@ export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">)
   if (proj.ownerUid) notifyUsers([proj.ownerUid], proj.title || "Your Evora project", u.text || "New update", "/dashboard");
 }
 
+export async function deleteUpdate(id: string, updateId: string): Promise<void> {
+  const ref = rtdb().ref(`projects/${id}`);
+  const proj = (await ref.get()).val() as Project | null;
+  if (!proj) return;
+  await ref.update(clean({ updates: (proj.updates || []).filter((u) => u.id !== updateId), updatedAt: Date.now() }));
+  bus().emit("change");
+}
+
 // ---- leads ----------------------------------------------------------------
 
 export async function createLead(lead: Omit<Lead, "id" | "status" | "createdAt">): Promise<Lead> {

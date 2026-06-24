@@ -106,6 +106,9 @@ export async function setStage(id: string, stage: string): Promise<void> {
 export async function addUpdate(id: string, text: string, stageKey?: string, by?: string, imageUrl?: string): Promise<void> {
   await post("update", { id, text, stageKey, by, imageUrl });
 }
+export async function deleteUpdate(id: string, updateId: string): Promise<void> {
+  await post("update-delete", { id, updateId });
+}
 
 export async function createClient(phone: string, name: string, password: string): Promise<PortalUser> {
   if ((await mode()) === "mock") return mockBackend.createClient(phone, name, password);
@@ -125,6 +128,18 @@ export async function uploadDataUrl(dataUrl: string): Promise<string> {
   const r = await post("upload", { ext, dataBase64: m[2] });
   if (!r.ok) return dataUrl;
   return (await r.json()).url || dataUrl;
+}
+
+// Upload any File (2D plan, .glb model, photo) → served Storage URL.
+export async function uploadFile(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+  const r = await post("upload", { ext, dataBase64: btoa(bin) });
+  if (!r.ok) throw new Error("upload failed");
+  return (await r.json()).url as string;
 }
 
 export async function listLeads(): Promise<Lead[]> { return getJSON("leads"); }

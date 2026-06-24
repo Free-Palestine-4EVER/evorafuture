@@ -103,6 +103,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     await db.addUpdate(String(body.id), { text: String(body.text || ""), stageKey: body.stageKey, by: body.by, imageUrl: body.imageUrl });
     return json({ ok: true });
   }
+  if (head === "update-delete") { await db.deleteUpdate(String(body.id), String(body.updateId)); return json({ ok: true }); }
   if (head === "leads") return json(await db.createLead({ name: String(body.name || ""), phone: String(body.phone || ""), message: body.message, planUrl: body.planUrl }));
   if (head === "lead-status") { await db.setLeadStatus(String(body.id), body.status); return json({ ok: true }); }
   return json({ error: "not_found" }, 404);
