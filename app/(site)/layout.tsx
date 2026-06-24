@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -8,10 +8,11 @@ import WhatsappCTA from "@/components/WhatsappCTA";
 import ScrollProgress from "@/components/ScrollProgress";
 import StartProjectModal from "@/components/StartProjectModal";
 
-const display = Fraunces({
+// Bold modern luxury — a confident display grotesk for headlines.
+const display = Bricolage_Grotesque({
   variable: "--f-display",
   subsets: ["latin"],
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 

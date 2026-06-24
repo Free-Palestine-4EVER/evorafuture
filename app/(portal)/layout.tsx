@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import { PortalAuthProvider } from "@/lib/portal/auth";
@@ -11,7 +11,7 @@ import OneSignalInit from "@/components/portal/OneSignalInit";
  * PWA-installable (manifest + theme color) so the studio can add it to a home
  * screen as an app. */
 
-const display = Fraunces({ variable: "--f-display", subsets: ["latin"], style: ["normal", "italic"], display: "swap" });
+const display = Bricolage_Grotesque({ variable: "--f-display", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap" });
 const sans = Hanken_Grotesk({ variable: "--f-sans", subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], display: "swap" });
 const arabic = IBM_Plex_Sans_Arabic({ variable: "--f-ar", subsets: ["arabic"], weight: ["300", "400", "500", "600", "700"], display: "swap" });
 
