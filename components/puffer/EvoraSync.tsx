@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useStudio } from "@/lib/puffer/store";
 import { buildGlbBuffer } from "@/lib/puffer/exporters";
+import { getImportLead } from "@/lib/puffer/importBridge";
 
 function abToB64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
@@ -74,6 +75,20 @@ export default function EvoraSync() {
   const [link, setLink] = useState("");
 
   useEffect(() => { try { setStaff(JSON.parse(localStorage.getItem(SKEY) || "null")); } catch {} }, []);
+
+  // When a design request is imported, prefill the customer + open the panel.
+  useEffect(() => {
+    const apply = (l: { name?: string; phone?: string } | null) => {
+      if (!l) return;
+      if (l.phone) setPhone(l.phone);
+      if (l.name) setCname(l.name);
+      setOpen(true);
+    };
+    apply(getImportLead());
+    const h = (e: Event) => apply((e as CustomEvent).detail);
+    window.addEventListener("evora-import-lead", h);
+    return () => window.removeEventListener("evora-import-lead", h);
+  }, []);
 
   async function login() {
     setBusy(true); setMsg(null);

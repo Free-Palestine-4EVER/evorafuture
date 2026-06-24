@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useStudio } from "@/lib/puffer/store";
+import { setImportLead } from "@/lib/puffer/importBridge";
 
 type Lead = { id: string; name: string; phone: string; planUrl?: string; sentToPuffer?: boolean; message?: string };
 
@@ -41,6 +42,8 @@ export default function PufferImport() {
     try {
       const { w, h } = await imgDims(l.planUrl);
       loadPlan(l.planUrl, w, h);
+      // carry the customer into the Save-to-Evora panel
+      setImportLead({ name: l.name, phone: l.phone });
       // remove from the queue once imported
       await fetch(`${portalBase()}/api/portal/lead-to-puffer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: l.id, on: false }) });
       setOpen(false); refresh();
