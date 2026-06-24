@@ -22,26 +22,27 @@ function withOneSignal(fn: (os: OneSignalLike) => void) {
   w.OneSignalDeferred.push(fn);
 }
 
-// MUST be called directly from a click handler. We invoke the NATIVE
-// Notification.requestPermission() synchronously here so the browser keeps the
-// user-gesture context (going through OneSignal's async queue loses it and the
-// prompt is silently dropped). Then we tell OneSignal to subscribe.
+// MUST be called directly from a click handler. The OneSignal SDK is already
+// loaded by the time the user clicks, so we call its requestPermission DIRECTLY
+// (not via the async OneSignalDeferred queue, which would lose the gesture and
+// silently drop the prompt). OneSignal's flow both shows the prompt AND
+// registers the push subscription (so you appear as a user in OneSignal). We
+// also explicitly optIn to be safe. Native prompt is only a fallback if the SDK
+// hasn't loaded yet.
 export async function promptPush() {
   if (typeof window === "undefined") return;
-  let perm: NotificationPermission = currentPermission() as NotificationPermission;
+  const OS = (window as unknown as { OneSignal?: OneSignalLike }).OneSignal;
+  if (OS?.Notifications?.requestPermission) {
+    try { await OS.Notifications.requestPermission(); } catch { /* ignore */ }
+    try { await OS.User?.PushSubscription?.optIn?.(); } catch { /* ignore */ }
+    return currentPermission();
+  }
+  // SDK not ready yet → native prompt now, queue the OneSignal opt-in for later.
   try {
-    if (typeof Notification !== "undefined" && Notification.requestPermission && perm === "default") {
-      perm = await Notification.requestPermission(); // native prompt, in-gesture
-    }
+    if (typeof Notification !== "undefined" && Notification.requestPermission) await Notification.requestPermission();
   } catch { /* ignore */ }
-  // Hand off to OneSignal to register the worker + create the subscription.
-  withOneSignal(async (OneSignal) => {
-    try {
-      await OneSignal.User?.PushSubscription?.optIn?.();
-      if (perm !== "granted") await OneSignal.Notifications?.requestPermission?.();
-    } catch { /* ignore */ }
-  });
-  return perm;
+  withOneSignal(async (OneSignal) => { try { await OneSignal.User?.PushSubscription?.optIn?.(); } catch { /* ignore */ } });
+  return currentPermission();
 }
 
 // Auto (no gesture) — OneSignal's own slide prompt.
