@@ -8,16 +8,26 @@ import { createClient, deleteProject, listAllProjects, listClients, listLeads, s
 import { type Lead, type LeadStatus, type PortalUser, type Project } from "@/lib/portal/types";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
-import PortalHeader from "@/components/portal/PortalHeader";
 import ProjectForm from "@/components/portal/ProjectForm";
 import ProjectManage from "@/components/portal/ProjectManage";
 import ClientDetail from "@/components/portal/ClientDetail";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
+import PortalShell, { Icons } from "@/components/portal/PortalShell";
+
+const timeAgo = (t?: number, ar?: boolean) => {
+  if (!t) return "";
+  const s = Math.floor((Date.now() - t) / 1000);
+  if (s < 60) return ar ? "الآن" : "just now";
+  const m = Math.floor(s / 60); if (m < 60) return ar ? `قبل ${m} د` : `${m}m ago`;
+  const h = Math.floor(m / 60); if (h < 24) return ar ? `قبل ${h} س` : `${h}h ago`;
+  const d = Math.floor(h / 24); return ar ? `قبل ${d} ي` : `${d}d ago`;
+};
 
 export default function AdminPage() {
   const { lang } = useT();
+  const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
   const { user, loading } = usePortalAuth();
-  const [tab, setTab] = useState<"projects" | "clients" | "leads">("projects");
+  const [section, setSection] = useState("overview");
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<PortalUser[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -34,142 +44,180 @@ export default function AdminPage() {
     setClients(await listClients());
     try { setLeads(await listLeads()); } catch { /* leads optional */ }
   }, []);
-
   useEffect(() => { if (user?.role === "admin") load(); }, [user, load]);
   useEffect(() => { if (user?.role !== "admin") return; return subscribe(() => load()); }, [user, load]);
 
-  if (loading) return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontFamily: "var(--f-display)" }}>EVORA</div>;
+  if (loading) return <Splash />;
   if (!user || user.role !== "admin") return <LoginForm variant="admin" />;
 
   async function onSave(p: Project) { await saveProject(p); setEditing(null); setAdding(false); load(); }
   async function onDelete(id: string) { await deleteProject(id); load(); }
+  const newLeads = leads.filter((l) => l.status === "new").length;
+  const inProd = projects.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length;
+  const ci = (p: Project) => stageIndex(p.stage || "blueprint");
 
-  const tabBtn = (key: "projects" | "clients" | "leads"): React.CSSProperties => ({
-    padding: "0.5rem 1.1rem", borderRadius: 999, cursor: "pointer", fontSize: "0.85rem", fontWeight: 500,
-    border: "1px solid", borderColor: tab === key ? "var(--ink)" : "var(--line)",
-    background: tab === key ? "var(--ink)" : "transparent", color: tab === key ? "#fff" : "var(--ink-soft)",
-  });
+  const nav = [
+    { key: "overview", label: t("Overview", "نظرة عامة"), icon: Icons.overview },
+    { key: "projects", label: t("Projects", "المشاريع"), icon: Icons.projects },
+    { key: "clients", label: t("Clients", "العملاء"), icon: Icons.clients },
+    { key: "leads", label: t("Leads", "الطلبات"), icon: Icons.leads, badge: newLeads || undefined },
+  ];
+  const titles: Record<string, [string, string]> = {
+    overview: [t("Studio overview", "نظرة عامة"), `${t("Welcome back", "مرحبًا")}, ${user.name}`],
+    projects: [t("Projects", "المشاريع"), `${projects.length} ${t("total", "إجمالي")}`],
+    clients: [t("Clients", "العملاء"), `${clients.length} ${t("total", "إجمالي")}`],
+    leads: [t("Design requests", "طلبات التصميم"), `${newLeads} ${t("new", "جديد")}`],
+  };
+  const actions = (section === "overview" || section === "projects")
+    ? <button onClick={() => setAdding(true)} style={primaryBtn}>+ {tp("add_project", lang)}</button>
+    : section === "clients" ? <button onClick={() => setAddingClient(true)} style={primaryBtn}>+ {tp("add_client", lang)}</button> : null;
 
   return (
-    <main style={{ minHeight: "100dvh" }}>
-      <PortalHeader name={user.name} admin />
+    <PortalShell nav={nav} active={section} onNavigate={setSection} title={titles[section][0]} subtitle={titles[section][1]} actions={actions} accentName={user.name}>
+      <NotifyPrompt />
 
-      <section className="container" style={{ paddingTop: "2.2rem", paddingBottom: "5rem" }}>
-        <NotifyPrompt />
+      {section === "overview" && (
+        <div style={{ display: "grid", gap: "1.6rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: "1rem" }}>
+            {[
+              { l: t("Projects", "المشاريع"), v: projects.length, sub: `${projects.filter((p) => p.status === "delivered").length} ${t("delivered", "مسلّم")}` },
+              { l: t("Clients", "العملاء"), v: clients.length },
+              { l: t("In production", "قيد التنفيذ"), v: inProd },
+              { l: t("New leads", "طلبات جديدة"), v: newLeads, accent: newLeads > 0 },
+            ].map((s) => (
+              <div key={s.l} style={{ ...card, padding: "1.3rem 1.4rem", background: s.accent ? "var(--ink)" : "#fff" }}>
+                <div className="display" style={{ fontSize: "2.4rem", lineHeight: 1, color: s.accent ? "#fff" : "var(--ink)" }}>{s.v}</div>
+                <div style={{ fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: s.accent ? "rgba(255,255,255,0.7)" : "var(--ink-faint)", marginTop: "0.5rem" }}>{s.l}</div>
+                {s.sub && <div style={{ fontSize: "0.72rem", color: "var(--ink-faint)", marginTop: "0.2rem" }}>{s.sub}</div>}
+              </div>
+            ))}
+          </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-          {[
-            { label: lang === "ar" ? "المشاريع" : "Projects", value: projects.length },
-            { label: lang === "ar" ? "العملاء" : "Clients", value: clients.length },
-            { label: lang === "ar" ? "قيد التنفيذ" : "In production", value: projects.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length },
-            { label: lang === "ar" ? "طلبات جديدة" : "New leads", value: leads.filter((l) => l.status === "new").length, accent: true },
-          ].map((s) => (
-            <div key={s.label} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: "1.1rem 1.3rem", background: s.accent && s.value > 0 ? "var(--ink)" : "#fff" }}>
-              <div className="display" style={{ fontSize: "2.1rem", lineHeight: 1, color: s.accent && s.value > 0 ? "#fff" : "var(--ink)" }}>{s.value}</div>
-              <div style={{ fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: s.accent && s.value > 0 ? "rgba(255,255,255,0.7)" : "var(--ink-faint)", marginTop: "0.4rem" }}>{s.label}</div>
+          {/* pipeline */}
+          <div style={{ ...card, padding: "1.4rem 1.6rem" }}>
+            <p style={sectTitle}>{t("Pipeline by stage", "المراحل")}</p>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${JOURNEY.length}, 1fr)`, gap: "0.5rem", marginTop: "0.5rem" }}>
+              {JOURNEY.map((st, i) => {
+                const n = projects.filter((p) => ci(p) === i).length;
+                return (
+                  <div key={st.key} style={{ textAlign: "center" }}>
+                    <div style={{ height: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                      <div style={{ height: `${Math.min(100, n ? 20 + n * 16 : 6)}%`, background: n ? "var(--clay)" : "var(--line)", borderRadius: "6px 6px 0 0", display: "grid", placeItems: "start center", color: "#fff", fontSize: "0.7rem", fontWeight: 700, paddingTop: 3 }}>{n || ""}</div>
+                    </div>
+                    <div style={{ fontSize: "0.58rem", color: "var(--ink-faint)", marginTop: "0.4rem", lineHeight: 1.2 }}>{(lang === "ar" ? st.ar : st.en).split(" ")[0]}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "1.4rem" }}>
+            {/* recent activity */}
+            <div style={{ ...card, padding: "1.4rem 1.6rem" }}>
+              <p style={sectTitle}>{t("Recent activity", "آخر النشاطات")}</p>
+              {[...projects].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 5).map((p) => (
+                <button key={p.id} onClick={() => setManaging(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.6rem 0", borderTop: "1px solid var(--line-soft)", background: "transparent", border: "none", cursor: "pointer", textAlign: "start" }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 8, background: "#f3f0ea", overflow: "hidden", flexShrink: 0 }}>{p.thumbnailUrl && <img src={p.thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+                    <span style={{ display: "block", fontSize: "0.72rem", color: "var(--clay)" }}>{lang === "ar" ? JOURNEY[ci(p)].ar : JOURNEY[ci(p)].en}</span>
+                  </span>
+                  <span style={{ fontSize: "0.68rem", color: "var(--ink-faint)", flexShrink: 0 }}>{timeAgo(p.updatedAt, lang === "ar")}</span>
+                </button>
+              ))}
+              {projects.length === 0 && <p style={{ color: "var(--ink-faint)", fontSize: "0.88rem" }}>{t("No projects yet.", "لا مشاريع.")}</p>}
+            </div>
+            {/* new leads */}
+            <div style={{ ...card, padding: "1.4rem 1.6rem" }}>
+              <p style={sectTitle}>{t("New requests", "طلبات جديدة")}</p>
+              {leads.filter((l) => l.status === "new").slice(0, 5).map((l) => (
+                <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.6rem", padding: "0.6rem 0", borderTop: "1px solid var(--line-soft)" }}>
+                  <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem" }}>{l.name || "—"}</span><span style={{ fontSize: "0.76rem", color: "var(--ink-faint)" }}>{l.phone}</span></span>
+                  <a href={`tel:${l.phone}`} style={{ ...miniBtn, textDecoration: "none" }}>📞 {t("Call", "اتصال")}</a>
+                </div>
+              ))}
+              {newLeads === 0 && <p style={{ color: "var(--ink-faint)", fontSize: "0.88rem" }}>{t("No new requests.", "لا طلبات جديدة.")}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {section === "projects" && (
+        <>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search by title, client or phone…", "ابحث بالعنوان أو العميل أو الهاتف…")}
+            style={{ width: "100%", maxWidth: 460, padding: "0.8rem 1.1rem", border: "1px solid var(--line)", borderRadius: 999, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "1.6rem", background: "#fff" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: "1.3rem" }}>
+            {projects.filter((p) => { const s = query.trim().toLowerCase(); return !s || `${p.title} ${p.ownerName || ""} ${p.ownerPhone || ""} ${p.room || ""}`.toLowerCase().includes(s); }).map((p) => {
+              const pct = Math.round(((ci(p) + 1) / JOURNEY.length) * 100);
+              return (
+                <div key={p.id} style={{ ...card, overflow: "hidden" }}>
+                  <div style={{ position: "relative", aspectRatio: "16/10", background: "#f3f0ea" }}>
+                    {p.thumbnailUrl && <img src={p.thumbnailUrl} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                    {p.model3dUrl && <span style={{ position: "absolute", top: 10, insetInlineEnd: 10, padding: "0.25em 0.6em", borderRadius: 999, background: "rgba(255,255,255,0.92)", color: "var(--ink)", fontSize: "0.62rem", fontWeight: 700 }}>3D</span>}
+                  </div>
+                  <div style={{ padding: "1rem 1.1rem" }}>
+                    <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", margin: 0 }}>{p.ownerName || p.ownerPhone}</p>
+                    <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: "0.2rem 0 0.6rem" }}>{p.title}</h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.8rem" }}>
+                      <div style={{ flex: 1, height: 4, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: "var(--clay)" }} /></div>
+                      <span style={{ fontSize: "0.66rem", color: "var(--ink-faint)" }}>{ci(p) + 1}/{JOURNEY.length}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <button onClick={() => setManaging(p)} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>{tp("manage", lang)}</button>
+                      <button onClick={() => setEditing(p)} style={miniBtn}>{tp("edit", lang)}</button>
+                      <button onClick={() => onDelete(p.id)} style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {section === "clients" && (
+        <div style={{ ...card, overflow: "hidden", padding: 0 }}>
+          {clients.map((c, i) => {
+            const count = projects.filter((p) => p.ownerUid === c.uid || (c.phone && p.ownerPhone && p.ownerPhone.replace(/\D/g, "") === c.phone.replace(/\D/g, ""))).length;
+            return (
+              <button key={c.uid} onClick={() => setViewClient(c)} style={{ width: "100%", textAlign: "start", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "1rem 1.3rem", borderTop: i ? "1px solid var(--line-soft)" : "none", borderInline: "none", borderBottom: "none", background: "transparent", cursor: "pointer" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
+                  <span style={{ width: 42, height: 42, borderRadius: 999, background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--f-display)", fontSize: "1.1rem" }}>{(c.name || "?").trim().charAt(0).toUpperCase()}</span>
+                  <span><span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{c.name || "—"}</span><span style={{ display: "block", color: "var(--ink-faint)", fontSize: "0.82rem" }}>{c.phone}</span></span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.8rem", color: "var(--ink-faint)", fontSize: "0.8rem" }}>{count} {lang === "ar" ? "مشروع" : count === 1 ? "project" : "projects"} <span style={{ color: "var(--clay)" }}>→</span></span>
+              </button>
+            );
+          })}
+          {clients.length === 0 && <p style={{ padding: "1.4rem", color: "var(--ink-faint)" }}>{t("No clients yet.", "لا عملاء.")}</p>}
+        </div>
+      )}
+
+      {section === "leads" && (
+        <div style={{ display: "grid", gap: "0.9rem" }}>
+          {leads.length === 0 && <p style={{ color: "var(--ink-faint)" }}>{t("No design requests yet.", "لا توجد طلبات.")}</p>}
+          {leads.map((l) => (
+            <div key={l.id} style={{ ...card, padding: "1.1rem 1.3rem", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ minWidth: 200 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
+                  <span style={{ fontSize: "0.62rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{l.status}</span>
+                </div>
+                <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
+                {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
+                {l.planUrl && !l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: "0.5rem" }}><img src={l.planUrl} alt="plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} /></a>}
+                {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay)", display: "inline-block", marginTop: "0.4rem" }}>{t("View plan (PDF) →", "عرض المخطط →")}</a>}
+              </div>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
+                  <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
+                ))}
+                <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
+              </div>
             </div>
           ))}
         </div>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1.8rem" }}>
-          <div style={{ display: "flex", gap: "0.6rem" }}>
-            <button style={tabBtn("projects")} onClick={() => setTab("projects")}>{tp("projects", lang)} · {projects.length}</button>
-            <button style={tabBtn("clients")} onClick={() => setTab("clients")}>{tp("clients", lang)} · {clients.length}</button>
-            <button style={tabBtn("leads")} onClick={() => setTab("leads")}>{tp("leads", lang)} · {leads.filter((l) => l.status === "new").length}</button>
-          </div>
-          <div style={{ display: "flex", gap: "0.6rem" }}>
-            {tab === "projects" && <button onClick={() => setAdding(true)} style={primaryBtn}>+ {tp("add_project", lang)}</button>}
-            {tab === "clients" && <button onClick={() => setAddingClient(true)} style={primaryBtn}>+ {tp("add_client", lang)}</button>}
-          </div>
-        </div>
-
-        {tab === "projects" && (
-          <>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={lang === "ar" ? "ابحث بالعنوان أو العميل أو الهاتف…" : "Search by title, client or phone…"}
-            style={{ width: "100%", maxWidth: 420, padding: "0.7rem 1rem", border: "1px solid var(--line)", borderRadius: 999, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "1.4rem", background: "#fff" }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px,1fr))", gap: "1.2rem" }}>
-            {projects.filter((p) => { const s = query.trim().toLowerCase(); return !s || `${p.title} ${p.ownerName || ""} ${p.ownerPhone || ""} ${p.room || ""}`.toLowerCase().includes(s); }).map((p) => (
-              <div key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
-                <div style={{ aspectRatio: "16/9", background: "#f3f0ea" }}>
-                  {p.thumbnailUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.thumbnailUrl} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  )}
-                </div>
-                <div style={{ padding: "1rem 1.1rem" }}>
-                  <p style={{ fontSize: "0.7rem", color: "var(--ink-faint)", margin: 0 }}>{p.ownerName || p.ownerPhone}</p>
-                  <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: "0.2rem 0 0.5rem" }}>{p.title}</h3>
-                  <p style={{ fontSize: "0.74rem", color: "var(--clay)", margin: "0 0 0.8rem", fontWeight: 600 }}>
-                    {stageIndex(p.stage || "blueprint") + 1}/{JOURNEY.length} · {(lang === "ar" ? JOURNEY[stageIndex(p.stage || "blueprint")].ar : JOURNEY[stageIndex(p.stage || "blueprint")].en)}
-                  </p>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <button onClick={() => setManaging(p)} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>{tp("manage", lang)}</button>
-                    <button onClick={() => setEditing(p)} style={miniBtn}>{tp("edit", lang)}</button>
-                    <button onClick={() => onDelete(p.id)} style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          </>
-        )}
-
-        {tab === "clients" && (
-          <div style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
-            {clients.map((c, i) => {
-              const count = projects.filter((p) => p.ownerUid === c.uid || (c.phone && p.ownerPhone && p.ownerPhone.replace(/\D/g, "") === c.phone.replace(/\D/g, ""))).length;
-              return (
-                <button key={c.uid} onClick={() => setViewClient(c)}
-                  style={{ width: "100%", textAlign: "start", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "0.9rem 1.2rem", borderTop: i ? "1px solid var(--line-soft)" : "none", borderInline: "none", borderBottom: "none", background: "transparent", cursor: "pointer" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 999, background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--f-display)" }}>{(c.name || "?").trim().charAt(0).toUpperCase()}</span>
-                    <span>
-                      <span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{c.name || "—"}</span>
-                      <span style={{ display: "block", color: "var(--ink-faint)", fontSize: "0.82rem" }}>{c.phone}</span>
-                    </span>
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.8rem", color: "var(--ink-faint)", fontSize: "0.8rem" }}>
-                    {count} {lang === "ar" ? "مشروع" : count === 1 ? "project" : "projects"} <span style={{ color: "var(--clay)" }}>→</span>
-                  </span>
-                </button>
-              );
-            })}
-            {clients.length === 0 && <p style={{ padding: "1.2rem", color: "var(--ink-faint)" }}>—</p>}
-          </div>
-        )}
-
-        {tab === "leads" && (
-          <div style={{ display: "grid", gap: "0.9rem" }}>
-            {leads.length === 0 && <p style={{ color: "var(--ink-faint)" }}>No design requests yet.</p>}
-            {leads.map((l) => (
-              <div key={l.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: "1.1rem 1.3rem", background: "#fff", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ minWidth: 200 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                    <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
-                    <span style={{ fontSize: "0.66rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{l.status}</span>
-                  </div>
-                  <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
-                  {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
-                  {l.planUrl && !l.planUrl.endsWith(".pdf") && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: "0.5rem" }}>
-                      <img src={l.planUrl} alt="attached plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} />
-                    </a>
-                  )}
-                  {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay)", display: "inline-block", marginTop: "0.4rem" }}>View attached plan (PDF) →</a>}
-                </div>
-                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                  {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
-                    <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
-                  ))}
-                  <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }}
-                    style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}>→ {lang === "ar" ? "إنشاء مشروع" : "Create project"}</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      )}
 
       {(adding || editing) && (
         <ProjectForm initial={editing} clients={clients} prefillOwner={prefillOwner}
@@ -183,22 +231,18 @@ export default function AdminPage() {
       )}
       {addingClient && <AddClient onClose={() => setAddingClient(false)} onDone={() => { setAddingClient(false); load(); }} />}
       {managing && <ProjectManage project={projects.find((p) => p.id === managing.id) || managing} by={user.name} onClose={() => setManaging(null)} />}
-    </main>
+    </PortalShell>
   );
 }
+
+function Splash() { return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontFamily: "var(--f-display)" }}>EVORA</div>; }
 
 function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { lang, dir } = useT();
   const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [pw, setPw] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const field: React.CSSProperties = { width: "100%", padding: "0.7rem 0.85rem", marginTop: "0.35rem", border: "1px solid var(--line)", borderRadius: 10, fontSize: "0.92rem", color: "var(--ink)", background: "#fff" };
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); setErr(""); setBusy(true);
-    try { await createClient(phone.trim(), name.trim(), pw); onDone(); }
-    catch (e) { setErr(String((e as Error).message)); }
-    finally { setBusy(false); }
-  }
+  async function submit(e: React.FormEvent) { e.preventDefault(); setErr(""); setBusy(true); try { await createClient(phone.trim(), name.trim(), pw); onDone(); } catch (e) { setErr(String((e as Error).message)); } finally { setBusy(false); } }
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.5)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
       <form dir={dir} onClick={(e) => e.stopPropagation()} onSubmit={submit} style={{ width: "min(420px,100%)", background: "var(--paper)", borderRadius: 16, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
@@ -218,5 +262,7 @@ function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => voi
   );
 }
 
-const primaryBtn: React.CSSProperties = { padding: "0.5rem 1.1rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" };
+const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--line)", borderRadius: 16 };
+const sectTitle: React.CSSProperties = { fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: 0, fontWeight: 600 };
+const primaryBtn: React.CSSProperties = { padding: "0.6rem 1.2rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" };
 const miniBtn: React.CSSProperties = { padding: "0.4rem 0.9rem", borderRadius: 999, border: "1px solid var(--line)", background: "transparent", color: "var(--ink)", fontSize: "0.78rem", cursor: "pointer" };
