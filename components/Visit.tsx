@@ -60,6 +60,33 @@ export default function Visit() {
           </Rise>
         </div>
 
+        {/* ── real storefront, cinematic banner ── */}
+        <Rise delay={0.05} className="vst__store">
+          <img
+            src="/evora/storefront.webp"
+            alt={en ? "Evora Future Home showroom — Khalda, Amman" : "معرض إيفورا فيوتشر هوم — خلدا، عمّان"}
+            className="vst__store-img"
+            loading="lazy"
+          />
+          <span className="vst__store-overlay" aria-hidden />
+          <span className="vst__store-grain" aria-hidden />
+          <div className="vst__store-cap">
+            <span className="vst__store-badge">{en ? "Our Showroom" : "معرضنا"}</span>
+            <span className="display vst__store-name">Evora Future Home</span>
+            <span className="vst__store-addr">
+              {en ? "Wasfi Al-Tal St · Khalda · Amman" : "شارع وصفي التل · خلدا · عمّان"}
+            </span>
+          </div>
+          <a
+            href={MAPS_DIR}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="vst__store-dir"
+          >
+            {en ? "Get directions" : "احصل على الاتجاهات"} <span aria-hidden>↗</span>
+          </a>
+        </Rise>
+
         <div className="vst__grid">
           {/* ── engraved card ── */}
           <div className="vst__card">
@@ -270,6 +297,80 @@ export default function Visit() {
         }
         html[dir="rtl"] .vst__textlink::after { transform-origin: right; }
         .vst__textlink:hover::after { transform: scaleX(1); }
+
+        /* ── storefront cinematic banner ── */
+        .vst__store {
+          position: relative;
+          margin-top: clamp(2.4rem, 5vw, 4rem);
+          border-radius: 4px;
+          overflow: hidden;
+          aspect-ratio: 21 / 9;
+          box-shadow:
+            0 0 0 1px rgba(169,130,76,0.40),
+            0 0 0 7px var(--paper),
+            0 0 0 8px rgba(169,130,76,0.20),
+            0 50px 100px -54px rgba(27,25,22,0.55);
+        }
+        .vst__store-img {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%; object-fit: cover;
+          transform: scale(1.03);
+          transition: transform 1.4s var(--ease);
+        }
+        .vst__store:hover .vst__store-img { transform: scale(1.07); }
+        .vst__store-overlay {
+          position: absolute; inset: 0; z-index: 1; pointer-events: none;
+          background:
+            linear-gradient(180deg, rgba(16,15,13,0.10) 0%, rgba(16,15,13,0) 30%),
+            linear-gradient(90deg, rgba(16,15,13,0.62) 0%, rgba(16,15,13,0.18) 40%, rgba(16,15,13,0) 70%),
+            linear-gradient(0deg, rgba(16,15,13,0.72) 0%, rgba(16,15,13,0) 52%);
+        }
+        .vst__store-grain {
+          position: absolute; inset: 0; z-index: 1; pointer-events: none;
+          opacity: 0.25; mix-blend-mode: overlay;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size: 160px;
+        }
+        .vst__store-cap {
+          position: absolute; z-index: 2;
+          inset-inline-start: clamp(1.4rem, 3.5vw, 3rem);
+          bottom: clamp(1.4rem, 3.5vw, 2.6rem);
+          display: flex; flex-direction: column; gap: 0.5rem;
+          color: var(--paper);
+        }
+        .vst__store-badge {
+          align-self: flex-start;
+          font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase;
+          color: var(--ink);
+          background: rgba(251,247,240,0.92);
+          padding: 0.4em 0.85em; border-radius: 100px;
+        }
+        html[dir="rtl"] .vst__store-badge { letter-spacing: 0.06em; }
+        .vst__store-name {
+          font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; color: var(--paper);
+          text-shadow: 0 2px 24px rgba(0,0,0,0.45);
+        }
+        .vst__store-addr {
+          font-size: clamp(0.85rem, 1.2vw, 1rem); color: rgba(251,247,240,0.85);
+          letter-spacing: 0.02em; text-shadow: 0 1px 10px rgba(0,0,0,0.4);
+        }
+        .vst__store-dir {
+          position: absolute; z-index: 2;
+          inset-inline-end: clamp(1.2rem, 3vw, 2.4rem);
+          bottom: clamp(1.2rem, 3vw, 2.4rem);
+          display: inline-flex; align-items: center; gap: 0.4rem;
+          font-size: 0.84rem; font-weight: 600; color: var(--ink);
+          background: rgba(251,247,240,0.95);
+          backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+          padding: 0.7rem 1.1rem; border-radius: 100px;
+          box-shadow: 0 12px 30px -16px rgba(0,0,0,0.6);
+          transition: transform 0.4s var(--ease), background 0.4s var(--ease);
+        }
+        .vst__store-dir:hover { transform: translateY(-2px); background: var(--brass-2); }
+        @media (max-width: 860px) {
+          .vst__store { aspect-ratio: 16 / 10; }
+          .vst__store-dir { display: none; }
+        }
 
         /* ── map plate ── */
         .vst__plate { display: block; }
