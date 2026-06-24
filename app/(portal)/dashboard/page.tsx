@@ -6,6 +6,7 @@ import { tp } from "@/lib/portal/strings";
 import { usePortalAuth } from "@/lib/portal/auth";
 import { approveProject, listProjectsForUser, subscribe } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project } from "@/lib/portal/types";
+import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
 import ProjectViewer from "@/components/portal/ProjectViewer";
 import PortalHeader from "@/components/portal/PortalHeader";
@@ -66,10 +67,28 @@ export default function DashboardPage() {
                 <span style={{ position: "absolute", top: 12, insetInlineStart: 12, padding: "0.35em 0.8em", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.03em", background: p.approvedByClient ? "var(--clay)" : "rgba(22,21,15,0.85)", color: "#fff" }}>
                   {STATUS_LABEL[p.status][lang]}
                 </span>
+                {p.model3dUrl && (
+                  <span style={{ position: "absolute", top: 12, insetInlineEnd: 12, padding: "0.3em 0.65em", borderRadius: 999, fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.05em", background: "rgba(255,255,255,0.92)", color: "var(--ink)" }}>3D</span>
+                )}
               </div>
               <div style={{ padding: "1.1rem 1.2rem 1.3rem" }}>
                 <p style={{ fontSize: "0.72rem", color: "var(--ink-faint)", margin: 0, letterSpacing: "0.04em" }}>{p.room}</p>
-                <h3 className="display" style={{ fontSize: "1.25rem", color: "var(--ink)", margin: "0.25rem 0 0.5rem" }}>{p.title}</h3>
+                <h3 className="display" style={{ fontSize: "1.25rem", color: "var(--ink)", margin: "0.25rem 0 0.7rem" }}>{p.title}</h3>
+                {(() => {
+                  const cur = stageIndex(p.stage || "blueprint");
+                  const pct = Math.round(((cur + 1) / JOURNEY.length) * 100);
+                  return (
+                    <div style={{ margin: "0 0 0.7rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "var(--ink-faint)", marginBottom: "0.3rem" }}>
+                        <span>{lang === "ar" ? JOURNEY[cur].ar : JOURNEY[cur].en}</span>
+                        <span>{cur + 1}/{JOURNEY.length}</span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--clay)", borderRadius: 999, transition: "width .6s var(--ease)" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p style={{ fontSize: "0.8rem", color: "var(--clay)", margin: 0, fontWeight: 500 }}>{tp("view_3d", lang)} →</p>
               </div>
             </button>

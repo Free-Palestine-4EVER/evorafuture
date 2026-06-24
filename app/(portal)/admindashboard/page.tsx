@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [managing, setManaging] = useState<Project | null>(null);
   const [adding, setAdding] = useState(false);
   const [addingClient, setAddingClient] = useState(false);
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     setProjects(await listAllProjects());
@@ -52,6 +53,21 @@ export default function AdminPage() {
 
       <section className="container" style={{ paddingTop: "2.2rem", paddingBottom: "5rem" }}>
         <NotifyPrompt />
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          {[
+            { label: lang === "ar" ? "المشاريع" : "Projects", value: projects.length },
+            { label: lang === "ar" ? "العملاء" : "Clients", value: clients.length },
+            { label: lang === "ar" ? "قيد التنفيذ" : "In production", value: projects.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length },
+            { label: lang === "ar" ? "طلبات جديدة" : "New leads", value: leads.filter((l) => l.status === "new").length, accent: true },
+          ].map((s) => (
+            <div key={s.label} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: "1.1rem 1.3rem", background: s.accent && s.value > 0 ? "var(--ink)" : "#fff" }}>
+              <div className="display" style={{ fontSize: "2.1rem", lineHeight: 1, color: s.accent && s.value > 0 ? "#fff" : "var(--ink)" }}>{s.value}</div>
+              <div style={{ fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", color: s.accent && s.value > 0 ? "rgba(255,255,255,0.7)" : "var(--ink-faint)", marginTop: "0.4rem" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1.8rem" }}>
           <div style={{ display: "flex", gap: "0.6rem" }}>
             <button style={tabBtn("projects")} onClick={() => setTab("projects")}>{tp("projects", lang)} · {projects.length}</button>
@@ -65,8 +81,11 @@ export default function AdminPage() {
         </div>
 
         {tab === "projects" && (
+          <>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={lang === "ar" ? "ابحث بالعنوان أو العميل أو الهاتف…" : "Search by title, client or phone…"}
+            style={{ width: "100%", maxWidth: 420, padding: "0.7rem 1rem", border: "1px solid var(--line)", borderRadius: 999, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "1.4rem", background: "#fff" }} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px,1fr))", gap: "1.2rem" }}>
-            {projects.map((p) => (
+            {projects.filter((p) => { const s = query.trim().toLowerCase(); return !s || `${p.title} ${p.ownerName || ""} ${p.ownerPhone || ""} ${p.room || ""}`.toLowerCase().includes(s); }).map((p) => (
               <div key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
                 <div style={{ aspectRatio: "16/9", background: "#f3f0ea" }}>
                   {p.thumbnailUrl && (
@@ -89,6 +108,7 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+          </>
         )}
 
         {tab === "clients" && (
