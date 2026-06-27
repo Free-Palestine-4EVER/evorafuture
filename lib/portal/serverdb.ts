@@ -68,13 +68,16 @@ async function allProjects(): Promise<Project[]> {
   return Object.values(v) as Project[];
 }
 
-// Attach a single RTDB listener so changes from anywhere push to SSE clients.
+// NOTE: we deliberately do NOT attach persistent RTDB `.on("value")` listeners
+// on the full projects/leads/users nodes anymore. On Vercel every serverless
+// instance is its own process, so each cold start attached three new listeners
+// that re-downloaded the entire dataset on every change and never got torn
+// down — billable RTDB egress for no benefit. Realtime is already handled by
+// `touched()` bumping the tiny public /meta/rev flag, which every client
+// subscribes to directly via Firebase (see lib/portal/realtime.ts onRev). The
+// in-process `bus` still serves same-instance SSE clients (the fallback path).
 function ensureWatch() {
-  if (g.__evoraWatch) return;
-  g.__evoraWatch = true;
-  rtdb().ref("projects").on("value", () => bus().emit("change"));
-  rtdb().ref("leads").on("value", () => bus().emit("change"));
-  rtdb().ref("users").on("value", () => bus().emit("change"));
+  g.__evoraWatch = true; // kept for callers; no RTDB listeners attached
 }
 
 // ---- bootstrap ------------------------------------------------------------
