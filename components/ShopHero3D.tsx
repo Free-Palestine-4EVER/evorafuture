@@ -16,7 +16,6 @@ const SOFA = {
   model: "/models/featured/blue-sofa.glb",
   name: { en: "Dune Curved Sofa", ar: "كنبة ديون المنحنية" },
   tag: { en: "Three-seater · changeable fabric", ar: "ثلاثة مقاعد · قماش قابل للتغيير" },
-  price: "1,640 JOD",
 };
 const SWATCHES: { name: Bi; hex: string }[] = [
   { name: { en: "Champagne", ar: "شمبانيا" }, hex: "#d8c4a0" },
@@ -27,11 +26,11 @@ const SWATCHES: { name: Bi; hex: string }[] = [
 ];
 
 /* ── the top 3 shop pieces — real 3D models ── */
-type Product = { id: string; name: Bi; tag: Bi; price: string; model: string };
+type Product = { id: string; name: Bi; tag: Bi; model: string };
 const PRODUCTS: Product[] = [
-  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, price: "360 JOD", model: "/models/featured/hd-coffee-table.glb" },
-  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, price: "430 JOD", model: "/models/featured/src-chair.glb" },
-  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, price: "1,290 JOD", model: "/models/furni/bed.glb" },
+  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, model: "/models/featured/hd-coffee-table.glb" },
+  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, model: "/models/featured/src-chair.glb" },
+  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, model: "/models/furni/bed.glb" },
 ];
 
 /* shared model — optionally recolours every material (only the sofa uses tint) */
@@ -209,7 +208,6 @@ export default function ShopHero3D() {
         .sh3__ptag { font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
         html[dir="rtl"] .sh3__ptag { letter-spacing: 0.06em; }
         .sh3__pname { font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.0; color: var(--ink); margin: 0.5rem 0 0; }
-        .sh3__pprice { font-size: clamp(1.05rem, 1.5vw, 1.3rem); color: var(--brass); margin-top: 0.5rem; }
         .sh3__swlabel { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin: 1.6rem 0 0.7rem; }
         .sh3__swlabel b { color: var(--ink); font-weight: 600; }
         .sh3__swatches { display: flex; gap: 12px; flex-wrap: wrap; }

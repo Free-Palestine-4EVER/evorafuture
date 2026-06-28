@@ -60,6 +60,14 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
             ? "أربع خطوات فقط: ترسل مخطّطك، فنؤثّثه ونبنيه ثلاثي الأبعاد ونقدّمه بعرض واقعي تعتمده — ثم نصنعه وأنت تتابع كل مرحلة مباشرةً."
             : "Four moves: you send a plan, we furnish it, rebuild it in 3D and render it photoreal for your sign-off — then we build it while you watch every stage."}
         </Rise>
+        <Rise delay={0.18}>
+          <span className="pj-free">
+            <span className="pj-free-dot" aria-hidden />
+            {ar
+              ? "خدمة التصميم الداخلي الكاملة — مجانًا لعملاء المعرض"
+              : "The full interior-design service — complimentary for showroom clients"}
+          </span>
+        </Rise>
       </div>
 
       {/* ---- Left↔right swap-column scroll ---- */}
@@ -147,6 +155,16 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           font-size: clamp(1.02rem, 1.35vw, 1.16rem); line-height: 1.7;
           text-wrap: pretty;
         }
+        .pj-free {
+          display: inline-flex; align-items: center; gap: 0.6rem;
+          margin-top: 1.5rem; padding: 0.55rem 1.1rem;
+          font-family: var(--f-sans); font-size: 0.8rem; font-weight: 600;
+          letter-spacing: 0.04em; color: var(--ever, #2f5d4a);
+          background: color-mix(in srgb, var(--ever, #2f5d4a) 8%, transparent);
+          border: 1px solid color-mix(in srgb, var(--ever, #2f5d4a) 26%, transparent);
+          border-radius: 999px; text-wrap: balance;
+        }
+        .pj-free-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--ever, #2f5d4a); flex: 0 0 auto; }
 
         /* ---------- Left↔right swap-column scroll ---------- */
         .pj-swap { position: relative; margin-top: clamp(2rem, 5vw, 4rem); }

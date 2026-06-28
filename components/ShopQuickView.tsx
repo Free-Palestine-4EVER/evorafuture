@@ -216,7 +216,6 @@ export default function ShopQuickView({
         .qv-specs dd { margin: 0; font-size: 0.9rem; color: var(--ink, #1c1815); }
 
         .qv-foot { border-top: 1px solid var(--line, rgba(0,0,0,0.1)); padding: 1.1rem clamp(1.6rem, 3vw, 2.6rem); display: flex; align-items: center; gap: 1.2rem; background: var(--paper, #fbf9f4); }
-        .qv-price strong { display: block; font-family: var(--font-display); font-size: 1.5rem; color: var(--ever-2, #36412f); line-height: 1.1; }
         .qv-cta { margin-inline-start: auto; display: flex; gap: 0.6rem; }
         .qv-btn { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 100px; padding: 0.8rem 1.3rem; font-size: 0.82rem; font-weight: 500; cursor: none; white-space: nowrap; transition: background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease); }
         .qv-btn-dark { background: var(--ink, #1c1815); color: var(--paper, #fbf9f4); }

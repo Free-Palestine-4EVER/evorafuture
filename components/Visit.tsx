@@ -37,9 +37,16 @@ export default function Visit() {
     },
     {
       n: "03",
+      label: en ? "Call the Showroom" : "اتصل بالمعرض",
+      value: "+962 79 130 1444",
+      sub: en ? "Or +962 79 636 4105 · tap to call" : "أو ٤١٠٥ ٦٣٦ ٧٩ ٩٦٢+ · اضغط للاتصال",
+      href: "tel:+962791301444",
+    },
+    {
+      n: "04",
       label: en ? "Find Us" : "تابعونا",
       value: "@evorafuturehome",
-      sub: en ? "Follow us on Instagram" : "تابعونا على إنستغرام",
+      sub: en ? "Instagram · Facebook · WhatsApp" : "إنستغرام · فيسبوك · واتساب",
       href: "https://instagram.com/evorafuturehome",
     },
   ];
@@ -81,7 +88,9 @@ export default function Visit() {
                 delay={0.08}
               />
               <span className="vst__store-addr">
-                {en ? "Wasfi Al-Tal St · Khalda · Amman" : "شارع وصفي التل · خلدا · عمّان"}
+                {en
+                  ? "Wasfi Al-Tal St · Khalda · Amman — opposite Paradise Bakeries"
+                  : "شارع وصفي التل · خلدا · عمّان — مقابل أفران الجنّة"}
               </span>
               <div className="vst__store-actions">
                 <Magnetic strength={0.3}>
@@ -89,6 +98,9 @@ export default function Visit() {
                     {t("consult")} <span className="arrow">→</span>
                   </a>
                 </Magnetic>
+                <a href="tel:+962791301444" className="vst__store-dir">
+                  {en ? "Call us" : "اتصل بنا"} <span aria-hidden>↗</span>
+                </a>
                 <a href={MAPS_DIR} target="_blank" rel="noopener noreferrer" className="vst__store-dir">
                   {en ? "Get directions" : "احصل على الاتجاهات"} <span aria-hidden>↗</span>
                 </a>

@@ -10,9 +10,9 @@ export default function Footer() {
 
   const explore: { href: string; en: string; ar: string }[] = [
     { href: "/shop", en: "Shop", ar: "تسوّق" },
-    { href: "/collections", en: "Collections", ar: "المجموعات" },
+    { href: "/#rooms", en: "Shop by Room", ar: "تسوّق حسب الغرفة" },
     { href: "/showroom", en: "Virtual Showroom", ar: "المعرض الافتراضي" },
-    { href: "/design", en: "Design Service", ar: "خدمة التصميم" },
+    { href: "/how-it-works", en: "Design Service", ar: "خدمة التصميم" },
     { href: "/visit", en: "Visit Us", ar: "زورونا" },
   ];
 
@@ -185,6 +185,11 @@ export default function Footer() {
               {t("visit_addr")}
               <br />
               {t("visit_hours")}
+            </p>
+            <p className="ft__addr" style={{ marginTop: "0.7rem" }}>
+              <a href="tel:+962791301444" className="ft__link">+962 79 130 1444</a>
+              <br />
+              <a href="tel:+962796364105" className="ft__link">+962 79 636 4105</a>
             </p>
           </Rise>
         </div>

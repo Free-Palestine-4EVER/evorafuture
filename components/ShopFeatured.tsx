@@ -121,7 +121,6 @@ export default function ShopFeatured() {
         .feat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
         .feat-name { font-size: clamp(1.4rem, 2.2vw, 1.9rem); margin: 0; color: var(--paper, #fbf9f4); }
         .feat-tag { font-size: 0.84rem; color: rgba(251,249,244,0.6); margin: 0.2rem 0 0; }
-        .feat-price { font-family: var(--font-display); font-size: 1.15rem; color: var(--brass, #d8b878); white-space: nowrap; }
         .feat-finish { margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
         .feat-finish-label { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(251,249,244,0.55); }
         .feat-dots { display: flex; gap: 0.5rem; }

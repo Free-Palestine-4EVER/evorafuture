@@ -176,7 +176,6 @@ export default function Shop() {
         .shop-card-meta { padding: 0.95rem 0.1rem 0; }
         .shop-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
         .shop-cat { font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
-        .shop-price { font-size: 0.95rem; font-weight: 600; color: var(--ever-2); }
         .shop-name { font-size: 1.35rem; margin: 0.35rem 0 0.15rem; color: var(--ink); }
         .shop-tag { font-size: 0.86rem; color: var(--ink-faint); margin: 0; }
         .shop-swatches { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.7rem; }

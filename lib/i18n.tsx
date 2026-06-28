@@ -57,8 +57,6 @@ export const STR = {
   shop_search_ph: { en: "Search pieces…", ar: "ابحث عن قطعة…" },
   shop_sort: { en: "Sort", ar: "ترتيب" },
   shop_sort_featured: { en: "Featured", ar: "المميّزة" },
-  shop_sort_price_asc: { en: "Price · low to high", ar: "السعر · من الأقل" },
-  shop_sort_price_desc: { en: "Price · high to low", ar: "السعر · من الأعلى" },
   shop_sort_az: { en: "Name · A–Z", ar: "الاسم · أ–ي" },
   shop_quickview: { en: "Quick view", ar: "عرض سريع" },
   shop_finishes: { en: "finishes", ar: "تشطيبات" },
@@ -69,7 +67,6 @@ export const STR = {
   qv_finish: { en: "Finish", ar: "التشطيب" },
   qv_dims: { en: "Dimensions", ar: "الأبعاد" },
   qv_materials: { en: "Materials", ar: "الخامات" },
-  qv_price: { en: "Price", ar: "السعر" },
   qv_try: { en: "Try it in your home", ar: "جرّبها في منزلك" },
   qv_showroom: { en: "Open in showroom", ar: "افتح في المعرض" },
   nav_visit: { en: "Visit Us", ar: "زورونا" },
@@ -116,7 +113,7 @@ export const STR = {
 
   shop_eyebrow: { en: "Shop the Look", ar: "تسوّق الإطلالة" },
   shop_title: { en: "One room. Every piece.", ar: "غرفة واحدة. كل قطعة." },
-  shop_sub: { en: "Hover the markers to price each piece in the scene.", ar: "مرّر فوق العلامات لمعرفة سعر كل قطعة في المشهد." },
+  shop_sub: { en: "Hover the markers to explore each piece in the scene.", ar: "مرّر فوق العلامات لاستكشاف كل قطعة في المشهد." },
 
   design_eyebrow: { en: "Design & Execution", ar: "تصميم وتنفيذ" },
   design_title: { en: "From concept to delivered", ar: "من الفكرة إلى التسليم" },
@@ -132,7 +129,7 @@ export const STR = {
 
   visit_eyebrow: { en: "Visit Us", ar: "زورونا" },
   visit_title: { en: "Come find your space", ar: "تعال واكتشف مساحتك" },
-  visit_addr: { en: "Wasfi Al-Tal St., Khalda — Amman, Jordan", ar: "شارع وصفي التل، خلدا — عمّان، الأردن" },
+  visit_addr: { en: "Wasfi Al-Tal St., Khalda — Amman, Jordan · opposite Paradise Bakeries", ar: "شارع وصفي التل، خلدا — عمّان، الأردن · مقابل أفران الجنّة" },
   visit_hours: { en: "Sat – Thu · 10:00 — 22:00", ar: "السبت – الخميس · ١٠:٠٠ — ٢٢:٠٠" },
   visit_cta: { en: "Book a Showroom Visit", ar: "احجز زيارة للمعرض" },
   visit_call: { en: "Call the Studio", ar: "اتصل بالاستوديو" },

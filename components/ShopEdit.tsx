@@ -11,7 +11,6 @@ type Product = {
   id: string;
   name: Bi;
   tag: Bi;
-  price: string;
   img: string;
   href: string;
 };
@@ -21,7 +20,6 @@ const featured: Product = {
   id: "sofa",
   name: { en: "Dune Curved Sofa", ar: "كنبة ديون المنحنية" },
   tag: { en: "Three-seater · cream bouclé", ar: "ثلاثة مقاعد · بوكليه كريمي" },
-  price: "1,640 JOD",
   img: "/evora/vid-sofa.jpg",
   href: "/shop",
 };
@@ -32,7 +30,6 @@ const products: Product[] = [
     id: "coffee",
     name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" },
     tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" },
-    price: "360 JOD",
     img: "/evora/vid-coffee.jpg",
     href: "/shop",
   },
@@ -40,7 +37,6 @@ const products: Product[] = [
     id: "chair",
     name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" },
     tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" },
-    price: "430 JOD",
     img: "/evora/ig-chesterfield.jpg",
     href: "/shop",
   },
@@ -48,7 +44,6 @@ const products: Product[] = [
     id: "bed",
     name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" },
     tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" },
-    price: "1,290 JOD",
     img: "/evora/vid-bed.jpg",
     href: "/shop",
   },
@@ -182,7 +177,6 @@ export default function ShopEdit() {
         html[dir="rtl"] .se__feattag { letter-spacing: 0.06em; }
         .se__featname { font-size: clamp(1.8rem, 3.2vw, 2.8rem); line-height: 1.0; }
         .se__featbottom { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; }
-        .se__featprice { font-size: clamp(1.1rem, 1.6vw, 1.35rem); color: var(--paper); }
         .se__featcta { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase;
           color: var(--paper); border-bottom: 1px solid rgba(251,247,240,0.45); padding-bottom: 3px; }
         .se__arrow { color: var(--brass-2); transition: transform .5s var(--ease); }
@@ -203,7 +197,6 @@ export default function ShopEdit() {
         .se__rowtag { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
         html[dir="rtl"] .se__rowtag { letter-spacing: 0.04em; }
         .se__rowname { font-size: clamp(1.05rem, 1.5vw, 1.35rem); color: var(--ink); line-height: 1.08; }
-        .se__rowprice { font-size: 0.92rem; color: var(--brass); margin-top: 0.1rem; }
         .se__rowarrow { color: var(--ink-faint); font-size: 1.1rem; padding-inline-end: 0.4rem; transition: transform .5s var(--ease), color .3s var(--ease); }
         html[dir="rtl"] .se__rowarrow { transform: scaleX(-1); }
         .se__row:hover .se__rowarrow { color: var(--brass); transform: translate(3px, -3px); }
