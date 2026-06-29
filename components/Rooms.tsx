@@ -130,6 +130,31 @@ const taxonomy: { icon: string; label: Bi }[] = [
   { icon: "windown",     label: { en: "Curtains", ar: "ستائر" } },
 ];
 
+/* ── The actual catalogue carried over from evorafuturehome.com/Products.
+ *    Their live shop holds two real collections — "600 Heaven" and
+ *    "700 Heaven" — each shown across its real Evora renders (the rest of the
+ *    old site was PrestaShop demo filler, deliberately left out). No prices,
+ *    per the house rule: each piece speaks through the room it lives in. */
+type Product = { id: string; name: string; note: Bi; hero: string; gallery: string[]; href: string };
+const products: Product[] = [
+  {
+    id: "600-heaven",
+    name: "600 Heaven",
+    note: { en: "Curved sofa salon · ring chandelier", ar: "صالة بكنب منحنٍ · ثريا حلقيّة" },
+    hero: "/evora-legacy/products/600-heaven-1.webp",
+    gallery: ["/evora-legacy/products/600-heaven-2.webp", "/evora-legacy/products/600-heaven-3.webp"],
+    href: "/shop/living",
+  },
+  {
+    id: "700-heaven",
+    name: "700 Heaven",
+    note: { en: "Boucle sofa · marble nesting tables", ar: "كنبة بوكليه · طاولات رخاميّة متداخلة" },
+    hero: "/evora-legacy/products/700-heaven-1.webp",
+    gallery: ["/evora-legacy/products/700-heaven-2.webp", "/evora-legacy/products/700-heaven-3.webp"],
+    href: "/shop/living",
+  },
+];
+
 export default function Rooms() {
   const { lang, dir } = useT();
   const ar = lang === "ar";
@@ -241,6 +266,52 @@ export default function Rooms() {
         </div>
       </div>
 
+      {/* The real catalogue from evorafuturehome.com/Products — the two Evora
+          collections, each across its renders. */}
+      <div className="container rm__shop">
+        <Rise as="header" className="rm__shophead">
+          <span className="rm__taxlabel" style={{ marginBottom: 0 }}>
+            {ar ? "من المتجر" : "From the shop"}
+          </span>
+          <h3 className="rm__shoptitle">
+            {ar ? "مجموعاتنا" : "Our collections"}
+          </h3>
+        </Rise>
+
+        <div className="rm__products">
+          {products.map((p, i) => (
+            <motion.a
+              key={p.id}
+              href={p.href}
+              className="rm__product"
+              data-cursor="hover"
+              initial={reduce ? false : { opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+              transition={{ duration: 0.7, ease: EASE, delay: i * 0.08 }}
+            >
+              <div className="rm__pimgwrap">
+                <img src={p.hero} alt={p.name} className="rm__pimg" loading="lazy" />
+                <span className="rm__pveil" />
+                <span className="rm__pthumbs" aria-hidden>
+                  {p.gallery.map((g) => (
+                    <img key={g} src={g} alt="" className="rm__pthumb" loading="lazy" />
+                  ))}
+                </span>
+              </div>
+              <div className="rm__pmeta">
+                <span className="rm__pname">{p.name}</span>
+                <span className="rm__pnote">{p.note[lang]}</span>
+                <span className="rm__pcta">
+                  {ar ? "اكتشف المجموعة" : "View collection"}
+                  <span className="rm__parrow" aria-hidden>→</span>
+                </span>
+              </div>
+            </motion.a>
+          ))}
+        </div>
+      </div>
+
       <style>{`
         .rm { padding-block: clamp(4rem, 9vw, 7.5rem); background: var(--paper); color: var(--ink); }
         .rm__head { max-width: 60ch; }
@@ -326,6 +397,42 @@ export default function Rooms() {
           opacity: 0.72; transition: opacity .3s var(--ease), transform .3s var(--ease); }
         .rm__ico:hover .rm__icoimg { opacity: 1; transform: translateY(-3px); }
         .rm__icolabel { font-family: var(--f-sans); font-size: 0.72rem; letter-spacing: 0.02em; color: var(--ink-faint); }
+
+        /* ---- real catalogue (600 / 700 Heaven) ---- */
+        .rm__shop { margin-top: clamp(3rem, 6vw, 5rem); padding-top: clamp(2rem,4vw,3rem); border-top: 1px solid var(--line); }
+        .rm__shophead { text-align: center; margin-bottom: clamp(1.8rem,3.5vw,2.8rem); }
+        .rm__shoptitle { font-family: var(--f-display), Georgia, serif; font-weight: 340;
+          font-size: clamp(1.9rem, 4vw, 3rem); line-height: 1.02; letter-spacing: -0.02em;
+          margin: 0.5rem 0 0; color: var(--ink); }
+        .rm__products { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(1.2rem, 3vw, 2.4rem); }
+        .rm__product { display: block; text-decoration: none; color: var(--ink); }
+        .rm__pimgwrap { position: relative; overflow: hidden; border-radius: 4px;
+          aspect-ratio: 4 / 3; background: var(--ink); isolation: isolate; }
+        .rm__pimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+          transition: transform 1.2s var(--ease); }
+        .rm__product:hover .rm__pimg, .rm__product:focus-visible .rm__pimg { transform: scale(1.04); }
+        .rm__pveil { position: absolute; inset: 0; z-index: 1;
+          background: linear-gradient(to top, rgba(20,18,15,0.34) 0%, transparent 46%); }
+        .rm__pthumbs { position: absolute; z-index: 2; inset-block-end: 0.7rem; inset-inline-end: 0.7rem;
+          display: flex; gap: 0.4rem; opacity: 0; transform: translateY(6px);
+          transition: opacity .4s var(--ease), transform .4s var(--ease); }
+        .rm__product:hover .rm__pthumbs, .rm__product:focus-visible .rm__pthumbs { opacity: 1; transform: none; }
+        .rm__pthumb { width: clamp(40px,5vw,58px); aspect-ratio: 1; object-fit: cover; border-radius: 3px;
+          border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+        .rm__pmeta { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.9rem 0.2rem 0; }
+        .rm__pname { font-family: var(--f-display), Georgia, serif; font-weight: 360;
+          font-size: clamp(1.3rem,2.2vw,1.8rem); line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); }
+        .rm__pnote { font-family: var(--f-sans); font-size: 0.86rem; letter-spacing: 0.01em; color: var(--ink-faint); }
+        .rm__pcta { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 0.5rem;
+          font-family: var(--f-sans); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+          color: var(--brass); }
+        .rm__parrow { transition: transform .35s var(--ease); }
+        html[dir="rtl"] .rm__parrow { transform: scaleX(-1); }
+        .rm__product:hover .rm__parrow { transform: translateX(4px); }
+        html[dir="rtl"] .rm__product:hover .rm__parrow { transform: scaleX(-1) translateX(4px); }
+        @media (max-width: 720px) {
+          .rm__products { grid-template-columns: 1fr; gap: 1.6rem; }
+        }
 
         @media (max-width: 860px) {
           .rm__grid { grid-template-columns: 1fr; }
