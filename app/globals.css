@@ -104,7 +104,9 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.55;
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) — `hidden` turns body into a scroll container and
+     breaks position:sticky descendants (e.g. the configurator scroll-scrub). */
+  overflow-x: clip;
 }
 
 html[dir="rtl"] body { font-family: var(--font-ar); }
@@ -221,9 +223,10 @@ html[dir="rtl"] .marquee__track { animation-direction: reverse; }
   [id] { scroll-margin-top: 84px; }
 }
 
-/* kill any horizontal overflow on touch devices */
+/* kill any horizontal overflow on touch devices — `clip`, not `hidden`, so
+   position:sticky (configurator scroll-scrub, etc.) keeps working on mobile. */
 @media (max-width: 860px) {
-  html, body { max-width: 100%; overflow-x: hidden; }
+  html, body { max-width: 100%; overflow-x: clip; }
 }
 
 @media (prefers-reduced-motion: reduce) {
