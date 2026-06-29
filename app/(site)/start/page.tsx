@@ -12,7 +12,7 @@ export default function StartPage() {
   return (
     <main>
       <Nav pinnedSolid />
-      <div style={{ paddingTop: 78 }} />
+      <div className="nav-spacer" />
       <DesignRequest />
       <Footer />
     </main>

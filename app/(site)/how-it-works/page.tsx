@@ -13,7 +13,7 @@ export default function HowItWorksPage() {
   return (
     <main>
       <Nav pinnedSolid />
-      <div style={{ paddingTop: 78 }} />
+      <div className="nav-spacer" />
       <ProcessJourney />
       <Footer />
     </main>

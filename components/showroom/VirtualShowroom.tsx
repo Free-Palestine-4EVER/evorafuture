@@ -12,6 +12,7 @@ import {
   Html,
 } from "@react-three/drei";
 import * as THREE from "three";
+import type { Lang } from "@/lib/i18n";
 import { getProduct, type Product } from "@/lib/products";
 import {
   ROOM,
@@ -195,14 +196,14 @@ function Markers({
             <mesh rotation-x={-Math.PI / 2}>
               <ringGeometry args={[0.26, 0.36, 44]} />
               <meshBasicMaterial
-                color={activeId === v.id ? "#b5532a" : "#1c1815"}
+                color={activeId === v.id ? "#b27457" : "#16150f"}
                 transparent
                 opacity={0.5}
               />
             </mesh>
             <mesh rotation-x={-Math.PI / 2} position={[0, 0.001, 0]}>
               <circleGeometry args={[0.09, 24]} />
-              <meshBasicMaterial color="#b5532a" />
+              <meshBasicMaterial color="#b27457" />
             </mesh>
           </group>
         ))}
@@ -210,11 +211,11 @@ function Markers({
   );
 }
 
-function Loader() {
+function Loader({ lang }: { lang: Lang }) {
   return (
     <Html center>
       <div className="mv-load" style={{ position: "static" }}>
-        <span>Building the room…</span>
+        <span>{lang === "ar" ? "نبني الغرفة…" : "Building the room…"}</span>
       </div>
     </Html>
   );
@@ -225,11 +226,13 @@ export default function VirtualShowroom({
   onHover,
   goal,
   onGoto,
+  lang = "en",
 }: {
   onSelect: (p: Product) => void;
   onHover: (p: Product | null) => void;
   goal: Vantage | null;
   onGoto: (v: Vantage) => void;
+  lang?: Lang;
 }) {
   const inside = goal != null && goal.id !== "overview";
   return (
@@ -256,7 +259,7 @@ export default function VirtualShowroom({
 
       <CameraRig goal={goal} />
 
-      <Suspense fallback={<Loader />}>
+      <Suspense fallback={<Loader lang={lang} />}>
         <Room />
         <Markers onGoto={onGoto} activeId={goal?.id ?? null} />
         {showroomLayout.map((pl) => {

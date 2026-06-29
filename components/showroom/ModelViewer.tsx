@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import type { Product } from "@/lib/products";
 
 // Imperative handle the page can call to launch AR from any button.
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ModelViewer({ product, onReady, autoRotate }: Props) {
+  const { lang } = useT();
   const ref = useRef<ViewerEl | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -70,7 +72,7 @@ export default function ModelViewer({ product, onReady, autoRotate }: Props) {
       <div slot="progress-bar" style={{ display: "none" }} />
       {!loaded && (
         <div className="mv-load">
-          <span>Loading model…</span>
+          <span>{lang === "ar" ? "جارٍ تحميل النموذج…" : "Loading model…"}</span>
         </div>
       )}
     </model-viewer>

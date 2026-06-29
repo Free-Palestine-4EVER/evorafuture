@@ -2,16 +2,39 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useT } from "@/lib/i18n";
 import ModelViewer, { type ViewerEl } from "./ModelViewer";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
-import { type Product } from "@/lib/products";
+import { type Category, type Product } from "@/lib/products";
 
 interface Props {
   product: Product;
   onClose: () => void;
 }
 
+const T = {
+  stage_hint: { en: "Drag to rotate · pinch to zoom", ar: "اسحب للتدوير · قرّص للتكبير" },
+  qr_eyebrow: { en: "Open on your phone", ar: "افتح على هاتفك" },
+  qr_alt: { en: "Scan to view in AR", ar: "امسح الرمز للعرض بالواقع المعزّز" },
+  qr_pre: {
+    en: "AR needs a phone camera. Scan this code with your iPhone or Android to place the ",
+    ar: "الواقع المعزّز يحتاج كاميرا هاتف. امسح هذا الرمز بآيفونك أو أندرويد لتضع ",
+  },
+  qr_post: { en: " in your room.", ar: " في غرفتك." },
+  add_cart: { en: "Add to cart", ar: "أضِف إلى السلة" },
+};
+
+const CAT_AR: Record<Category, string> = {
+  Sofas: "كنب",
+  Seating: "مقاعد",
+  Tables: "طاولات",
+  Storage: "تخزين",
+  Bedroom: "غرف نوم",
+};
+
 export default function ProductDialog({ product, onClose }: Props) {
+  const { lang, t } = useT();
+  const tl = (k: keyof typeof T) => T[k][lang];
   const [viewer, setViewer] = useState<ViewerEl | null>(null);
   const [arReady, setArReady] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -58,7 +81,7 @@ export default function ProductDialog({ product, onClose }: Props) {
     typeof window !== "undefined"
       ? `${window.location.origin}${window.location.pathname}?p=${product.id}`
       : "";
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&color=1c1815&bgcolor=fbf9f4&data=${encodeURIComponent(
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&color=16150F&bgcolor=fbf9f4&data=${encodeURIComponent(
     pageUrl
   )}`;
 
@@ -79,7 +102,7 @@ export default function ProductDialog({ product, onClose }: Props) {
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="dlg-close" onClick={onClose} aria-label="Close">
+        <button className="dlg-close" onClick={onClose} aria-label={t("qv_close")}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path
               d="M1 1l16 16M17 1L1 17"
@@ -92,7 +115,7 @@ export default function ProductDialog({ product, onClose }: Props) {
         {/* 3D stage ------------------------------------------------------ */}
         <div className="dlg-stage">
           <ModelViewer product={product} onReady={onReady} autoRotate />
-          <div className="dlg-stage-hint">Drag to rotate · pinch to zoom</div>
+          <div className="dlg-stage-hint">{tl("stage_hint")}</div>
 
           {showQR && (
             <motion.div
@@ -103,12 +126,12 @@ export default function ProductDialog({ product, onClose }: Props) {
               <button className="qr-x" onClick={() => setShowQR(false)}>
                 ×
               </button>
-              <p className="eyebrow">Open on your phone</p>
-              <img src={qrSrc} alt="Scan to view in AR" width={180} height={180} />
+              <p className="eyebrow">{tl("qr_eyebrow")}</p>
+              <img src={qrSrc} alt={tl("qr_alt")} width={180} height={180} />
               <p>
-                AR needs a phone camera. Scan this code with your iPhone or
-                Android to place the <strong>{product.name}</strong> in your
-                room.
+                {tl("qr_pre")}
+                <strong>{product.name}</strong>
+                {tl("qr_post")}
               </p>
             </motion.div>
           )}
@@ -119,7 +142,7 @@ export default function ProductDialog({ product, onClose }: Props) {
           <div>
             {product.badge && <span className="tag">{product.badge}</span>}
             <p className="eyebrow" style={{ marginTop: product.badge ? 14 : 0 }}>
-              {product.category}
+              {lang === "ar" ? CAT_AR[product.category] : product.category}
             </p>
             <h2 className="display-lg dlg-name">{product.name}</h2>
             <p className="dlg-tagline">{product.tagline}</p>
@@ -127,7 +150,7 @@ export default function ProductDialog({ product, onClose }: Props) {
 
             <div className="dlg-swatches">
               <span className="dlg-label">
-                Finish — {product.colorways[color].name}
+                {t("qv_finish")} — {product.colorways[color].name}
               </span>
               <div className="dlg-dots">
                 {product.colorways.map((c, i) => (
@@ -144,14 +167,14 @@ export default function ProductDialog({ product, onClose }: Props) {
 
             <dl className="dlg-specs">
               <div>
-                <dt>Dimensions</dt>
+                <dt>{t("qv_dims")}</dt>
                 <dd>
                   {product.dimensions.w} × {product.dimensions.d} ×{" "}
                   {product.dimensions.h} cm
                 </dd>
               </div>
               <div>
-                <dt>Materials</dt>
+                <dt>{t("qv_materials")}</dt>
                 <dd>{product.materials.join(" · ")}</dd>
               </div>
             </dl>
@@ -161,9 +184,9 @@ export default function ProductDialog({ product, onClose }: Props) {
             <div className="dlg-cta">
               <button className="btn btn-clay" onClick={tryInRoom}>
                 <ArIcon />
-                Try it in your home
+                {t("qv_try")}
               </button>
-              <button className="btn btn-ghost">Add to cart</button>
+              <button className="btn btn-ghost">{tl("add_cart")}</button>
             </div>
           </div>
         </div>

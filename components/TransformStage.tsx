@@ -166,6 +166,17 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
         }
         .ts-dot.done { background: var(--clay); }
         .ts-dot.on { width: 22px; border-radius: 999px; background: var(--brass); }
+
+        /* keep the caption + dots legible on narrow phones */
+        @media (max-width: 560px) {
+          .ts-caption {
+            bottom: 38px; gap: 7px;
+            font-size: 13px; padding: 6px 13px;
+            max-width: calc(100% - 24px); white-space: normal; text-align: center;
+          }
+          .ts-dots { bottom: 15px; }
+          .ts-dot.on { width: 18px; }
+        }
       `}</style>
     </div>
   );

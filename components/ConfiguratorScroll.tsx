@@ -3,7 +3,44 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
+import { Rise } from "@/components/motion";
+import { openStartProject } from "@/lib/startProject";
+import { WHATSAPP } from "@/lib/brand";
 import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
+
+// New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
+// come from t(); only fresh copy lives here.
+const T = {
+  wa: { en: "Ask on WhatsApp", ar: "اسأل عبر واتساب" },
+  wa_msg: {
+    en: "Hi Evora — I'd like to talk about a bespoke kitchen island.",
+    ar: "مرحبًا إيفورا — أودّ التحدث عن جزيرة مطبخ حسب الطلب.",
+  },
+  make_eyebrow: { en: "From plan to kitchen", ar: "من المخطط إلى المطبخ" },
+  make_heading: { en: "How a bespoke island is made", ar: "كيف تُصنع جزيرة حسب الطلب" },
+  make_lead: {
+    en: "No catalogue numbers, no guesswork — three steps from the stone you choose to the island standing in your home.",
+    ar: "لا أرقام كتالوج ولا تخمين — ثلاث خطوات من الحجر الذي تختاره إلى الجزيرة في منزلك.",
+  },
+  s1_n: { en: "01", ar: "٠١" },
+  s1_t: { en: "Choose your stone", ar: "اختر حجرك" },
+  s1_b: {
+    en: "Sit with our designers in Khalda and settle the marble, finish and proportions — exactly as you saw them on screen.",
+    ar: "اجلس مع مصمّمينا في خلدا واختر الرخام والتشطيب والمقاسات — تمامًا كما رأيتها على الشاشة.",
+  },
+  s2_n: { en: "02", ar: "٠٢" },
+  s2_t: { en: "We cut it in our workshop", ar: "نصنعها في ورشتنا" },
+  s2_b: {
+    en: "Your island is built to order by our own makers in Amman — one slab, measured and finished by hand.",
+    ar: "تُصنع جزيرتك خصيصًا على أيدي صنّاعنا في عمّان — لوحٌ واحد، يُقاس ويُشطَّب يدويًا.",
+  },
+  s3_n: { en: "03", ar: "٠٣" },
+  s3_t: { en: "We fit it in your home", ar: "نركّبها في منزلك" },
+  s3_b: {
+    en: "We deliver and install it ourselves, then leave the room looking exactly the way you decided it would.",
+    ar: "نوصّلها ونركّبها بأنفسنا، ثم نترك الغرفة كما قرّرتها أنت تمامًا.",
+  },
+};
 
 // 169 native frames of the kitchen fly-through, ending pinned on the island.
 const TOTAL = 169;
@@ -13,8 +50,10 @@ const frameSrc = (i: number) => `/evora/config-frames/frame_${pad(i)}.webp`;
 
 export default function ConfiguratorScroll() {
   const { t, lang } = useT();
+  const tl = (k: keyof typeof T) => T[k][lang];
   const reduce = useReducedMotion();
   const ease = [0.22, 1, 0.36, 1] as const;
+  const waHref = `${WHATSAPP}?text=${encodeURIComponent(T.wa_msg[lang])}`;
 
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -76,7 +115,28 @@ export default function ConfiguratorScroll() {
       if (!ticking.current) { ticking.current = true; requestAnimationFrame(render); }
     };
 
+    // Lazy-gate the 169-frame preload: the page paints the single poster webp
+    // first, and the heavy frame set only starts loading once the visitor
+    // scrolls (or the main thread goes idle) — never on the initial render.
+    let started = false;
+    const startPreload = () => {
+      if (started || !mounted) return;
+      started = true;
+      let loaded = 0;
+      for (let i = 1; i <= TOTAL; i++) {
+        const img = new Image();
+        img.src = frameSrc(i);
+        img.onload = () => {
+          loaded++;
+          if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
+          if (loaded === TOTAL && mounted) onScroll();
+        };
+        imagesRef.current[i] = img;
+      }
+    };
+
     const onScroll = () => {
+      startPreload(); // first scroll kicks off the frame fetch
       const el = sectionRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -90,28 +150,27 @@ export default function ConfiguratorScroll() {
       requestTick();
     };
 
-    // preload
-    let loaded = 0;
-    for (let i = 1; i <= TOTAL; i++) {
-      const img = new Image();
-      img.src = frameSrc(i);
-      img.onload = () => {
-        loaded++;
-        if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
-        if (loaded === TOTAL && mounted) onScroll();
-      };
-      imagesRef.current[i] = img;
-    }
-
     const onResize = () => { sizeCanvas(); draw(Math.round(currentFrame.current)); };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
-    onScroll();
+
+    // idle fallback so the frames are ready even if the visitor lingers before
+    // scrolling — but still after the first paint, never blocking it.
+    const ric = (window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    });
+    let idleId: number | undefined;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    if (ric.requestIdleCallback) idleId = ric.requestIdleCallback(startPreload, { timeout: 2500 });
+    else idleTimer = setTimeout(startPreload, 1400);
 
     return () => {
       mounted = false;
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      if (idleId !== undefined && ric.cancelIdleCallback) ric.cancelIdleCallback(idleId);
+      if (idleTimer !== undefined) clearTimeout(idleTimer);
     };
   }, [reduce]);
 
@@ -132,7 +191,14 @@ export default function ConfiguratorScroll() {
 
   const isBase = active?.image === CONFIG_BASE || active?.id === SURFACES[0].id;
 
+  const steps = [
+    { n: tl("s1_n"), title: tl("s1_t"), body: tl("s1_b") },
+    { n: tl("s2_n"), title: tl("s2_t"), body: tl("s2_b") },
+    { n: tl("s3_n"), title: tl("s3_t"), body: tl("s3_b") },
+  ];
+
   return (
+    <>
     <section
       id="configurator"
       ref={sectionRef}
@@ -241,8 +307,16 @@ export default function ConfiguratorScroll() {
               </div>
 
               <div className="cfg__cta">
-                <a href="/visit" className="btn cfg__cta-1">
+                <button type="button" className="btn cfg__cta-1" onClick={openStartProject}>
                   {t("cfg_cta")} <span className="arrow">→</span>
+                </button>
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cfg__cta-wa"
+                >
+                  {tl("wa")}
                 </a>
               </div>
             </motion.div>
@@ -250,8 +324,42 @@ export default function ConfiguratorScroll() {
         </AnimatePresence>
       </div>
 
-      <style>{css}</style>
     </section>
+
+    {/* closing, static beat — gives the page substance after the scrub */}
+    <section className="cfg-make">
+      <div className="cfg-make__inner">
+        <Rise as="header" className="cfg-make__head">
+          <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
+            {tl("make_eyebrow")}
+          </span>
+          <h2 className="display cfg-make__h">{tl("make_heading")}</h2>
+          <p className="cfg-make__lead">{tl("make_lead")}</p>
+        </Rise>
+
+        <div className="cfg-make__grid">
+          {steps.map((s, i) => (
+            <Rise key={s.n} as="article" delay={0.08 * (i + 1)} className="cfg-make__step">
+              <span className="cfg-make__num">{s.n}</span>
+              <h3 className="cfg-make__step-t">{s.title}</h3>
+              <p className="cfg-make__step-b">{s.body}</p>
+            </Rise>
+          ))}
+        </div>
+
+        <Rise className="cfg-make__cta" delay={0.34}>
+          <button type="button" className="btn cfg-make__cta-1" onClick={openStartProject}>
+            {t("cfg_cta")} <span className="arrow">→</span>
+          </button>
+          <a href={waHref} target="_blank" rel="noopener noreferrer" className="cfg-make__cta-wa">
+            {tl("wa")}
+          </a>
+        </Rise>
+      </div>
+    </section>
+
+    <style>{css}</style>
+    </>
   );
 }
 
@@ -298,8 +406,11 @@ const css = `
     background: rgba(251,247,240,0.08); border-style: dashed; font-size: 1.3rem; }
   .cfg__upload:hover { background: rgba(251,247,240,0.16); }
 
-  .cfg__cta { margin-top: 1.1rem; }
-  .cfg__cta-1 { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .cfg__cta { margin-top: 1.1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .cfg__cta-1 { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+  .cfg__cta-wa { color: rgba(251,247,240,0.82); font-size: 0.92rem; text-decoration: none;
+    border-bottom: 1px solid rgba(251,247,240,0.3); padding-bottom: 1px; transition: color 0.2s ease, border-color 0.2s ease; }
+  .cfg__cta-wa:hover { color: #fbf7f0; border-color: var(--brass-2, #c8a972); }
 
   [dir="rtl"] .cfg__intro, [dir="rtl"] .cfg__panel { left: auto; right: clamp(1.4rem, 5vw, 5rem); }
 
@@ -307,5 +418,28 @@ const css = `
     .cfg__intro { top: 16%; transform: none; }
     .cfg__panel { left: 50%; right: auto; transform: translateX(-50%); bottom: 1.4rem; }
     [dir="rtl"] .cfg__panel { right: auto; left: 50%; transform: translateX(-50%); }
+  }
+
+  /* ── closing "how it's made" beat ───────────────────────────────── */
+  .cfg-make { background: #0d0b09; color: #fbf7f0; padding: clamp(4rem, 10vh, 8rem) 0; }
+  .cfg-make__inner { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1.4rem, 5vw, 3rem); }
+  .cfg-make__head { max-width: 40ch; }
+  .cfg-make__h { font-size: clamp(2rem, 4.6vw, 3.4rem); line-height: 1.02; margin: 0.4rem 0 0.8rem; color: #fbf7f0; }
+  .cfg-make__lead { color: rgba(251,247,240,0.74); font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.6; }
+  .cfg-make__grid { display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.4rem, 3vw, 2.6rem); margin-top: clamp(2.4rem, 5vh, 3.6rem); }
+  .cfg-make__step { border-top: 1px solid rgba(251,247,240,0.16); padding-top: 1.2rem; }
+  .cfg-make__num { display: block; font-size: 0.85rem; letter-spacing: 0.18em;
+    color: var(--brass-2, #c8a972); margin-bottom: 0.7rem; }
+  .cfg-make__step-t { font-size: 1.25rem; margin: 0 0 0.5rem; color: #fbf7f0; }
+  .cfg-make__step-b { color: rgba(251,247,240,0.72); font-size: 0.98rem; line-height: 1.6; margin: 0; }
+  .cfg-make__cta { margin-top: clamp(2.4rem, 5vh, 3.6rem); display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+  .cfg-make__cta-1 { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+  .cfg-make__cta-wa { color: rgba(251,247,240,0.82); font-size: 0.95rem; text-decoration: none;
+    border-bottom: 1px solid rgba(251,247,240,0.3); padding-bottom: 1px; transition: color 0.2s ease, border-color 0.2s ease; }
+  .cfg-make__cta-wa:hover { color: #fbf7f0; border-color: var(--brass-2, #c8a972); }
+
+  @media (max-width: 820px) {
+    .cfg-make__grid { grid-template-columns: 1fr; gap: 1.6rem; }
   }
 `;

@@ -32,6 +32,12 @@
    Lock the app shell so swipes/pinches drive the editor & 3D view instead of
    scrolling or zooming the page. (The 2D <svg> already sets touch-action:none
    for drawing; the WebGL <canvas> needs it so OrbitControls gets the gestures.) */
+:root {
+  --safe-t: env(safe-area-inset-top);
+  --safe-b: env(safe-area-inset-bottom);
+  --safe-l: env(safe-area-inset-left);
+  --safe-r: env(safe-area-inset-right);
+}
 html, body {
   height: 100%;
   overscroll-behavior: none;
@@ -39,6 +45,16 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   background: var(--ink);
   color: var(--paper);
+  /* iPad/iPhone: the chrome behaves like a native tool — no text selection or
+     callout when dragging slots, walls and the 3D view */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+/* …but real fields stay selectable/editable */
+input, textarea, select, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 @supports (height: 100dvh) {
   html, body { height: 100dvh; }
@@ -49,3 +65,41 @@ canvas { touch-action: none; }
 button, a, [role="button"], label, summary { touch-action: manipulation; }
 /* hide native scrollbars inside the tool panes on touch, keep scrollability */
 .pf-scroll { -webkit-overflow-scrolling: touch; }
+
+/* touch devices: give the rotation slider a finger-sized thumb (≥26px). Scoped
+   to coarse pointers so desktop mouse keeps the native control untouched. */
+@media (pointer: coarse) {
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 26px;
+    background: transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #3f3f46;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: var(--brass-2);
+    border: 2px solid var(--ink);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: #3f3f46;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--brass-2);
+    border: 2px solid var(--ink);
+  }
+}

@@ -13,7 +13,7 @@ export default function ClientExamplePage() {
   return (
     <main>
       <Nav pinnedSolid />
-      <div style={{ paddingTop: 78 }} />
+      <div className="nav-spacer" />
       <ClientExample />
       <Footer />
     </main>

@@ -6,6 +6,7 @@
   "start_url": "/pufferweb",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#16150F",
   "theme_color": "#16150F",
   "orientation": "any",

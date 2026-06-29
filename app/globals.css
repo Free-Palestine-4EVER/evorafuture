@@ -29,6 +29,10 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --gut: clamp(1.25rem, 5vw, 6rem);
 
+  /* Height of the fixed Nav (components/Nav). Pages that open with a solid nav
+     reserve this with <div className="nav-spacer" /> instead of a magic number. */
+  --nav-h: 78px;
+
   /* Shared z-index for the branded curtain Loader (components/brand/Loader,
      Stream 5) — sits above all page chrome, just under the custom cursor (9999). */
   --z-loader: 9998;
@@ -126,6 +130,8 @@ html[dir="rtl"] .serif-i { font-style: normal; }
 /* ---- Layout helpers ---- */
 .container { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); }
 .section { padding-block: clamp(5rem, 11vw, 11rem); position: relative; }
+/* reserves the fixed-nav height on pages whose first band sits under a solid nav */
+.nav-spacer { height: var(--nav-h, 78px); }
 
 /* ---- Buttons ---- */
 .btn {

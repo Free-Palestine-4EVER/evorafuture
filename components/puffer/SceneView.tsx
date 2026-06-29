@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, useTexture, Environment, Lightformer, ContactShadows, useGLTF } from "@react-three/drei";
 import type { Texture } from "three";
-import { Box3, Vector3, Group } from "three";
+import { Box3, Vector2, Vector3, Group, TOUCH, MOUSE } from "three";
 import { useStudio } from "@/lib/puffer/store";
 import { resolveProduct } from "@/lib/puffer/catalog";
 import { Product, Rect, Wall, wallHeightMm, WALL } from "@/lib/puffer/types";
@@ -211,6 +211,78 @@ function CameraRig({ view360, spanM }: { view360: boolean; spanM: number }) {
   return null;
 }
 
+// Double-tap / double-click a piece of furniture to recentre the orbit on it
+// (the touch equivalent of "click to focus"). Long-press on empty space frames
+// the whole room. Additive — desktop mouse orbit/pan/zoom is untouched.
+function FocusControls({ enabled }: { enabled: boolean }) {
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
+  const scene = useThree((s) => s.scene);
+  const raycaster = useThree((s) => s.raycaster);
+  const controls = useThree((s) => s.controls) as { target: Vector3; update: () => void } | null;
+  const goal = useRef<Vector3 | null>(null);
+
+  // raycast a screen point into the export root → world hit point
+  const pick = useCallback((clientX: number, clientY: number) => {
+    const el = gl.domElement;
+    const r = el.getBoundingClientRect();
+    const ndc = new Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const root = scene.getObjectByName("exportRoot");
+    const hits = root ? raycaster.intersectObject(root, true) : [];
+    if (hits.length) goal.current = hits[0].point.clone();
+  }, [gl, camera, scene, raycaster]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const el = gl.domElement;
+    let lastTap = 0, lastX = 0, lastY = 0, downX = 0, downY = 0;
+    let pressTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+
+    const onDblClick = (e: MouseEvent) => pick(e.clientX, e.clientY);
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "touch") {
+        const now = performance.now();
+        if (now - lastTap < 300 && Math.hypot(e.clientX - lastX, e.clientY - lastY) < 24) {
+          pick(e.clientX, e.clientY); // synthesised double-tap → focus
+          lastTap = 0;
+        } else {
+          lastTap = now; lastX = e.clientX; lastY = e.clientY;
+        }
+      }
+      downX = e.clientX; downY = e.clientY;
+      clearPress();
+      pressTimer = setTimeout(() => { goal.current = new Vector3(0, 0, 0); }, 500); // long-press → frame all
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (pressTimer && Math.hypot(e.clientX - downX, e.clientY - downY) > 14) clearPress();
+    };
+
+    el.addEventListener("dblclick", onDblClick);
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", clearPress);
+    el.addEventListener("pointercancel", clearPress);
+    return () => {
+      el.removeEventListener("dblclick", onDblClick);
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", clearPress);
+      el.removeEventListener("pointercancel", clearPress);
+      clearPress();
+    };
+  }, [enabled, gl, pick]);
+
+  useFrame(() => {
+    if (!goal.current || !controls) return;
+    controls.target.lerp(goal.current, 0.15);
+    if (controls.target.distanceTo(goal.current) < 0.01) goal.current = null;
+  });
+
+  return null;
+}
+
 export default function SceneView() {
   const { planImage, imgW, imgH, mmPerPx, rects, selectedId, walls, selectedWallId, floorMat, wallMat, userProducts } = useStudio();
   const ready = planImage && mmPerPx;
@@ -233,10 +305,17 @@ export default function SceneView() {
       )}
 
       {ready && (
-        <div className="absolute right-3 top-3 z-10 flex gap-2">
+        <div
+          className="absolute right-0 top-0 z-10 flex gap-2"
+          style={{
+            paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+            paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+          }}
+        >
           <button
             onClick={() => setView360((v) => !v)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium shadow-lg transition ${
+            style={{ touchAction: "manipulation" }}
+            className={`inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-medium shadow-lg transition ${
               view360 ? "bg-white text-neutral-900 hover:bg-neutral-200" : "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]"
             }`}
           >
@@ -319,11 +398,19 @@ export default function SceneView() {
         )}
 
         <CameraRig view360={view360} spanM={spanM} />
+        <FocusControls enabled={!view360} />
         <OrbitControls
           makeDefault
           enablePan={!view360}
           enableZoom={!view360}
           rotateSpeed={view360 ? -0.4 : 0.5}
+          enableDamping
+          dampingFactor={0.08}
+          zoomToCursor
+          minDistance={0.5}
+          maxDistance={spanM * 4}
+          touches={{ ONE: TOUCH.ROTATE, TWO: view360 ? TOUCH.ROTATE : TOUCH.DOLLY_PAN }}
+          mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
         />
       </Canvas>
     </div>

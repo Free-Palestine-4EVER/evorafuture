@@ -8,6 +8,33 @@ const MAPS_DIR =
 const MAPS_EMBED =
   "https://www.google.com/maps?q=Evora+Future+Home%2C+Wasfi+Al-Tal+St%2C+Khalda%2C+Amman&ll=31.9929926,35.8638714&z=16&output=embed";
 
+// new strings live here (component-local dict, like DesignRequest.tsx)
+const T = {
+  expect_eyebrow: { en: "Before you come", ar: "قبل أن تأتي" },
+  expect_title: { en: "What to expect on a visit", ar: "ماذا تتوقّع في زيارتك" },
+  hours_label: { en: "Opening hours", ar: "ساعات العمل" },
+  e1_t: { en: "Walk the full collection", ar: "تجوّل في المجموعة كاملة" },
+  e1_d: {
+    en: "Sofas, beds, dining and décor — styled in real room sets you can sit in.",
+    ar: "كنب وأسرّة وسفرة وديكور — منسّقة في غرف حقيقية تستطيع الجلوس فيها.",
+  },
+  e2_t: { en: "Bring your floor plan", ar: "أحضِر مخططك" },
+  e2_d: {
+    en: "Hand us your 2D plan and we'll start your 3D home on the spot.",
+    ar: "سلّمنا مخططك ثنائي الأبعاد ونبدأ منزلك ثلاثي الأبعاد على الفور.",
+  },
+  e3_t: { en: "Sit with a designer", ar: "اجلس مع مصمّم" },
+  e3_d: {
+    en: "A specialist walks you through finishes, fabrics and layout — no rush.",
+    ar: "يأخذك مختص في التشطيبات والأقمشة والتوزيع — دون أي استعجال.",
+  },
+  e4_t: { en: "Free parking & coffee", ar: "موقف مجاني وقهوة" },
+  e4_d: {
+    en: "Easy parking right out front, and Arabic coffee on us while you browse.",
+    ar: "موقف سهل أمام المعرض مباشرة، وقهوة عربية على حسابنا أثناء تجوّلك.",
+  },
+};
+
 // split a title into two balanced lines for the masked reveal
 function lines(text: string): string[] {
   const w = text.split(" ");
@@ -19,6 +46,14 @@ function lines(text: string): string[] {
 export default function Visit() {
   const { t, lang } = useT();
   const en = lang === "en";
+  const x = (k: keyof typeof T) => T[k][lang];
+
+  const expect = [
+    { t: x("e1_t"), d: x("e1_d") },
+    { t: x("e2_t"), d: x("e2_d") },
+    { t: x("e3_t"), d: x("e3_d") },
+    { t: x("e4_t"), d: x("e4_d") },
+  ];
 
   const registry = [
     {
@@ -174,6 +209,33 @@ export default function Visit() {
             );
           })}
         </ul>
+
+        {/* compact "what to expect / opening hours" card */}
+        <Rise className="vst__expect">
+          <div className="vst__expect-aside">
+            <span className="eyebrow vst__expect-eyebrow">{x("expect_eyebrow")}</span>
+            <RevealLines
+              lines={lines(x("expect_title"))}
+              className="display vst__expect-title"
+              delay={0.06}
+            />
+            <div className="vst__expect-hours">
+              <span className="vst__expect-hours-label">{x("hours_label")}</span>
+              <span className="vst__expect-hours-val">{t("visit_hours")}</span>
+            </div>
+          </div>
+          <ul className="vst__expect-list">
+            {expect.map((e, i) => (
+              <li className="vst__expect-item" key={i}>
+                <span className="vst__expect-n">{String(i + 1).padStart(2, "0")}</span>
+                <span className="vst__expect-body">
+                  <span className="vst__expect-h">{e.t}</span>
+                  <span className="vst__expect-d">{e.d}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Rise>
       </div>
 
       <style>{`
@@ -225,37 +287,6 @@ export default function Visit() {
         }
         html[dir="rtl"] .vst__coords { font-style: normal; }
 
-        .vst__grid {
-          display: grid;
-          grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-          gap: clamp(2rem, 5vw, 5.5rem);
-          align-items: stretch;
-          padding-top: clamp(2.4rem, 5vw, 4rem);
-        }
-
-        /* ── card ── */
-        .vst__card {
-          position: relative;
-          align-self: center;
-          padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.5rem, 2vw, 1rem);
-        }
-        .vst__corner {
-          position: absolute; width: 18px; height: 18px; pointer-events: none;
-          border-color: var(--brass); opacity: 0.6;
-        }
-        .vst__corner--tl { top: 0; inset-inline-start: 0; border-top: 1px solid; border-inline-start: 1px solid; }
-        .vst__corner--br { bottom: 0; inset-inline-end: 0; border-bottom: 1px solid; border-inline-end: 1px solid; }
-
-        .vst__title {
-          font-size: clamp(2.5rem, 5.4vw, 4.6rem);
-          line-height: 1.0;
-          font-weight: 360;
-          letter-spacing: -0.01em;
-          margin: 0 0 clamp(2rem, 4vw, 3rem);
-        }
-        html[dir="rtl"] .vst__title { line-height: 1.2; letter-spacing: 0; }
-
-        .vst__registry { list-style: none; margin: 0; padding: 0; }
         .vst__entry {
           position: relative;
           display: grid;
@@ -286,31 +317,10 @@ export default function Visit() {
           color: var(--ink);
         }
         .vst__sub { font-size: 0.84rem; color: var(--ink-faint); }
-        .vst__entry .rule {
-          position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
-          background: var(--line); transform-origin: left;
-        }
-        html[dir="rtl"] .vst__entry .rule { transform-origin: right; }
-
-        .vst__cta { display: flex; align-items: center; flex-wrap: wrap; gap: 1.4rem; margin-top: clamp(2rem, 4vw, 3rem); }
         .vst__btn-solid {
           background: var(--ever); color: var(--paper); border-color: var(--ever);
         }
         .vst__btn-solid:hover { background: var(--ink); border-color: var(--ink); transform: translateY(-2px); }
-        .vst__textlink {
-          position: relative;
-          display: inline-flex; align-items: center; gap: 0.4rem;
-          font-size: 0.92rem; color: var(--ink);
-          padding-bottom: 2px;
-        }
-        .vst__textlink::after {
-          content: ""; position: absolute; inset-inline-start: 0; bottom: 0;
-          width: 100%; height: 1px; background: var(--ink);
-          transform: scaleX(0); transform-origin: left;
-          transition: transform 0.45s var(--ease);
-        }
-        html[dir="rtl"] .vst__textlink::after { transform-origin: right; }
-        .vst__textlink:hover::after { transform: scaleX(1); }
 
         /* ── unified stage: photo + map framed as one section ── */
         .vst__stage {
@@ -414,6 +424,58 @@ export default function Visit() {
         a.vst__entry-in--link:hover .vst__go { transform: translate(2px, -2px); }
         html[dir="rtl"] a.vst__entry-in--link:hover .vst__go { transform: translate(-2px, -2px) scaleX(-1); }
 
+        /* ── what to expect / opening hours card ── */
+        .vst__expect {
+          display: grid;
+          grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+          gap: clamp(1.6rem, 4vw, 4rem);
+          margin-top: clamp(2rem, 4vw, 3.4rem);
+          padding: clamp(1.8rem, 3.5vw, 3rem);
+          border-radius: 10px;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0)) var(--bone);
+          box-shadow:
+            0 0 0 1px rgba(169,130,76,0.28),
+            0 36px 80px -56px rgba(27,25,22,0.45);
+        }
+        .vst__expect-aside { display: flex; flex-direction: column; }
+        .vst__expect-eyebrow {
+          display: inline-flex; align-items: center; gap: 0.7rem; color: var(--brass);
+          align-self: flex-start;
+        }
+        .vst__expect-eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--brass); }
+        .vst__expect-title {
+          font-size: clamp(1.7rem, 3.2vw, 2.6rem);
+          line-height: 1.04; font-weight: 360; letter-spacing: -0.01em;
+          color: var(--ink); margin: 0.9rem 0 0;
+        }
+        html[dir="rtl"] .vst__expect-title { line-height: 1.22; letter-spacing: 0; }
+        .vst__expect-hours {
+          margin-top: auto; padding-top: clamp(1.2rem, 2.4vw, 1.8rem);
+          display: flex; flex-direction: column; gap: 0.35rem;
+        }
+        .vst__expect-hours-label {
+          font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint);
+        }
+        html[dir="rtl"] .vst__expect-hours-label { letter-spacing: 0.05em; }
+        .vst__expect-hours-val {
+          font-family: var(--font-display); font-size: clamp(1rem, 1.5vw, 1.22rem);
+          line-height: 1.4; color: var(--ink);
+        }
+        .vst__expect-list {
+          list-style: none; margin: 0; padding: 0;
+          display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: clamp(1.1rem, 2.4vw, 1.8rem) clamp(1.6rem, 3vw, 2.6rem);
+        }
+        .vst__expect-item { display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; align-items: start; }
+        .vst__expect-n {
+          font-family: var(--font-display); font-size: 0.92rem; line-height: 1.5;
+          color: var(--brass); letter-spacing: 0.04em;
+        }
+        .vst__expect-body { display: flex; flex-direction: column; gap: 0.3rem; }
+        .vst__expect-h { font-weight: 600; font-size: 1.02rem; color: var(--ink); line-height: 1.3; }
+        .vst__expect-d { font-size: 0.88rem; line-height: 1.55; color: var(--ink-soft); }
+
         @media (max-width: 860px) {
           .vst__stage { grid-template-columns: 1fr; }
           .vst__stage > * { min-height: 0; }
@@ -421,6 +483,11 @@ export default function Visit() {
           .vst__details { grid-template-columns: 1fr; gap: 0.4rem; }
           .vst__entry + .vst__entry .vst__entry-in::before { display: none; }
           .vst__entry + .vst__entry .vst__entry-in { border-top: 1px solid var(--line); }
+          .vst__expect { grid-template-columns: 1fr; gap: clamp(1.4rem, 5vw, 2rem); }
+          .vst__expect-hours { margin-top: 1rem; }
+        }
+        @media (max-width: 560px) {
+          .vst__expect-list { grid-template-columns: 1fr; }
         }
 
         /* ── map plate ── */
@@ -480,15 +547,13 @@ export default function Visit() {
         }
 
         @media (max-width: 860px) {
-          .vst__grid { grid-template-columns: 1fr; }
           .vst__plate { order: -1; }
           .vst__map { min-height: 0; aspect-ratio: 16 / 11; }
-          .vst__card { align-self: stretch; }
           .vst__edge { display: none; }
         }
         @media (prefers-reduced-motion: reduce) {
           .vst__plaque-pulse { animation: none; }
-          .vst__plaque, .vst__textlink::after, .vst__btn-solid { transition: none; }
+          .vst__plaque, .vst__btn-solid { transition: none; }
         }
       `}</style>
     </section>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useT } from "@/lib/i18n";
 import ProductCard from "./ProductCard";
 import ProductDialog from "./ProductDialog";
 import {
@@ -15,7 +16,26 @@ import {
 type Filter = "All" | Category;
 const FILTERS: Filter[] = ["All", ...CATEGORIES];
 
+const T = {
+  eyebrow: { en: "The collection", ar: "المجموعة" },
+  heading_a: { en: "Twenty-nine pieces.", ar: "تسعٌ وعشرون قطعة." },
+  heading_em: { en: "Your", ar: "جدرانك" },
+  heading_b: { en: " four walls.", ar: " الأربعة." },
+};
+
+const CAT_AR: Record<Category, string> = {
+  Sofas: "كنب",
+  Seating: "مقاعد",
+  Tables: "طاولات",
+  Storage: "تخزين",
+  Bedroom: "غرف نوم",
+};
+
 export default function Showroom() {
+  const { lang, t } = useT();
+  const tl = (k: keyof typeof T) => T[k][lang];
+  const filterLabel = (f: Filter) =>
+    f === "All" ? t("shop_all") : lang === "ar" ? CAT_AR[f] : f;
   const [filter, setFilter] = useState<Filter>("All");
   const [active, setActive] = useState<Product | null>(null);
 
@@ -37,11 +57,12 @@ export default function Showroom() {
     <section id="showroom" className="shell showroom">
       <div className="showroom-head">
         <div>
-          <p className="eyebrow">The collection</p>
+          <p className="eyebrow">{tl("eyebrow")}</p>
           <h2 className="display-lg">
-            Twenty-nine pieces.
+            {tl("heading_a")}
             <br />
-            <span className="italic">Your</span> four walls.
+            <span className="italic">{tl("heading_em")}</span>
+            {tl("heading_b")}
           </h2>
         </div>
         <div className="filters">
@@ -51,7 +72,7 @@ export default function Showroom() {
               className={`filter${filter === f ? " on" : ""}`}
               onClick={() => setFilter(f)}
             >
-              {f}
+              {filterLabel(f)}
               <span className="filter-n">
                 {f === "All"
                   ? products.length

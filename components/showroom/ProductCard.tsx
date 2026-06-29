@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useT } from "@/lib/i18n";
 import { posterFor, type Product } from "@/lib/products";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ProductCard({ product, index, onOpen }: Props) {
+  const { t } = useT();
   return (
     <motion.button
       className="card"
@@ -33,7 +35,7 @@ export default function ProductCard({ product, index, onOpen }: Props) {
           loading="lazy"
         />
         <span className="card-ar">
-          <ArDot /> View in AR
+          <ArDot /> {t("shop_view_ar")}
         </span>
       </div>
 

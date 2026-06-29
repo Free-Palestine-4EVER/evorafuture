@@ -10,7 +10,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+      className={`rounded px-3 py-2 text-xs font-medium transition ${
         active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
       }`}
     >
@@ -23,7 +23,7 @@ function UploadChip({ active, onChange, children }: {
   active: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; children: React.ReactNode;
 }) {
   return (
-    <label className={`cursor-pointer rounded px-2.5 py-1 text-xs font-medium transition ${
+    <label className={`inline-flex cursor-pointer items-center rounded px-3 py-2 text-xs font-medium transition ${
       active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-700 text-neutral-100 hover:bg-neutral-600"
     }`}>
       {children}
@@ -69,15 +69,16 @@ function MaterialsPanel() {
         <div className="mb-1 text-[11px] uppercase tracking-wide text-neutral-500">Walls</div>
         <div className="flex flex-wrap items-center gap-1.5">
           {wallColors.map((c) => (
-            <button
-              key={c}
-              onClick={() => setWallMat({ kind: "color", color: c })}
-              title={c}
-              style={{ background: c }}
-              className={`h-6 w-6 rounded border ${
-                wallMat.kind === "color" && wallMat.color === c ? "border-[var(--brass-2)] ring-2 ring-[var(--brass-ring)]" : "border-neutral-600"
-              }`}
-            />
+            <span key={c} className="inline-flex p-1">
+              <button
+                onClick={() => setWallMat({ kind: "color", color: c })}
+                title={c}
+                style={{ background: c, touchAction: "manipulation" }}
+                className={`h-9 w-9 rounded border ${
+                  wallMat.kind === "color" && wallMat.color === c ? "border-[var(--brass-2)] ring-2 ring-[var(--brass-ring)]" : "border-neutral-600"
+                }`}
+              />
+            </span>
           ))}
           <Chip active={wallMat.kind === "concrete"} onClick={() => setWallMat({ kind: "concrete" })}>Concrete</Chip>
           <UploadChip active={wallMat.kind === "image"} onChange={upload(setWallMat)}>Photo…</UploadChip>
@@ -98,7 +99,7 @@ function DimInput({ label, value, onCommit }: {
   const [txt, setTxt] = useState(value != null ? String(value) : "");
   useEffect(() => { setTxt(value != null ? String(value) : ""); }, [value]);
   return (
-    <label className="flex items-center gap-1 rounded bg-neutral-800 px-2 py-1.5">
+    <label className="flex items-center gap-1 rounded bg-neutral-800 px-2 py-2">
       <span className="text-xs text-neutral-500">{label}</span>
       <input
         type="number"
@@ -109,7 +110,8 @@ function DimInput({ label, value, onCommit }: {
           const v = parseFloat(e.target.value);
           if (onCommit && v > 0) onCommit(Math.round(v));
         }}
-        className="w-16 bg-transparent text-right font-mono text-neutral-100 outline-none disabled:opacity-50"
+        style={{ fontSize: "16px" }}
+        className="w-20 bg-transparent text-right font-mono text-neutral-100 outline-none disabled:opacity-50"
       />
     </label>
   );
@@ -134,7 +136,7 @@ export default function Inspector() {
         </p>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <div className="pf-scroll flex min-h-0 flex-1 flex-col overflow-auto">
         {wall ? (
           <WallEditor
             key={wall.id}
@@ -199,7 +201,7 @@ function SlotEditor({
   }
 
   return (
-    <div className="flex-1 space-y-4 overflow-auto p-3">
+    <div className="pf-scroll flex-1 space-y-4 overflow-auto p-3">
       <div>
         <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">Slot size (mm)</div>
         <div className="flex items-center gap-2">
@@ -217,6 +219,7 @@ function SlotEditor({
         <select
           value={productId ?? ""}
           onChange={(e) => onProduct(e.target.value || null)}
+          style={{ fontSize: "16px" }}
           className="w-full rounded bg-neutral-800 px-2 py-2 text-white"
         >
           <option value="">— empty —</option>
@@ -268,7 +271,8 @@ function SlotEditor({
             <button
               key={d}
               onClick={() => onRotate(d)}
-              className="flex-1 rounded bg-neutral-800 py-1 text-xs hover:bg-neutral-700"
+              style={{ touchAction: "manipulation" }}
+              className="min-h-[40px] flex-1 rounded bg-neutral-800 py-2 text-xs hover:bg-neutral-700"
             >
               {d}°
             </button>
@@ -300,7 +304,7 @@ function WallEditor({
     { h: "full", label: "Full wall", note: "2.7 m to ceiling" },
   ];
   return (
-    <div className="flex-1 space-y-4 overflow-auto p-3">
+    <div className="pf-scroll flex-1 space-y-4 overflow-auto p-3">
       {lengthM != null && (
         <div>
           <div className="text-xs uppercase tracking-wide text-neutral-500">Wall length</div>

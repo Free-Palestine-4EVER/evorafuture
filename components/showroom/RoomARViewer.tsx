@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import type { ViewerEl } from "./ModelViewer";
 
 // A non-visual <model-viewer> that owns the AR session for the whole room set.
@@ -12,6 +13,7 @@ export default function RoomARViewer({
   src: string;
   onReady: (el: ViewerEl) => void;
 }) {
+  const { lang } = useT();
   const ref = useRef<ViewerEl | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -47,7 +49,7 @@ export default function RoomARViewer({
       <model-viewer
         ref={ref as never}
         src={src}
-        alt="Evora showroom room"
+        alt={lang === "ar" ? "غرفة معرض إيفورا" : "Evora showroom room"}
         ar
         ar-modes="webxr scene-viewer quick-look"
         ar-scale="fixed"

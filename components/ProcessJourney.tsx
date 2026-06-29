@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { processSteps } from "@/lib/data";
 import { JOURNEY } from "@/lib/portal/journey";
-import { Rise, motion } from "@/components/motion";
+import { Rise, motion, useReducedMotion } from "@/components/motion";
 import TransformStage from "@/components/TransformStage";
 import { openStartProject } from "@/lib/startProject";
 
@@ -32,6 +32,7 @@ const TAGLINES = [
 export default function ProcessJourney({ showFinale = true }: { showFinale?: boolean }) {
   const { t, lang, dir } = useT();
   const ar = lang === "ar";
+  const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
 
   // Panel springs side-to-side: even steps (0,2) → LEFT, odd (1,3) → RIGHT.
@@ -75,7 +76,11 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
       <div className="pj-swap container">
         {/* Sticky panel that springs side-to-side (desktop only) */}
         <div className="pj-sticky">
-          <motion.div className="pj-panel" animate={{ left: panelRight ? "42%" : "0%" }} transition={SPRING}>
+          <motion.div
+            className="pj-panel"
+            animate={{ left: panelRight ? "42%" : "0%" }}
+            transition={reduced ? { duration: 0 } : SPRING}
+          >
             <TransformStage step={active} ar={ar} />
           </motion.div>
         </div>
@@ -118,6 +123,14 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
       {showFinale && (
         <div className="container">
           <TrackingFinale ar={ar} />
+        </div>
+      )}
+
+      {/* Closing upload CTA — start your own plan. Shares the finale gate so it
+          only appears on the standalone How-it-works page, not the homepage. */}
+      {showFinale && (
+        <div className="container">
+          <StartPlanCTA lang={lang} reduced={!!reduced} />
         </div>
       )}
 
@@ -188,7 +201,7 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
         .pj-step {
           position: relative; z-index: 1;
           display: flex; align-items: center;
-          min-height: 100vh;
+          min-height: 88vh;
         }
 
         /* ---------- Step text ---------- */
@@ -316,6 +329,122 @@ function TrackingFinale({ ar }: { ar: boolean }) {
       </div>
 
       <style>{`@media (max-width: 760px){ .pj-finale{ grid-template-columns: 1fr !important; } }`}</style>
+    </motion.div>
+  );
+}
+
+/* ---------- Closing "Start your plan" upload CTA band ---------- */
+
+const CTA_T = {
+  eyebrow: { en: "Your turn", ar: "دورك الآن" },
+  title: {
+    en: "Have a plan? Let's make it your home.",
+    ar: "عندك مخطّط؟ خلّينا نحوّله إلى منزلك.",
+  },
+  sub: {
+    en: "Send us your 2D floor plan and your number. We'll furnish it, build it in 3D and render it photoreal — free, with no obligation.",
+    ar: "أرسل لنا مخطّطك ثنائي الأبعاد ورقمك، ونحن نؤثّثه ونبنيه ثلاثي الأبعاد ونقدّمه بعرض واقعي — مجانًا ودون أي التزام.",
+  },
+  upload: { en: "Upload your plan", ar: "ارفع مخطّطك" },
+  note: { en: "Free design · we reply within a day", ar: "تصميم مجاني · نردّ خلال يوم" },
+  hint: { en: "JPG, PNG or PDF — a phone photo works too", ar: "JPG أو PNG أو PDF — حتى صورة بالجوال تكفي" },
+} as const;
+
+function StartPlanCTA({ lang, reduced }: { lang: "en" | "ar"; reduced: boolean }) {
+  const c = (k: keyof typeof CTA_T) => CTA_T[k][lang];
+  return (
+    <motion.div
+      className="pj-cta"
+      initial={reduced ? false : { opacity: 0, y: 36 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
+      transition={{ duration: 0.7, ease: EASE }}
+    >
+      <span className="pj-cta-glyph" aria-hidden>
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+          <path d="M12 16V5m0 0L8 9m4-4 4 4" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 14v3.5A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5V14" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="pj-cta-eyebrow">{c("eyebrow")}</span>
+      <h2 className="pj-cta-title">{c("title")}</h2>
+      <p className="pj-cta-sub">{c("sub")}</p>
+      <button type="button" className="pj-cta-btn" onClick={openStartProject}>
+        {c("upload")}
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+          <path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="pj-cta-arrow" />
+        </svg>
+      </button>
+      <span className="pj-cta-hint">{c("hint")}</span>
+      <span className="pj-cta-note">
+        <span className="pj-free-dot" aria-hidden />
+        {c("note")}
+      </span>
+
+      <style>{`
+        .pj-cta {
+          margin-top: clamp(2rem, 5vw, 3.5rem);
+          margin-bottom: clamp(3rem, 7vw, 5.5rem);
+          border-radius: 24px;
+          padding: clamp(2.4rem, 6vw, 4rem) clamp(1.6rem, 5vw, 3.2rem);
+          text-align: center;
+          background:
+            radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--ever, #2f5d4a) 7%, transparent), transparent 60%),
+            var(--paper, #faf7f1);
+          border: 1px dashed color-mix(in srgb, var(--brass, #c9a25d) 55%, transparent);
+          display: flex; flex-direction: column; align-items: center;
+        }
+        .pj-cta-glyph {
+          display: grid; place-items: center;
+          width: 56px; height: 56px; border-radius: 999px;
+          color: var(--ever, #2f5d4a);
+          background: color-mix(in srgb, var(--ever, #2f5d4a) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--ever, #2f5d4a) 24%, transparent);
+          margin-bottom: 1.2rem;
+        }
+        .pj-cta-eyebrow {
+          font-family: var(--f-sans); font-size: 0.72rem; font-weight: 600;
+          letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass-2, #8a6d3f);
+        }
+        .pj-cta-title {
+          font-family: var(--f-display), Georgia, serif;
+          font-optical-sizing: auto; font-variation-settings: "opsz" 90, "SOFT" 40;
+          font-weight: 360; font-size: clamp(1.7rem, 3.8vw, 2.8rem);
+          line-height: 1.08; letter-spacing: -0.018em; color: var(--ink);
+          margin: 0.7rem 0 0; max-width: 22ch; text-wrap: balance;
+        }
+        .pj-cta-sub {
+          font-family: var(--f-sans); color: var(--ink-soft);
+          font-size: clamp(1rem, 1.3vw, 1.12rem); line-height: 1.7;
+          max-width: 50ch; margin: 1.1rem 0 0; text-wrap: pretty;
+        }
+        .pj-cta-btn {
+          display: inline-flex; align-items: center; gap: 0.55rem;
+          margin-top: 1.8rem; padding: 0.95rem 1.7rem;
+          font-family: var(--f-sans); font-weight: 600; font-size: 0.96rem;
+          color: #fff; background: var(--clay); border: none; border-radius: 999px;
+          cursor: pointer; transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+          box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--clay) 90%, #000);
+        }
+        .pj-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 24px 50px -22px color-mix(in srgb, var(--clay) 90%, #000); }
+        .pj-cta-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+        .pj-cta-arrow { transition: transform .25s ease; }
+        .pj-cta-btn:hover .pj-cta-arrow { transform: translateX(3px); }
+        html[dir="rtl"] .pj-cta-arrow { transform: scaleX(-1); }
+        html[dir="rtl"] .pj-cta-btn:hover .pj-cta-arrow { transform: scaleX(-1) translateX(3px); }
+        .pj-cta-hint {
+          margin-top: 0.9rem; font-family: var(--f-sans);
+          font-size: 0.8rem; color: var(--ink-soft); opacity: 0.85;
+        }
+        .pj-cta-note {
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          margin-top: 1.1rem; font-family: var(--f-sans);
+          font-size: 0.82rem; font-weight: 600; color: var(--ever, #2f5d4a);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pj-cta-btn, .pj-cta-arrow { transition: none; }
+        }
+      `}</style>
     </motion.div>
   );
 }

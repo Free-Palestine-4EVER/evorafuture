@@ -37,10 +37,10 @@ export const viewport: Viewport = {
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable}`}>
-      {/* The portal is a tool, not the cinematic marketing site — always show a
-          normal cursor (globals.css hides it for the custom-cursor on the site). */}
-      <style>{`body, body * { cursor: auto; } a, button, [role="button"], label, select { cursor: pointer; } input, textarea { cursor: text; }`}</style>
       <body style={{ background: "var(--paper)", cursor: "auto" }}>
+        {/* The portal is a tool, not the cinematic marketing site — always show a
+            normal cursor (globals.css hides it for the custom-cursor on the site). */}
+        <style>{`body, body * { cursor: auto; } a, button, [role="button"], label, select { cursor: pointer; } input, textarea { cursor: text; }`}</style>
         <I18nProvider>
           {/* Branded curtain-lift intro — once per session (the login film beat) */}
           <Loader />

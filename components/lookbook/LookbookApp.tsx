@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useT } from "@/lib/i18n";
+import { Rise, Magnetic } from "@/components/motion";
+import { WHATSAPP } from "@/lib/brand";
 import { PAGE_COUNT, PDF_HREF, pageSrc } from "./data";
 import BookMode from "./BookMode";
 import ZoomMode from "./ZoomMode";
@@ -22,9 +25,33 @@ const MODE_HINTS: Record<Mode, [string, string]> = {
   tour: ["Tap to play or pause", "انقر للتشغيل أو الإيقاف"],
 };
 
+/* New user-facing copy for the intro band + showroom CTA (bilingual, RTL-ready). */
+const T = {
+  kicker: { en: "ARGOS · Interior Design by Evora", ar: "أرغوس · تصميم داخلي من إيفورا" },
+  title: { en: "The Lookbook", ar: "الكتالوج" },
+  lead: {
+    en: "Thirty-one pages of bedrooms, dressing rooms, majlis and lounges — turn each leaf the way you would the real book.",
+    ar: "واحدة وثلاثون صفحة من غرف النوم وغرف الملابس والمجالس والاستراحات — قلّب كل ورقة كأنك تتصفّح الكتاب على الطبيعة.",
+  },
+  cta_kicker: { en: "From the showroom", ar: "من المعرض" },
+  cta_title: { en: "See these rooms in person.", ar: "شاهد هذه الغرف على الطبيعة." },
+  cta_lead: {
+    en: "Visit us in Khalda, or send a quick message — we'll help you bring the book home.",
+    ar: "زرنا في خلدا، أو راسلنا برسالة سريعة — نساعدك لتنقل الكتاب إلى بيتك.",
+  },
+  cta_visit: { en: "Plan a visit", ar: "خطّط لزيارتك" },
+  cta_wa: { en: "Message on WhatsApp", ar: "راسلنا على واتساب" },
+  wa_text: {
+    en: "Hi Evora — I just browsed the ARGOS lookbook and I'd love to know more.",
+    ar: "مرحبًا إيفورا — تصفّحت كتالوج أرغوس وأودّ معرفة المزيد.",
+  },
+};
+
 export default function LookbookApp() {
   const { lang, dir } = useT();
   const en = lang === "en";
+  const tl = (k: keyof typeof T) => T[k][lang];
+  const waHref = `${WHATSAPP}?text=${encodeURIComponent(T.wa_text[lang])}`;
   const [mode, setMode] = useState<Mode>("book");
   const [page, setPage] = useState(0);
   const [fs, setFs] = useState(false);
@@ -75,10 +102,18 @@ export default function LookbookApp() {
   }, []);
 
   return (
-    <div className={`lb ${fs ? "is-fs" : ""}`} ref={rootRef} lang={lang} dir={dir}>
+    <>
       <LookbookStyles />
 
-      <header className="lb-bar">
+      {/* Light intro band — gives the pinnedSolid Nav a surface to sit on. */}
+      <section className="lb-intro" lang={lang} dir={dir}>
+        <Rise as="p" className="lb-intro__kicker">{tl("kicker")}</Rise>
+        <Rise as="h1" delay={0.06} className="lb-intro__title display">{tl("title")}</Rise>
+        <Rise as="p" delay={0.12} className="lb-intro__lead">{tl("lead")}</Rise>
+      </section>
+
+      <div className={`lb ${fs ? "is-fs" : ""}`} ref={rootRef} lang={lang} dir={dir}>
+        <header className="lb-bar">
         <div className="lb-brand">
           <span className="lb-brand__name">EVORA</span>
           <span className="lb-brand__sep" />
@@ -130,14 +165,32 @@ export default function LookbookApp() {
           </button>
         ))}
       </div>
-    </div>
+      </div>
+
+      {/* Slim "From the showroom" CTA — closes the page → /visit + WhatsApp. */}
+      <section className="lb-cta" lang={lang} dir={dir}>
+        <Rise className="lb-cta__inner">
+          <div className="lb-cta__copy">
+            <span className="lb-cta__kicker">{tl("cta_kicker")}</span>
+            <h2 className="lb-cta__title display">{tl("cta_title")}</h2>
+            <p className="lb-cta__lead">{tl("cta_lead")}</p>
+          </div>
+          <div className="lb-cta__actions">
+            <Magnetic strength={0.2}>
+              <Link href="/visit" className="lb-cta__btn lb-cta__btn--solid">{tl("cta_visit")}</Link>
+            </Magnetic>
+            <Magnetic strength={0.2}>
+              <a href={waHref} target="_blank" rel="noopener noreferrer" className="lb-cta__btn lb-cta__btn--ghost">{tl("cta_wa")}</a>
+            </Magnetic>
+          </div>
+        </Rise>
+      </section>
+    </>
   );
 }
 
 /* ---------- icons ---------- */
 function BookIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 5c-1.5-1-4-1.5-6.5-1.2C4.6 3.9 4 4.6 4 5.4v11.8c0 .9.8 1.6 1.7 1.5C8 18.5 10.6 19 12 20m0-15c1.5-1 4-1.5 6.5-1.2.9.1 1.5.8 1.5 1.6v11.8c0 .9-.8 1.6-1.7 1.5C16 18.5 13.4 19 12 20m0-15v15"/></svg>; }
-function ReelIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M16 4v16"/></svg>; }
-function GalleryIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="8" y="5" width="8" height="14" rx="1.5"/><path d="M5 7.5v9M2.5 10v4M19 7.5v9M21.5 10v4"/></svg>; }
 function FsIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg>; }
 function FsExitIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 4v3a2 2 0 0 1-2 2H4M15 4v3a2 2 0 0 0 2 2h3M9 20v-3a2 2 0 0 0-2-2H4M15 20v-3a2 2 0 0 1 2-2h3"/></svg>; }
 function DlIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"/></svg>; }
@@ -153,8 +206,36 @@ function LookbookStyles() {
       background:
         radial-gradient(120% 80% at 50% -10%, rgba(197,160,106,0.12), transparent 55%),
         linear-gradient(180deg, #131210, #1b1916 55%, #100f0c);
-      display: flex; flex-direction: column; padding-top: clamp(4.6rem, 8vw, 6.2rem); }
+      display: flex; flex-direction: column; padding-top: 0; }
     .lb.is-fs { padding-top: 0; }
+
+    /* ---- intro band (light — seats the pinnedSolid Nav above the dark app) ---- */
+    .lb-intro { background: var(--paper); color: var(--ink); text-align: center;
+      padding: clamp(7rem,13vw,9.5rem) clamp(1.2rem,5vw,2rem) clamp(2.4rem,5vw,3.6rem);
+      border-bottom: 1px solid var(--line); }
+    .lb-intro__kicker { margin: 0; font-size: 0.72rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--clay); }
+    html[dir="rtl"] .lb-intro__kicker { letter-spacing: 0.08em; }
+    .lb-intro__title { margin: 0.8rem 0; font-size: clamp(2.4rem,6vw,4.2rem); line-height: 1.02; color: var(--ink); }
+    .lb-intro__lead { margin: 0 auto; max-width: 48ch; font-size: clamp(1rem,2.2vw,1.16rem); line-height: 1.62; color: var(--ink-soft); }
+
+    /* ---- "From the showroom" CTA strip (closes the page → /visit + WhatsApp) ---- */
+    .lb-cta { background: var(--paper); color: var(--ink); border-top: 1px solid var(--line);
+      padding: clamp(2.6rem,6vw,4.4rem) clamp(1.2rem,5vw,2rem); }
+    .lb-cta__inner { max-width: 1080px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: clamp(1.4rem,4vw,2.6rem); }
+    .lb-cta__kicker { font-size: 0.7rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--clay); }
+    html[dir="rtl"] .lb-cta__kicker { letter-spacing: 0.08em; }
+    .lb-cta__title { margin: 0.6rem 0 0.5rem; font-size: clamp(1.7rem,3.6vw,2.6rem); line-height: 1.06; color: var(--ink); }
+    .lb-cta__lead { margin: 0; max-width: 44ch; color: var(--ink-soft); line-height: 1.6; }
+    .lb-cta__actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+    .lb-cta__btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.95em 1.7em; border-radius: 100px; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap;
+      transition: background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease); }
+    .lb-cta__btn--solid { background: var(--ink); color: var(--paper); }
+    .lb-cta__btn--solid:hover { background: var(--clay); }
+    .lb-cta__btn--ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .lb-cta__btn--ghost:hover { border-color: var(--ink); background: rgba(22,21,15,0.04); }
+    @media (max-width: 560px) { .lb-cta__actions { width: 100%; } .lb-cta__btn { flex: 1 1 auto; } }
 
     /* ---- app bar ---- */
     .lb-bar { position: sticky; top: 0; z-index: 30; height: var(--bar);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import { useStudio } from "@/lib/puffer/store";
 import { resolveProduct } from "@/lib/puffer/catalog";
 import { SAMPLES } from "@/lib/puffer/samples";
@@ -14,6 +15,13 @@ import { Point, Rect } from "@/lib/puffer/types";
 function Divider() {
   return <span className="mx-0.5 hidden h-5 w-px self-center bg-neutral-700 sm:block" />;
 }
+
+// Touch action-popover labels (the long-press substitute for right-click).
+const T = {
+  rotate: { en: "Rotate", ar: "تدوير" },
+  duplicate: { en: "Duplicate", ar: "نسخ" },
+  delete: { en: "Delete", ar: "حذف" },
+};
 
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 const HANDLES: HandleId[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
@@ -53,6 +61,16 @@ export default function PlanEditor() {
     setDetecting, setAutoWalls, clearAutoWalls,
     deleteRect, deleteWall, undo, pushHistory,
   } = useStudio();
+
+  const { lang } = useT();
+  const tr = (k: keyof typeof T) => T[k][lang];
+
+  // touch ergonomics: bigger hit targets + double-tap / long-press substitutes
+  const coarse = useRef(typeof window !== "undefined" && window.matchMedia?.("(pointer:coarse)").matches);
+  // displayed CSS width of the plan, to convert screen px → viewBox units
+  const [dispW, setDispW] = useState(0);
+  // viewBox units that equal `px` screen pixels (≥44px = comfortable touch)
+  const touchPx = (px: number) => (dispW > 0 ? (px * imgW) / dispW : px);
 
   // Editor keyboard shortcuts: delete, deselect, nudge, undo.
   useEffect(() => {
@@ -133,6 +151,34 @@ export default function PlanEditor() {
   const [calibLen, setCalibLen] = useState("");
   const [showDims, setShowDims] = useState(true);
   const [calibDrag, setCalibDrag] = useState<number | null>(null);
+
+  // measure the rendered plan width so touch hit areas stay ≥44 screen-px
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) { setDispW(0); return; }
+    const measure = () => setDispW(el.getBoundingClientRect().width);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [planImage]);
+
+  // touch substitutes for right-click: double-tap a slot = rotate 90°, long-press
+  // = an action popover (rotate / duplicate / delete). Tracked via pointer timing.
+  const tap = useRef<{ id: string; t: number; x: number; y: number } | null>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [popover, setPopover] = useState<{ id: string; x: number; y: number } | null>(null);
+  const cancelPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } };
+
+  // duplicate a slot in place, preserving its product + rotation
+  function duplicateRect(id: string) {
+    const r = useStudio.getState().rects.find((x) => x.id === id);
+    if (!r) return;
+    pushHistory();
+    addRect({ x: r.x + Math.max(10, r.w * 0.12), y: r.y + Math.max(10, r.h * 0.12), w: r.w, h: r.h });
+    const newId = useStudio.getState().selectedId;
+    if (newId) updateRect(newId, { productId: r.productId, rotationDeg: r.rotationDeg });
+  }
 
   // downsized luminance map of the plan, for snapping calibration points to the
   // nearest dark wall line ("magnetic" end-to-end picking).
@@ -215,6 +261,7 @@ export default function PlanEditor() {
 
   function onPointerDown(e: React.PointerEvent) {
     if (!planImage) return;
+    setPopover(null);
     const p = toPx(e);
     if (mode === "calibrate") {
       if (calibPoints.length < 2) addCalibPoint(snap(p)); // handles manage their own drag
@@ -230,6 +277,7 @@ export default function PlanEditor() {
   function onPointerMove(e: React.PointerEvent) {
     if (calibDrag !== null) { updateCalibPoint(calibDrag, snap(toPx(e))); return; }
     if (edit) {
+      cancelPress();
       const P = toPx(e);
       if (edit.kind === "move") {
         updateRect(edit.id, { x: edit.orig.x + (P.x - edit.start.x), y: edit.orig.y + (P.y - edit.start.y) });
@@ -242,6 +290,7 @@ export default function PlanEditor() {
   }
 
   function onPointerUp() {
+    cancelPress();
     if (calibDrag !== null) { setCalibDrag(null); return; }
     if (edit) { setEdit(null); return; }
     if (!drag) return;
@@ -268,8 +317,8 @@ export default function PlanEditor() {
   return (
     <div className="flex h-full flex-col">
       {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-neutral-900 p-3 text-sm">
-        <label className="cursor-pointer rounded bg-neutral-700 px-3 py-1.5 font-medium text-white hover:bg-neutral-600">
+      <div className="pf-scroll flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-neutral-800 bg-neutral-900 p-3 text-sm lg:flex-wrap">
+        <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center rounded bg-neutral-700 px-3 py-1.5 font-medium text-white hover:bg-neutral-600">
           {loadingFile ? "Loading…" : planImage ? "Replace plan" : "Upload plan"}
           <input
             type="file"
@@ -285,7 +334,7 @@ export default function PlanEditor() {
             const sm = SAMPLES.find((x) => x.id === e.target.value);
             if (sm) loadSample(sm.src, sm.imgW, sm.imgH, sm.mmPerPx);
           }}
-          className="rounded bg-neutral-800 px-2 py-1.5 font-medium text-neutral-200 hover:bg-neutral-700"
+          className="min-h-[40px] shrink-0 rounded bg-neutral-800 px-2 py-1.5 font-medium text-neutral-200 hover:bg-neutral-700"
           title="Load a ready-made sample plan (auto-calibrated)"
         >
           <option value="">Load sample plan…</option>
@@ -294,7 +343,7 @@ export default function PlanEditor() {
           ))}
         </select>
 
-        <label className="cursor-pointer rounded bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-600" title="Import a LiDAR room scan (.json) from the Evora Scan iOS app">
+        <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center rounded bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-600" title="Import a LiDAR room scan (.json) from the Evora Scan iOS app">
           📷 Import scan
           <input type="file" accept="application/json,.json" className="hidden" onChange={onScanFile} />
         </label>
@@ -324,7 +373,7 @@ export default function PlanEditor() {
               onClick={toggleAutoWalls}
               disabled={!mmPerPx || detecting}
               title={mmPerPx ? "Detect the walls in the plan and raise them in 3D" : "Calibrate the plan first"}
-              className={`rounded px-3 py-1.5 font-medium transition ${
+              className={`inline-flex min-h-[40px] shrink-0 items-center rounded px-3 py-1.5 font-medium transition ${
                 autoWallsOn ? "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
               } ${!mmPerPx || detecting ? "cursor-not-allowed opacity-50" : ""}`}
             >
@@ -334,7 +383,7 @@ export default function PlanEditor() {
               onClick={autoSlots}
               disabled={!mmPerPx || slotting}
               title={mmPerPx ? "Detect furniture in the plan and draw slots over it — a starting layout you review and adjust." : "Calibrate the plan first"}
-              className={`rounded px-3 py-1.5 font-medium transition bg-violet-700 text-white hover:bg-violet-600 ${
+              className={`inline-flex min-h-[40px] shrink-0 items-center rounded bg-violet-700 px-3 py-1.5 font-medium text-white transition hover:bg-violet-600 ${
                 !mmPerPx || slotting ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
@@ -343,7 +392,7 @@ export default function PlanEditor() {
             <button
               onClick={() => setShowDims((v) => !v)}
               title="Show / hide dimension labels"
-              className={`rounded px-3 py-1.5 font-medium transition ${
+              className={`inline-flex min-h-[40px] shrink-0 items-center rounded px-3 py-1.5 font-medium transition ${
                 showDims ? "bg-neutral-600 text-white" : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
               }`}
             >
@@ -351,7 +400,7 @@ export default function PlanEditor() {
             </button>
 
             <span
-              className={`ml-auto rounded px-2 py-1 text-xs ${scaleEstimated ? "bg-amber-900/60 text-amber-200" : "bg-neutral-800 text-neutral-300"}`}
+              className={`ml-auto shrink-0 rounded px-2 py-1 text-xs ${scaleEstimated ? "bg-amber-900/60 text-amber-200" : "bg-neutral-800 text-neutral-300"}`}
               title={scaleEstimated ? "Estimated scale — use “1 · Calibrate” for exact real-world sizes" : undefined}
             >
               {mmPerPx
@@ -442,7 +491,8 @@ export default function PlanEditor() {
         ) : (
           <div
             className="relative mx-auto"
-            style={{ aspectRatio: `${imgW} / ${imgH}`, maxWidth: "100%", width: imgW }}
+            style={{ aspectRatio: `${imgW} / ${imgH}`, maxWidth: "100%", width: imgW, userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+            onContextMenu={(e) => e.preventDefault()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={planImage} alt="floor plan" className="absolute inset-0 h-full w-full select-none" draggable={false} />
@@ -470,7 +520,7 @@ export default function PlanEditor() {
                     {/* wide invisible hit area for easy selection */}
                     <line
                       x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
-                      stroke="transparent" strokeWidth={Math.max(14, imgW / 50)} strokeLinecap="round"
+                      stroke="transparent" strokeWidth={Math.max(imgW / 50, coarse.current ? touchPx(44) : 14)} strokeLinecap="round"
                       style={{ cursor: mode === "select" ? "pointer" : "inherit", pointerEvents: mode === "select" ? "stroke" : "none" }}
                       onPointerDown={(e) => { if (mode === "select") { e.stopPropagation(); selectWall(w.id); } }}
                     />
@@ -511,7 +561,8 @@ export default function PlanEditor() {
                 const sw = Math.max(2, imgW / 400);
                 const fs = Math.max(11, imgW / 55);
                 const dimFs = Math.max(10, imgW / 70);
-                const hs = Math.max(7, imgW / 90); // handle size
+                const hs = Math.max(coarse.current ? 22 : 7, imgW / 90); // visible handle size
+                const hit = Math.max(hs, coarse.current ? touchPx(44) : hs); // ≥44px touch target
                 // handle local positions
                 const hx = (id: HandleId) => id.includes("w") ? r.x : id.includes("e") ? r.x + r.w : r.x + r.w / 2;
                 const hy = (id: HandleId) => id.includes("n") ? r.y : id.includes("s") ? r.y + r.h : r.y + r.h / 2;
@@ -530,9 +581,33 @@ export default function PlanEditor() {
                       onPointerDown={(e) => {
                         if (mode !== "select") return;
                         e.stopPropagation();
+                        setPopover(null);
                         select(r.id);
+
+                        // double-tap a slot = rotate 90° (right-click/force-press substitute)
+                        const now = performance.now();
+                        const prev = tap.current;
+                        if (prev && prev.id === r.id && now - prev.t < 300 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 28) {
+                          tap.current = null;
+                          cancelPress();
+                          pushHistory();
+                          updateRect(r.id, { rotationDeg: (r.rotationDeg + 90) % 360 });
+                          return;
+                        }
+                        tap.current = { id: r.id, t: now, x: e.clientX, y: e.clientY };
+
                         svgRef.current?.setPointerCapture(e.pointerId);
                         setEdit({ kind: "move", id: r.id, orig: r, start: toPx(e) });
+
+                        // long-press a slot = action popover (rotate / duplicate / delete)
+                        cancelPress();
+                        const box = svgRef.current?.getBoundingClientRect();
+                        const lx = box ? e.clientX - box.left : 0;
+                        const ly = box ? e.clientY - box.top : 0;
+                        pressTimer.current = setTimeout(() => {
+                          setEdit(null);
+                          setPopover({ id: r.id, x: lx, y: ly });
+                        }, 500);
                       }}
                     />
                     <text
@@ -558,18 +633,25 @@ export default function PlanEditor() {
                     )}
                     {/* resize handles on the selected slot */}
                     {selected && mode === "select" && HANDLES.map((id) => (
-                      <rect
-                        key={id}
-                        x={hx(id) - hs / 2} y={hy(id) - hs / 2} width={hs} height={hs}
-                        fill="#C5A06A" stroke="#fff" strokeWidth={sw * 0.6}
-                        style={{ cursor: cursorFor[id] }}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          select(r.id);
-                          svgRef.current?.setPointerCapture(e.pointerId);
-                          setEdit({ kind: "resize", id: r.id, handle: id, orig: r, start: toPx(e) });
-                        }}
-                      />
+                      <g key={id}>
+                        {/* invisible ≥44px hit area so handles are grabbable with a finger */}
+                        <rect
+                          x={hx(id) - hit / 2} y={hy(id) - hit / 2} width={hit} height={hit}
+                          fill="transparent"
+                          style={{ cursor: cursorFor[id] }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            select(r.id);
+                            svgRef.current?.setPointerCapture(e.pointerId);
+                            setEdit({ kind: "resize", id: r.id, handle: id, orig: r, start: toPx(e) });
+                          }}
+                        />
+                        <rect
+                          x={hx(id) - hs / 2} y={hy(id) - hs / 2} width={hs} height={hs}
+                          fill="#C5A06A" stroke="#fff" strokeWidth={sw * 0.6}
+                          style={{ pointerEvents: "none" }}
+                        />
+                      </g>
                     ))}
                   </g>
                 );
@@ -599,7 +681,8 @@ export default function PlanEditor() {
                   strokeWidth={Math.max(2, imgW / 400)} strokeDasharray={`${imgW / 70} ${imgW / 140}`} />
               )}
               {mode === "calibrate" && calibPoints.map((p, i) => {
-                const r = Math.max(9, imgW / 80);
+                const r = Math.max(coarse.current ? 20 : 9, imgW / 80);
+                const hitR = Math.max(r, coarse.current ? touchPx(22) : r); // ≥44px touch target
                 const cw = Math.max(1, imgW / 700);
                 return (
                   <g
@@ -611,6 +694,7 @@ export default function PlanEditor() {
                       setCalibDrag(i);
                     }}
                   >
+                    <circle cx={p.x} cy={p.y} r={hitR} fill="transparent" />
                     <circle cx={p.x} cy={p.y} r={r} fill="#f59e0b22" stroke="#f59e0b" strokeWidth={Math.max(2, imgW / 350)} />
                     <line x1={p.x - r} y1={p.y} x2={p.x + r} y2={p.y} stroke="#f59e0b" strokeWidth={cw} />
                     <line x1={p.x} y1={p.y - r} x2={p.x} y2={p.y + r} stroke="#f59e0b" strokeWidth={cw} />
@@ -635,6 +719,40 @@ export default function PlanEditor() {
                 <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-amber-500/70" />
               </div>
             )}
+
+            {/* long-press action popover — the touch substitute for right-click */}
+            {popover && (() => {
+              const r = rects.find((x) => x.id === popover.id);
+              if (!r) return null;
+              const act = (fn: () => void) => () => { fn(); setPopover(null); };
+              return (
+                <div
+                  className="absolute z-30 flex overflow-hidden rounded-lg border border-[var(--brass)] bg-neutral-900/95 text-xs font-medium text-neutral-100 shadow-2xl backdrop-blur"
+                  style={{ left: popover.x, top: popover.y, transform: "translate(-50%, calc(-100% - 14px))", touchAction: "manipulation" }}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="inline-flex min-h-[44px] items-center px-4 py-2 hover:bg-neutral-700"
+                    onClick={act(() => { pushHistory(); updateRect(r.id, { rotationDeg: (r.rotationDeg + 90) % 360 }); })}
+                  >
+                    {tr("rotate")}
+                  </button>
+                  <button
+                    className="inline-flex min-h-[44px] items-center border-l border-neutral-700 px-4 py-2 hover:bg-neutral-700"
+                    onClick={act(() => duplicateRect(r.id))}
+                  >
+                    {tr("duplicate")}
+                  </button>
+                  <button
+                    className="inline-flex min-h-[44px] items-center border-l border-neutral-700 px-4 py-2 text-rose-300 hover:bg-rose-800/50"
+                    onClick={act(() => { pushHistory(); deleteRect(r.id); })}
+                  >
+                    {tr("delete")}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -661,7 +779,7 @@ function ModeButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded px-3 py-1.5 font-medium transition ${
+      className={`inline-flex min-h-[40px] shrink-0 items-center rounded px-3 py-1.5 font-medium transition ${
         active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
       } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >

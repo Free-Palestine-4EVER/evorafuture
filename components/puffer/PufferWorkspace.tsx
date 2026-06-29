@@ -55,7 +55,10 @@ export default function PufferWorkspace({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_minmax(280px,1fr)_300px]">
+      <div
+        className="grid min-h-0 flex-1 lg:grid-cols-[1fr_minmax(280px,1fr)_300px]"
+        style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
+      >
         <section className={`min-w-0 min-h-0 flex-col overflow-hidden border-neutral-800 lg:border-r ${show("plan")}`}>
           {plan}
         </section>
@@ -80,7 +83,8 @@ export default function PufferWorkspace({
               type="button"
               onClick={() => setTab(t.id)}
               aria-pressed={active}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
+              style={{ touchAction: "manipulation" }}
+              className={`flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
                 active ? "text-[var(--brass-2)]" : "text-neutral-400 active:text-neutral-200"
               }`}
             >
