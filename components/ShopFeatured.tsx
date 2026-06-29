@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
 import { featured } from "@/lib/featured";
-import { type Product } from "@/lib/products";
+import { productCopy, type Product } from "@/lib/products";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
 import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
 import ShopQuickView, { AnimatePresence } from "@/components/ShopQuickView";
@@ -15,9 +15,15 @@ const FINISH_AR: Record<string, string> = {
   "Mango Velvet": "مخمل مانجو", "Peacock Velvet": "مخمل طاووسي",
 };
 const finishLabel = (n: string, lang: Lang) => (lang === "ar" ? FINISH_AR[n] ?? n : n);
+const BADGE_AR: Record<string, string> = {
+  New: "جديد",
+  Bestseller: "الأكثر مبيعًا",
+  Limited: "محدود",
+};
 
 function FeaturedCard({ product, onOpen }: { product: Product; onOpen: () => void }) {
   const { lang } = useT();
+  const tagline = productCopy(product, lang).tagline;
   const [color, setColor] = useState(0);
   const viewerRef = useRef<MVElement | null>(null);
   const targetIdx = useRef<number[]>([]);
@@ -43,8 +49,8 @@ function FeaturedCard({ product, onOpen }: { product: Product; onOpen: () => voi
   return (
     <div className="feat-card">
       <button className="feat-stage" onClick={onOpen} data-cursor="hover"
-        aria-label={`${product.name} — ${product.tagline}`}>
-        {product.badge && <span className="feat-badge">{product.badge}</span>}
+        aria-label={`${product.name} — ${tagline}`}>
+        {product.badge && <span className="feat-badge">{lang === "ar" ? BADGE_AR[product.badge] : product.badge}</span>}
         <ModelViewer product={product} onReady={onReady} autoRotate />
         <span className="feat-look">↗</span>
       </button>
@@ -52,7 +58,7 @@ function FeaturedCard({ product, onOpen }: { product: Product; onOpen: () => voi
         <div className="feat-head">
           <div>
             <h3 className="display feat-name">{product.name}</h3>
-            <p className="feat-tag">{product.tagline}</p>
+            <p className="feat-tag">{tagline}</p>
           </div>
         </div>
         <div className="feat-finish">

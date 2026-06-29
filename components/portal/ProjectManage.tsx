@@ -120,7 +120,7 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
     <>
     {scanning && <LiveScanner onClose={() => setScanning(false)} onComplete={onScanComplete} />}
     <div onClick={onClose} dir={dir} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.55)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(620px,100%)", maxHeight: "94dvh", overflow: "auto", background: "var(--paper)", borderRadius: 18, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
+      <div role="dialog" aria-modal="true" aria-label={`${tp("manage", lang)} — ${title || project.title}`} onClick={(e) => e.stopPropagation()} style={{ width: "min(620px,100%)", maxHeight: "94dvh", overflow: "auto", background: "var(--paper)", borderRadius: 18, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem" }}>
           <div>
             <p style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: 0 }}>{project.ownerName || project.ownerPhone}</p>

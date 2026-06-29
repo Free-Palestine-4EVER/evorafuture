@@ -106,9 +106,9 @@ export default function StartAndTrack() {
               <button type="button" className="st__btn st__btn--solid" onClick={openStartProject}>
                 {ar ? "ارفع مخططك" : "Upload your plan"} <span className="arrow" aria-hidden>↗</span>
               </button>
-              <button type="button" className="st__btn st__btn--ghost" onClick={openStartProject}>
-                {ar ? "ابدأ مشروعًا" : "Start a project"}
-              </button>
+              <Link href="/studio" className="st__btn st__btn--ghost">
+                {ar ? "تعرّف على خدمة التصميم" : "See the design service"}
+              </Link>
             </div>
           </div>
 

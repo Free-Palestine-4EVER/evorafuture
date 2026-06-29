@@ -39,7 +39,7 @@ export default function ProjectForm({
 
   return (
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.5)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
-      <form dir={dir} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSave(p); }}
+      <form dir={dir} role="dialog" aria-modal="true" aria-label={initial ? tp("edit", lang) : tp("add_project", lang)} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSave(p); }}
         style={{ width: "min(560px,100%)", maxHeight: "92dvh", overflow: "auto", background: "var(--paper)", borderRadius: 16, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <h2 className="display" style={{ fontSize: "1.6rem", color: "var(--ink)", margin: "0 0 1.4rem" }}>
           {initial ? tp("edit", lang) : tp("add_project", lang)}

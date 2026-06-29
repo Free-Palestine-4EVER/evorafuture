@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
-import { products, posterFor, type Category, type Product } from "@/lib/products";
+import { products, posterFor, productCopy, type Category, type Product } from "@/lib/products";
 import {
   getTaxNode,
   resolveSlug,
@@ -12,7 +12,6 @@ import {
 } from "@/lib/shopTaxonomy";
 import { WHATSAPP } from "@/lib/brand";
 import { Rise, RevealLines, Stagger, StaggerItem, motion } from "@/components/motion";
-import { openStartProject } from "@/lib/startProject";
 import ShopQuickView, { AnimatePresence } from "@/components/ShopQuickView";
 
 const CAT_AR: Record<Category, string> = {
@@ -54,12 +53,13 @@ export default function Shop({ seed }: { seed?: string }) {
     const q = query.trim().toLowerCase();
     let list = active === "all" ? base : base.filter((p) => p.category === active);
     if (q) {
-      list = list.filter((p) =>
-        [p.name, p.tagline, p.category, p.description, p.materials.join(" ")]
-          .join(" ")
-          .toLowerCase()
-          .includes(q)
-      );
+      list = list.filter((p) => {
+        const ar = productCopy(p, "ar");
+        return [
+          p.name, p.tagline, p.category, p.description, p.materials.join(" "),
+          ar.tagline, ar.description,
+        ].join(" ").toLowerCase().includes(q);
+      });
     }
     if (sort === "az") {
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
@@ -198,7 +198,7 @@ export default function Shop({ seed }: { seed?: string }) {
                           <span className="shop-cat">{catLabel(p.category, lang)}</span>
                         </div>
                         <h3 className="shop-name display">{p.name}</h3>
-                        <p className="shop-tag">{p.tagline}</p>
+                        <p className="shop-tag">{productCopy(p, lang).tagline}</p>
                         <div className="shop-swatches" aria-hidden>
                           {p.colorways.slice(0, 5).map((c) => (
                             <span key={c.name} className="shop-swatch" style={{ background: c.hex }} />

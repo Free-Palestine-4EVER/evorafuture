@@ -35,6 +35,16 @@ const PhoneIcon = () => (
   </svg>
 );
 
+// Bilingual labels for the lead pipeline — staff read warm, studied words, not
+// raw lowercase status codes (the rebrand bans UI-label-as-code on every surface).
+const LEAD_STATUS: Record<string, { en: string; ar: string }> = {
+  new: { en: "New", ar: "جديد" },
+  called: { en: "Called", ar: "تواصلنا" },
+  qualified: { en: "Qualified", ar: "مؤهَّل" },
+  rejected: { en: "Not a fit", ar: "غير مناسب" },
+  converted: { en: "Became a project", ar: "أصبح مشروعاً" },
+};
+
 const timeAgo = (t?: number, ar?: boolean) => {
   if (!t) return "";
   const s = Math.floor((Date.now() - t) / 1000);
@@ -167,7 +177,7 @@ export default function AdminPage() {
 
       {section === "projects" && (
         <>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search by title, client or phone…", "ابحث بالعنوان أو العميل أو الهاتف…")}
+          <input value={query} onChange={(e) => setQuery(e.target.value)} type="search" aria-label={t("Search projects", "ابحث في المشاريع")} placeholder={t("Search by title, client or phone…", "ابحث بالعنوان أو العميل أو الهاتف…")}
             style={{ width: "100%", maxWidth: 460, padding: "0.8rem 1.1rem", border: "1px solid var(--line)", borderRadius: 999, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "1.6rem", background: "#fff" }} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: "1.3rem" }}>
             {projects.filter((p) => { const s = query.trim().toLowerCase(); return !s || `${p.title} ${p.ownerName || ""} ${p.ownerPhone || ""} ${p.room || ""}`.toLowerCase().includes(s); }).map((p) => {
@@ -224,7 +234,7 @@ export default function AdminPage() {
               <div style={{ minWidth: 200 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                   <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
-                  <span style={{ fontSize: "0.62rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{l.status}</span>
+                  <span style={{ fontSize: "0.62rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{LEAD_STATUS[l.status]?.[lang] ?? l.status}</span>
                 </div>
                 <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
                 {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
@@ -237,7 +247,7 @@ export default function AdminPage() {
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                 {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
-                  <button key={s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{s}</button>
+                  <button key={s} aria-pressed={l.status === s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{LEAD_STATUS[s]?.[lang] ?? s}</button>
                 ))}
                 {l.planUrl && (
                   <button onClick={async () => { await sendLeadToPuffer(l.id, !l.sentToPuffer); load(); }}
@@ -265,7 +275,7 @@ export default function AdminPage() {
       {addingClient && <AddClient onClose={() => setAddingClient(false)} onDone={() => { setAddingClient(false); load(); }} />}
       {managing && <ProjectManage project={projects.find((p) => p.id === managing.id) || managing} by={user.name} onClose={() => setManaging(null)} />}
       {viewPlan && (
-        <div onClick={() => setViewPlan(null)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(13,13,13,0.92)", display: "grid", placeItems: "center", padding: "1.5rem", cursor: "zoom-out" }}>
+        <div role="dialog" aria-modal="true" aria-label={t("2D plan", "المخطط ثنائي الأبعاد")} onClick={() => setViewPlan(null)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(13,13,13,0.92)", display: "grid", placeItems: "center", padding: "1.5rem", cursor: "zoom-out" }}>
           <img src={viewPlan} alt="2D plan" style={{ maxWidth: "100%", maxHeight: "92dvh", objectFit: "contain", borderRadius: 8, background: "#fff" }} />
           <a href={viewPlan} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", top: 18, insetInlineEnd: 18, background: "rgba(255,255,255,0.15)", color: "#fff", padding: "0.5em 1em", borderRadius: 999, fontSize: "0.82rem", textDecoration: "none" }}>{t("Open original ↗", "الأصل ↗")}</a>
         </div>
@@ -293,7 +303,7 @@ function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => voi
   async function submit(e: React.FormEvent) { e.preventDefault(); setErr(""); setBusy(true); try { await createClient(phone.trim(), name.trim(), pw); onDone(); } catch (e) { setErr(String((e as Error).message)); } finally { setBusy(false); } }
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.5)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
-      <form dir={dir} onClick={(e) => e.stopPropagation()} onSubmit={submit} style={{ width: "min(420px,100%)", background: "var(--paper)", borderRadius: 16, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
+      <form dir={dir} role="dialog" aria-modal="true" aria-label={tp("add_client", lang)} onClick={(e) => e.stopPropagation()} onSubmit={submit} style={{ width: "min(420px,100%)", background: "var(--paper)", borderRadius: 16, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <h2 className="display" style={{ fontSize: "1.5rem", color: "var(--ink)", margin: "0 0 1.3rem" }}>{tp("add_client", lang)}</h2>
         <label style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)" }}>{tp("client_name", lang)}<input style={field} value={name} onChange={(e) => setName(e.target.value)} required /></label>
         <div style={{ height: "0.9rem" }} />

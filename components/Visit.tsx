@@ -2,6 +2,7 @@
 
 import { useT } from "@/lib/i18n";
 import { Rise, RevealLines, Magnetic } from "@/components/motion";
+import { openStartProject } from "@/lib/startProject";
 // Evora Future Home — Wasfi Al-Tal St., Khalda, Amman
 const MAPS_DIR =
   "https://www.google.com/maps/dir/?api=1&destination=Evora+Future+Home%2C+Wasfi+Al-Tal+St%2C+Khalda%2C+Amman";
@@ -129,9 +130,9 @@ export default function Visit() {
               </span>
               <div className="vst__store-actions">
                 <Magnetic strength={0.3}>
-                  <a href="/visit" className="btn vst__btn-solid">
+                  <button type="button" onClick={openStartProject} className="btn vst__btn-solid">
                     {t("consult")} <span className="arrow">→</span>
-                  </a>
+                  </button>
                 </Magnetic>
                 <a href="tel:+962791301444" className="vst__store-dir">
                   {en ? "Call us" : "اتصل بنا"} <span aria-hidden>↗</span>

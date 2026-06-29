@@ -21,7 +21,6 @@ const T = {
     ar: "الواقع المعزّز يحتاج كاميرا هاتف. امسح هذا الرمز بآيفونك أو أندرويد لتضع ",
   },
   qr_post: { en: " in your room.", ar: " في غرفتك." },
-  add_cart: { en: "Add to cart", ar: "أضِف إلى السلة" },
 };
 
 const CAT_AR: Record<Category, string> = {
@@ -186,7 +185,7 @@ export default function ProductDialog({ product, onClose }: Props) {
                 <ArIcon />
                 {t("qv_try")}
               </button>
-              <button className="btn btn-ghost">{tl("add_cart")}</button>
+              <a className="btn btn-ghost" href="/visit">{t("consult")}</a>
             </div>
           </div>
         </div>

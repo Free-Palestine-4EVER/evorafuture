@@ -22,7 +22,8 @@ type World = {
   id: string;
   num: string;
   name: Bi;
-  count: Bi;
+  // editorial kicker — the room the piece anchors, not an inventory count
+  kicker: Bi;
   blurbKey: "col_world_coffee" | "col_world_sofa" | "col_world_armchair" | "col_world_bed";
   href: string;
   video: string;
@@ -34,7 +35,7 @@ const worlds: World[] = [
     id: "coffee",
     num: "01",
     name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" },
-    count: { en: "30 pieces", ar: "٣٠ قطعة" },
+    kicker: { en: "The centre table", ar: "طاولة الوسط" },
     blurbKey: "col_world_coffee",
     href: "/shop/tables",
     video: "/evora/vid-coffee.mp4",
@@ -44,7 +45,7 @@ const worlds: World[] = [
     id: "sofa",
     num: "02",
     name: { en: "Sofas & Couches", ar: "كنب وأرائك" },
-    count: { en: "28 pieces", ar: "٢٨ قطعة" },
+    kicker: { en: "The living room", ar: "غرفة المعيشة" },
     blurbKey: "col_world_sofa",
     href: "/shop/sofas",
     video: "/evora/vid-sofa.mp4",
@@ -54,7 +55,7 @@ const worlds: World[] = [
     id: "armchair",
     num: "03",
     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" },
-    count: { en: "24 pieces", ar: "٢٤ قطعة" },
+    kicker: { en: "The reading corner", ar: "ركن القراءة" },
     blurbKey: "col_world_armchair",
     href: "/shop/seating",
     video: "/evora/vid-armchair.mp4",
@@ -64,7 +65,7 @@ const worlds: World[] = [
     id: "bed",
     num: "04",
     name: { en: "Beds & Bedrooms", ar: "أسرّة وغرف نوم" },
-    count: { en: "42 pieces", ar: "٤٢ قطعة" },
+    kicker: { en: "The bedroom", ar: "غرفة النوم" },
     blurbKey: "col_world_bed",
     href: "/shop/bedroom",
     video: "/evora/vid-bed.mp4",
@@ -74,15 +75,15 @@ const worlds: World[] = [
 
 // ── "The rest" — smaller categories as slide-in photo cards.
 //    Swap each `img` for the generated amazing photo at the same path.
-type RoomCard = { id: string; name: Bi; count: Bi; img: string; href: string };
+type RoomCard = { id: string; name: Bi; kicker: Bi; img: string; href: string };
 
 const cards: RoomCard[] = [
-  { id: "accessories", name: { en: "Accessories", ar: "إكسسوارات" }, count: { en: "90+ pieces", ar: "+٩٠ قطعة" }, img: "/evora/p11.jpg", href: "/shop/decor" },
-  { id: "lighting",    name: { en: "Lighting",     ar: "إضاءة" },      count: { en: "45+ pieces", ar: "+٤٥ قطعة" }, img: "/evora/p10.jpg", href: "/shop/lighting" },
-  { id: "rugs",        name: { en: "Rugs & Textiles", ar: "سجاد ومنسوجات" }, count: { en: "60+ pieces", ar: "+٦٠ قطعة" }, img: "/evora/p09.jpg", href: "/shop/rugs" },
-  { id: "storage",     name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" }, count: { en: "Built-in", ar: "حسب القياس" }, img: "/evora/p02.jpg", href: "/shop/storage" },
-  { id: "tables",      name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" }, count: { en: "30 pieces", ar: "٣٠ قطعة" }, img: "/evora/p04.jpg", href: "/shop/tables" },
-  { id: "seating",     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" }, count: { en: "24 pieces", ar: "٢٤ قطعة" }, img: "/evora/ig-chesterfield.jpg", href: "/shop/seating" },
+  { id: "accessories", name: { en: "Accessories", ar: "إكسسوارات" }, kicker: { en: "Objects & vessels", ar: "تُحف وأوانٍ" }, img: "/evora/p11.jpg", href: "/shop/decor" },
+  { id: "lighting",    name: { en: "Lighting",     ar: "إضاءة" },      kicker: { en: "Pendants & sconces", ar: "ثريّات ومعلّقات" }, img: "/evora/p10.jpg", href: "/shop/lighting" },
+  { id: "rugs",        name: { en: "Rugs & Textiles", ar: "سجاد ومنسوجات" }, kicker: { en: "Hand-knotted", ar: "معقود باليد" }, img: "/evora/p09.jpg", href: "/shop/rugs" },
+  { id: "storage",     name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" }, kicker: { en: "Made to measure", ar: "حسب القياس" }, img: "/evora/p02.jpg", href: "/shop/storage" },
+  { id: "tables",      name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" }, kicker: { en: "The centre table", ar: "طاولة الوسط" }, img: "/evora/p04.jpg", href: "/shop/tables" },
+  { id: "seating",     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" }, kicker: { en: "Sculpted seating", ar: "مقاعد منحوتة" }, img: "/evora/ig-chesterfield.jpg", href: "/shop/seating" },
 ];
 
 function WorldPanel({ world, i }: { world: World; i: number }) {
@@ -135,7 +136,7 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
           className="world__cap"
           style={reduce ? undefined : { y: capY, opacity: capO }}
         >
-          <span className="world__count">{world.count[lang]}</span>
+          <span className="world__count">{world.kicker[lang]}</span>
           <span className="world__name display">{world.name[lang]}</span>
           <span className="world__blurb">{t(world.blurbKey)}</span>
           <span className="world__cta">
@@ -150,16 +151,18 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
 
 function SlideCard({ card, i }: { card: RoomCard; i: number }) {
   const { lang } = useT();
-  const fromLeft = i % 2 === 0;
+  const reduce = useReducedMotion();
+  // A quiet rise that matches the Rise/RevealLines rhythm used across the site —
+  // no blur-in, no long horizontal slide (reads as AI-slop on a gallery grid).
   return (
     <motion.a
       href={card.href}
       className="rcard"
       data-cursor="hover"
-      initial={{ opacity: 0, x: fromLeft ? -64 : 64, filter: "blur(8px)" }}
-      whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-      viewport={{ once: true, margin: "0px 0px -14% 0px" }}
-      transition={{ duration: 0.9, ease: EASE, delay: (i % 3) * 0.06 }}
+      initial={reduce ? false : { opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
+      transition={{ duration: 0.7, ease: EASE, delay: (i % 4) * 0.07 }}
     >
       <div className="rcard__imgwrap">
         <img src={card.img} alt={card.name[lang]} className="rcard__img" loading="lazy" />
@@ -167,7 +170,7 @@ function SlideCard({ card, i }: { card: RoomCard; i: number }) {
       </div>
       <div className="rcard__meta">
         <div>
-          <span className="rcard__count">{card.count[lang]}</span>
+          <span className="rcard__count">{card.kicker[lang]}</span>
           <span className="rcard__name display">{card.name[lang]}</span>
         </div>
         <span className="rcard__arrow" aria-hidden>↗</span>

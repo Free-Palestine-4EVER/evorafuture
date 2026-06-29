@@ -386,8 +386,6 @@
 
 .sr-scope .card-tag { font-size: 0.82rem; color: var(--ink-50); }
 
-.sr-scope .card-price { font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
-
 .sr-scope .card-dots { display: flex; gap: 0.35rem; margin: 0.7rem 0.3rem 0; }
 
 .sr-scope .card-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); }
@@ -510,10 +508,6 @@
 
 .sr-scope .dlg-foot { display: flex; flex-direction: column; gap: 1.1rem; }
 
-.sr-scope .dlg-price { display: flex; flex-direction: column; gap: 0.2rem; }
-
-.sr-scope .dlg-price strong { font-family: var(--f-display); font-size: 2rem; }
-
 .sr-scope .dlg-cta { display: flex; flex-wrap: wrap; gap: 0.7rem; }
 
 .sr-scope .dlg-cta .btn { flex: 1; justify-content: center; min-width: 150px; }
@@ -602,8 +596,6 @@
 }
 
 .sr-scope .room-hud strong { font-family: var(--f-display); font-size: 1.4rem; line-height: 1; }
-
-.sr-scope .room-hud-price { font-size: 0.85rem; font-weight: 600; }
 
 .sr-scope .room-hud-cta { font-size: 0.72rem; color: var(--clay); margin-top: 0.35rem; }
 

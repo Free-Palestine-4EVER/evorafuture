@@ -152,3 +152,71 @@ export const posterFor = (p: Product) =>
   p.model.replace("/models/", "/posters/").replace(/\.glb$/, ".png");
 
 export const getProduct = (id: string) => products.find((p) => p.id === id);
+
+// ── Bilingual prose ───────────────────────────────────────────────────────
+// The English `tagline`/`description` live in ROWS above; this is their warm
+// Jordanian transcreation — written as original copy, not a calque, naming the
+// SAME real materials (مخمل، جوز، رخام الكرارا، جلد). Keyed by id so the three
+// featured signature pieces (azur, carrara, castello) localise too. Anything
+// without an entry falls back to the English, so nothing ever renders empty.
+export interface LocalizedCopy {
+  tagline: string;
+  description: string;
+}
+
+const AR_COPY: Record<string, LocalizedCopy> = {
+  // ── The main piece ──
+  bed: { tagline: "طقم سرير منجّد", description: "القطعة التي تُبنى حولها الغرفة — سرير منخفض بظهرٍ منحنٍ مكبوس بالأزرار من المخمل البيج الدافئ، يُكسى بكتّان أبيض ناصع، وتحفّه كومودينتان متطابقتان. نهاية اليوم الهادئة." },
+
+  // ── Sofas ──
+  "item-1": { tagline: "كنبة ثلاثية", description: "كنبة ثلاثية منخفضة وكريمة، بوسائد عميقة وخطٍّ مشذّبٍ هادئ." },
+  "item-2": { tagline: "كنبة كبيرة", description: "كنبة طويلة منخفضة صُنعت للتمدّد — طريّة تغوص فيها، ومتماسكة تبقى معك." },
+  "item-3": { tagline: "كنبة ثلاثية", description: "كنبة بخطوطٍ نظيفة من الصوف الرمادي البارد، بمقعدٍ مريحٍ أليف." },
+  "item-4": { tagline: "كنبة معيارية منخفضة", description: "كنبة معيارية تلامس الأرض من المخمل الزيتي المضلّع. رخوة، عضوية، تُعاد ترتيبها بلا حدود." },
+  "item-5": { tagline: "كنبة ثلاثية", description: "كنبة فاتحة طريّة بمساندٍ مستديرة وعمقٍ يرحّب بك. بطلة كل يوم." },
+  "item-7": { tagline: "كنبة ثلاثية", description: "كنبة دافئة من قماش الشانيل بوسائد ممتلئة ووقفةٍ ثابتةٍ مطمئنة." },
+  "item-9": { tagline: "كنبة منحنية", description: "كنبة منحنية كالنحت من البوكليه الكريمي، تلفّ الغرفة في حديث. فخمةٌ بهدوء." },
+  "item-14": { tagline: "كنبة جلدية", description: "كنبة عريضة من جلد السرج تزداد ليونةً وعمقًا مع كل سنةٍ تمرّ." },
+  "item-17": { tagline: "كنبة جلدية", description: "كنبة منخفضة من الجلد البنّي الفاتح بهيكلٍ خشبي وصناعةٍ صادقةٍ تتحمّل العمر." },
+  "item-24": { tagline: "كنبة جلدية مكبوسة", description: "كنبة من الجلد المكبوس بعمق، بثقة الصالونات العريقة. تُصنع لتورَّث." },
+  "item-25": { tagline: "كنبة زاوية مكبوسة", description: "كنبة زاوية كبيرة مكبوسة تحوّل المساحة المفتوحة إلى وجهة." },
+
+  // ── Seating ──
+  "item-8": { tagline: "بوف جلدي", description: "بوف من الجلد المكبوس على هيكلٍ نحاسي رفيع — مقعدٌ إضافي، أو مسندٌ للقدمين، أو طاولةٌ منخفضة." },
+  "item-10": { tagline: "كرسي طعام", description: "كرسي طعام خفيف كالريشة بهيكلٍ من الدردار المثنيّ بالبخار وظهرٍ منحنٍ متسامح." },
+  "item-11": { tagline: "كرسي بذراعين", description: "كرسي بذراعين بهيكلٍ من البلوط ومقعدٍ طريٍّ عميق. للقراءة والسهر والغفوة." },
+  "item-13": { tagline: "كرسي مميّز", description: "كرسي بلونٍ أزرقَ مخضرّ على هيكلٍ فولاذي نحيل. لمسةُ لونٍ بمساحةٍ صغيرة." },
+  "item-16": { tagline: "كرسي قابل للطي", description: "كرسي أنيق قابل للطي من الكانفاس والبلوط — للطاولة التي تكبر حين يكثر الضيوف." },
+  "item-18": { tagline: "مقعد منجّد", description: "مقعد من الجلد والبلوط بسطحٍ وثير. عند طرف السرير، أو في الممرّ، أو تحت النافذة." },
+  "item-19": { tagline: "كرسي مجوّف", description: "كرسي مجوّف مستدير بقوقعةٍ طريّةٍ تحتضنك. منحوتةٌ تجلس فيها." },
+  "item-20": { tagline: "كرسي جانبي", description: "كرسي جانبي صغير بانحناءةٍ عضويةٍ لطيفة." },
+  "item-23": { tagline: "بين باغ", description: "بين باغ ضخم من القطن يأخذ شكل من يرتمي عليه." },
+  "item-26": { tagline: "كرسي طعام", description: "كرسي طعام مصبوب بخطٍّ واثقٍ مقتصد." },
+  "item-27": { tagline: "كرسي مصمّم", description: "كرسي على الطراز الإيطالي بظلٍّ حادٍّ ومقعدٍ طريٍّ متماسك." },
+
+  // ── Tables ──
+  "item-15": { tagline: "طاولة طعام", description: "طاولة طعام بسطحٍ رخامي على قاعدةٍ من الفولاذ الأسود الرفيع. صُنعت لتستضيف عقودًا." },
+  "item-22": { tagline: "طاولة قهوة مستديرة", description: "طاولة قهوة مستديرة من الميكروسمنت بكتلةٍ ناعمةٍ واحدة. ملمسٌ دافئ ومتانةٌ لا تنكسر." },
+  "item-28": { tagline: "طقم طعام", description: "طقم طعام صغير — طاولةٌ وكراسٍ تتحرّك كقطعةٍ واحدة. من ركن الفطور إلى مأدبة العشاء." },
+
+  // ── Storage ──
+  "item-21": { tagline: "وحدة تلفاز", description: "جدار تلفاز مفتوح من خشب الجوز برفوف عرضٍ ومكانٍ لكل شيء." },
+
+  // ── Bedroom ──
+  "item-6": { tagline: "سرير بمظلّة مقوّسة", description: "سرير لافت تؤطّره مظلّةٌ مقوّسةٌ ناعمة من الكتّان. مركز الغرفة الهادئ." },
+  "item-12": { tagline: "سرير منصّة", description: "سرير منصّة منخفض منجّد بالكتّان، بظهرٍ كريمٍ تتّكئ عليه." },
+
+  // ── Featured signature pieces (lib/featured.ts) ──
+  azur: { tagline: "كنبة مخمل منحنية", description: "كنبة بانحناءةٍ واحدةٍ كالنحت من المخمل الكحلي العميق، تطفو على أرجلٍ نحاسية رفيعة. القطعة المميّزة — كريمة، منخفضة، ومسرحيةٌ بهدوء." },
+  carrara: { tagline: "طاولة قهوة رخام ونحاس", description: "سطحٌ مستدير من رخام الكرارا على قاعدةٍ نحاسيةٍ مصقولةٍ كالحلقة. حجرٌ بارد ومعدنٌ دافئ — قطعةٌ مركزية تتجاوز الموضات." },
+  castello: { tagline: "كرسي مخمل مكبوس", description: "كرسي استرخاء منخفض مكبوس بعمق من المخمل الغنيّ على أرجلٍ من البلوط المدبّب. لمسةُ لونٍ دافئة بوقفةٍ مسترخية على طراز منتصف القرن — بالمانجو أو الطاووسي." },
+};
+
+/** Tagline + description for a piece in the active language (EN fallback). */
+export function productCopy(p: Product, lang: "en" | "ar"): LocalizedCopy {
+  if (lang === "ar") {
+    const ar = AR_COPY[p.id];
+    if (ar) return ar;
+  }
+  return { tagline: p.tagline, description: p.description };
+}

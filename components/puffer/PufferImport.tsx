@@ -16,6 +16,22 @@ function portalBase() {
   return typeof window === "undefined" ? "" : window.location.origin;
 }
 
+// crisp line glyph — replaces emoji affordances with on-brand vectors
+function Glyph({ d, size = 14, fill }: { d: string; size?: number; fill?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ? "currentColor" : "none"} stroke={fill ? "none" : "currentColor"} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      <path d={d} />
+    </svg>
+  );
+}
+const ICON = {
+  inbox: "M3 13h4l2 3h6l2-3h4M4 13l2-8h12l2 8v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z",
+  scan: "M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M9 12h6",
+  play: "M7 5l11 7-11 7z",
+  sparkle: "M12 3l1.4 3.4L17 8l-3.6 1.6L12 13l-1.4-3.4L7 8l3.6-1.6zM18 14l.8 1.9L21 17l-2.2.9L18 20l-.8-2.1L15 17l2.2-1.1z",
+  upload: "M12 16V4m0 0L8 8m4-4l4 4M4 20h16",
+};
+
 // A built-in sample LiDAR scan (a 4×3 m room with a few pieces) so Studio import
 // can be demoed without running the iOS app. Same shape the app produces.
 const DEMO_SCAN: ScanFile = {
@@ -129,22 +145,22 @@ export default function PufferImport() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="relative rounded-md bg-neutral-800 px-2.5 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-700">
-        📥 Import
+      <button onClick={() => setOpen((o) => !o)} className="relative inline-flex items-center gap-1.5 rounded-md bg-neutral-800 px-2.5 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-700">
+        <Glyph d={ICON.inbox} size={15} /> Import
         {(items.length + scans.length) > 0 && <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brass-2)] px-1 text-[10px] font-bold text-[var(--ink)]">{items.length + scans.length}</span>}
       </button>
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-[var(--line)] bg-[var(--ink)] p-3 shadow-2xl">
           {/* LiDAR scans → import as walls + furniture */}
           <p className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-neutral-400">
-            <span className="text-[var(--brass-2)]">◳</span> LiDAR room scans
+            <span className="text-[var(--brass-2)]"><Glyph d={ICON.scan} size={13} /></span> LiDAR room scans
           </p>
           <button
             data-testid="demo-scan"
             disabled={busy}
             onClick={() => { loadProject(scanToProject(DEMO_SCAN)); setOpen(false); }}
-            className="mb-2 w-full rounded-md border border-dashed border-[var(--brass)] bg-[var(--brass-tint)] px-2 py-1.5 text-[11px] font-medium text-[var(--brass-2)] hover:bg-[var(--brass-tint)] disabled:opacity-50">
-            ▶ Load demo scan (no app needed)
+            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-[var(--brass)] bg-[var(--brass-tint)] px-2 py-1.5 text-[11px] font-medium text-[var(--brass-2)] hover:bg-[var(--brass-tint)] disabled:opacity-50">
+            <Glyph d={ICON.play} size={11} fill /> Load demo scan (no app needed)
           </button>
           {scans.length === 0 && <p className="mb-3 text-xs text-neutral-500">No room scans yet. Scan a room in the Evora app.</p>}
           <div className="mb-3 max-h-56 space-y-2 overflow-auto">
@@ -153,7 +169,7 @@ export default function PufferImport() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {p.thumbnailUrl
                   ? <img src={p.thumbnailUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded object-cover" />
-                  : <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded bg-neutral-800 text-base">◳</div>}
+                  : <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded bg-neutral-800 text-[var(--brass-2)]"><Glyph d={ICON.scan} size={18} /></div>}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-neutral-100">{p.title || "Scanned room"}</p>
                   <p className="truncate text-[11px] text-neutral-500">{p.ownerName || p.ownerPhone}{p.sentToPuffer ? " · sent to Studio" : ""}</p>
@@ -165,17 +181,17 @@ export default function PufferImport() {
 
           {/* Gaussian splat scan → furniture via splat_analyzer (local, no API) */}
           <p className="mb-2 flex items-center gap-1.5 border-t border-neutral-800 pt-3 text-[11px] uppercase tracking-wide text-neutral-400">
-            <span className="text-violet-400">✦</span> Gaussian splat scan
+            <span className="text-[var(--brass-2)]"><Glyph d={ICON.sparkle} size={13} fill /></span> Gaussian splat scan
           </p>
           <button
             data-testid="demo-splat"
             disabled={busy}
             onClick={loadSplatDemo}
-            className="mb-2 w-full rounded-md border border-dashed border-violet-700 bg-violet-950/40 px-2 py-1.5 text-[11px] font-medium text-violet-300 hover:bg-violet-900/40 disabled:opacity-50">
-            ▶ Load splat scan (room demo)
+            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-[var(--ever-2)] bg-[var(--ever-tint)] px-2 py-1.5 text-[11px] font-medium text-[var(--ever-text)] hover:bg-[var(--ever-tint)] disabled:opacity-50">
+            <Glyph d={ICON.play} size={11} fill /> Load splat scan (room demo)
           </button>
-          <label className={`mb-2 block w-full cursor-pointer rounded-md border border-neutral-800 px-2 py-1.5 text-center text-[11px] font-medium text-neutral-300 hover:bg-neutral-900 ${busy ? "pointer-events-none opacity-50" : ""}`}>
-            ⬆ Upload detection (interactions.json)
+          <label className={`mb-2 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-neutral-800 px-2 py-1.5 text-center text-[11px] font-medium text-neutral-300 hover:bg-neutral-900 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+            <Glyph d={ICON.upload} size={13} /> Upload detection (interactions.json)
             <input type="file" accept="application/json,.json" className="hidden" onChange={onSplatFile} />
           </label>
           <p className="mb-3 text-[11px] leading-snug text-neutral-500">

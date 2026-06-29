@@ -16,6 +16,15 @@ function Divider() {
   return <span className="mx-0.5 hidden h-5 w-px self-center bg-neutral-700 sm:block" />;
 }
 
+// crisp line glyph for toolbar actions — replaces emoji affordances with on-brand vectors
+function Glyph({ d, size = 16 }: { d: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      <path d={d} />
+    </svg>
+  );
+}
+
 // Touch action-popover labels (the long-press substitute for right-click).
 const T = {
   rotate: { en: "Rotate", ar: "تدوير" },
@@ -343,8 +352,8 @@ export default function PlanEditor() {
           ))}
         </select>
 
-        <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center rounded bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-600" title="Import a LiDAR room scan (.json) from the Evora Scan iOS app">
-          📷 Import scan
+        <label className="inline-flex min-h-[40px] shrink-0 cursor-pointer items-center gap-1.5 rounded bg-[var(--ever-2)] px-3 py-1.5 font-medium text-[var(--paper)] hover:bg-[var(--ever-2-hi)]" title="Import a LiDAR room scan (.json) from the Evora Scan iOS app">
+          <Glyph d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M9 12h6" /> Import scan
           <input type="file" accept="application/json,.json" className="hidden" onChange={onScanFile} />
         </label>
 
@@ -373,21 +382,23 @@ export default function PlanEditor() {
               onClick={toggleAutoWalls}
               disabled={!mmPerPx || detecting}
               title={mmPerPx ? "Detect the walls in the plan and raise them in 3D" : "Calibrate the plan first"}
-              className={`inline-flex min-h-[40px] shrink-0 items-center rounded px-3 py-1.5 font-medium transition ${
+              className={`inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded px-3 py-1.5 font-medium transition ${
                 autoWallsOn ? "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
               } ${!mmPerPx || detecting ? "cursor-not-allowed opacity-50" : ""}`}
             >
-              {detecting ? "Detecting…" : autoWallsOn ? "⚡ Walls raised ✓" : "⚡ Auto-walls"}
+              <Glyph d="M4 21V9l8-5 8 5v12M4 21h16" />
+              {detecting ? "Detecting…" : autoWallsOn ? "Walls raised" : "Auto-walls"}
             </button>
             <button
               onClick={autoSlots}
               disabled={!mmPerPx || slotting}
               title={mmPerPx ? "Detect furniture in the plan and draw slots over it — a starting layout you review and adjust." : "Calibrate the plan first"}
-              className={`inline-flex min-h-[40px] shrink-0 items-center rounded bg-violet-700 px-3 py-1.5 font-medium text-white transition hover:bg-violet-600 ${
+              className={`inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded bg-[var(--ever-2)] px-3 py-1.5 font-medium text-[var(--paper)] transition hover:bg-[var(--ever-2-hi)] ${
                 !mmPerPx || slotting ? "cursor-not-allowed opacity-50" : ""
               }`}
             >
-              {slotting ? "Reading plan…" : "✨ Auto-slots"}
+              <Glyph d="M4 10h11v10H4zM18 3l.9 2.1L21 6l-2.1.9L18 9l-.9-2.1L15 6l2.1-.9z" />
+              {slotting ? "Reading plan…" : "Auto-slots"}
             </button>
             <button
               onClick={() => setShowDims((v) => !v)}
@@ -396,7 +407,7 @@ export default function PlanEditor() {
                 showDims ? "bg-neutral-600 text-white" : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
               }`}
             >
-              {showDims ? "Dimensions ✓" : "Dimensions"}
+              {showDims ? "Dimensions on" : "Dimensions"}
             </button>
 
             <span

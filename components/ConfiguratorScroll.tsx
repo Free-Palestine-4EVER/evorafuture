@@ -18,7 +18,7 @@ const T = {
   },
   // tells the visitor the swatches are live — the whole point of the beat
   cfg_instruct: {
-    en: "Tap a stone — your island re-renders live.",
+    en: "Pick a stone — your island re-renders live.",
     ar: "اختر حجرًا — تتبدّل الجزيرة أمامك.",
   },
   cfg_active_label: { en: "Selected stone", ar: "الحجر المختار" },
@@ -352,6 +352,7 @@ export default function ConfiguratorScroll() {
                       className={`cfg__swatch ${activeId === v.id ? "is-active" : ""}`}
                       onClick={() => setActiveId(v.id)}
                       aria-label={v.label[lang]}
+                      aria-pressed={activeId === v.id}
                       title={v.label[lang]}
                       style={isImg
                         ? { backgroundImage: `url(${v.swatch})`, backgroundSize: "cover" }
@@ -469,6 +470,11 @@ const css = `
   .cfg__swatch:hover { transform: translateY(-2px) scale(1.05); }
   .cfg__swatch.is-active { border-color: var(--brass-2, #c8a972);
     box-shadow: 0 0 0 3px rgba(200,169,114,0.4); transform: scale(1.06); }
+  /* keyboard focus on the dark glass panel: the page's dark-brass ring is hard
+     to see here, so use the lighter on-dark brass + offset for clear contrast */
+  .cfg__panel .cfg__swatch:focus-visible,
+  .cfg__panel .cfg__cta-wa:focus-visible {
+    outline: 2px solid var(--brass-2, #c8a972); outline-offset: 3px; }
   .cfg__upload { display: grid; place-items: center; color: #fbf7f0;
     background: rgba(251,247,240,0.08); border-style: dashed; font-size: 1.3rem; }
   .cfg__upload:hover { background: rgba(251,247,240,0.16); }

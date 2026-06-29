@@ -109,6 +109,19 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
         borderBottom: `1px solid ${solid && !open ? "var(--line)" : "transparent"}`,
       }}
     >
+      {/* legibility scrim: lifts white nav text off bright hero imagery, only
+          while the bar is transparent; vanishes the moment it goes solid/open */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", insetInline: 0, top: 0, height: "calc(var(--nav-h, 78px) * 1.7)",
+          pointerEvents: "none", zIndex: 95,
+          background: "linear-gradient(180deg, rgba(16,15,13,0.32), rgba(16,15,13,0))",
+          opacity: !solid && !open ? 1 : 0,
+          transition: "opacity .5s var(--ease)",
+        }}
+      />
+
       <nav
         key={solid ? "solid" : "clear"}
         className={`container nav-bar${solid && !open ? " nav-settle" : ""}`}
@@ -145,7 +158,7 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
             </li>
           </ul>
 
-          <button onClick={toggle} aria-label="Toggle language"
+          <button onClick={toggle} aria-label={lang === "en" ? "التبديل إلى العربية" : "Switch to English"}
             style={{
               fontFamily: lang === "en" ? "var(--f-ar)" : "var(--font-sans)",
               fontSize: "0.82rem", fontWeight: 600, letterSpacing: lang === "en" ? "0" : "0.06em",

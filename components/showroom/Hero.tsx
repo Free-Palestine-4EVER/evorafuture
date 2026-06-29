@@ -6,7 +6,7 @@ import { useT } from "@/lib/i18n";
 import ModelViewer, { type ViewerEl } from "./ModelViewer";
 import { products } from "@/lib/products";
 
-const featured = products[0]; // Oslo sofa
+const featured = products[0]; // Laurel — the signature upholstered bed set
 
 const T = {
   eyebrow: { en: "Evora · Augmented showroom", ar: "إيفورا · معرض الواقع المعزّز" },

@@ -315,11 +315,26 @@ export default function SceneView() {
           <button
             onClick={() => setView360((v) => !v)}
             style={{ touchAction: "manipulation" }}
-            className={`inline-flex min-h-[44px] items-center rounded-md px-4 py-2 text-sm font-medium shadow-lg transition ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-md px-4 py-2 text-sm font-medium shadow-lg transition ${
               view360 ? "bg-white text-neutral-900 hover:bg-neutral-200" : "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]"
             }`}
           >
-            {view360 ? "✕ Exit 360" : "⦿ 360 view"}
+            {view360 ? (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden className="shrink-0">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+                Exit 360
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+                  <path d="M21 12c0 2.2-4 4-9 4s-9-1.8-9-4 4-4 9-4M3 12c0-2.2 4-4 9-4M14 5l3 3-3 3" />
+                  <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+                </svg>
+                360 view
+              </>
+            )}
           </button>
         </div>
       )}

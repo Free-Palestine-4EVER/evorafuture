@@ -168,7 +168,7 @@ export default function Footer() {
             <p className="ft__news-sub">{t("news_body")}</p>
           </div>
           {subscribed ? (
-            <span className="ft__thanks">{t("news_thanks")}</span>
+            <span className="ft__thanks" role="status" aria-live="polite">{t("news_thanks")}</span>
           ) : (
             <form
               className="ft__form"

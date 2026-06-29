@@ -62,7 +62,7 @@ export default function LookbookApp() {
 
   const go = useCallback((n: number) => setPage(Math.max(0, Math.min(PAGE_COUNT - 1, n))), []);
 
-  // deep-link the view (?view=book|reel|gallery)
+  // deep-link the view (?view=book|read|tour)
   useEffect(() => {
     const v = new URLSearchParams(window.location.search).get("view") as Mode | null;
     if (v && MODE_IDS.includes(v)) setMode(v);

@@ -259,7 +259,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         </motion.div>
 
         <div className="hs__tag">
-          <span className="hs__tag-k">{lang === "en" ? "Now showing" : "الآن"}</span>
+          <span className="hs__tag-k">{lang === "en" ? "Now showing" : "يُعرض الآن"}</span>
           {lang === "en" ? "A walk through Evora · Khalda" : "جولة داخل إيفورا · خلدا"}
         </div>
       </div>
@@ -319,7 +319,7 @@ function HeroCopy({
         <span className="hero__dot" />
         <span>{lang === "en" ? "Khalda · Amman" : "خلدا · عمّان"}</span>
         <span className="hero__dot" />
-        <span>{lang === "en" ? "Est. Jordan" : "صُنع في الأردن"}</span>
+        <span>{lang === "en" ? "Made in Jordan" : "صُنع في الأردن"}</span>
       </motion.div>
     </div>
   );

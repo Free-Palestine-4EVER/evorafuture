@@ -44,7 +44,7 @@ export default function ClientDetail({
 
   return (
     <div onClick={onClose} dir={dir} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.55)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(640px,100%)", maxHeight: "94dvh", overflow: "auto", background: "var(--paper)", borderRadius: 18, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
+      <div role="dialog" aria-modal="true" aria-label={client.name || t("Unnamed customer", "عميل بدون اسم")} onClick={(e) => e.stopPropagation()} style={{ width: "min(640px,100%)", maxHeight: "94dvh", overflow: "auto", background: "var(--paper)", borderRadius: 18, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.4rem" }}>
           <div style={{ display: "flex", gap: "0.9rem", alignItems: "center" }}>
             <div style={{ width: 52, height: 52, borderRadius: 999, background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", fontSize: "1.3rem", fontFamily: "var(--f-display)" }}>

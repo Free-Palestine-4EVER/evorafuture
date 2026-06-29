@@ -41,7 +41,9 @@ export default function ExportMenu() {
           hasContent ? "bg-[var(--ever-2)] text-[var(--paper)] hover:bg-[var(--ever-2-hi)]" : "cursor-not-allowed bg-neutral-800 text-neutral-500"
         }`}
       >
-        <span>⤓</span> Export
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+        </svg> Export
       </button>
 
       {open && (

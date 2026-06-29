@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
 import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
-import { posterFor, type Product, type Category } from "@/lib/products";
+import { posterFor, productCopy, type Product, type Category } from "@/lib/products";
 import { completeTheRoom, CATEGORY_SLUG } from "@/lib/shopTaxonomy";
 import { WHATSAPP } from "@/lib/brand";
 import { openStartProject } from "@/lib/startProject";
@@ -43,6 +43,11 @@ const FINISH_AR: Record<string, string> = {
   Onyx: "أونيكس",
   "Mango Velvet": "مخمل مانجو",
   "Peacock Velvet": "مخمل طاووسي",
+};
+const BADGE_AR: Record<string, string> = {
+  New: "جديد",
+  Bestseller: "الأكثر مبيعًا",
+  Limited: "محدود",
 };
 const finishLabel = (n: string, lang: Lang) => (lang === "ar" ? FINISH_AR[n] ?? n : n);
 const catLabel = (c: Category, lang: Lang) => (lang === "ar" ? CAT_AR[c] : c);
@@ -109,12 +114,13 @@ export default function ShopQuickView({
   // the parent), the 3D stage re-keys to reload the new model.
   const swapTo = (p: Product) => setCurrent(p);
 
+  const copy = productCopy(current, lang);
   const similar = completeTheRoom(current);
   const viewAllHref = `/shop/${CATEGORY_SLUG[current.category]}`;
   const waEnquire = `${WHATSAPP}?text=${encodeURIComponent(
     en
       ? `Hi Evora! I'd love to enquire about the ${current.name} (${current.tagline}).`
-      : `مرحبًا إيفورا! أودّ الاستفسار عن ${current.name} (${current.tagline}).`
+      : `مرحبًا إيفورا! أودّ الاستفسار عن ${current.name} (${copy.tagline}).`
   )}`;
 
   return (
@@ -156,11 +162,11 @@ export default function ShopQuickView({
         {/* Info */}
         <div className="qv-info">
           <div className="qv-scroll" ref={scrollRef}>
-            {current.badge && <span className="qv-tag">{current.badge}</span>}
+            {current.badge && <span className="qv-tag">{lang === "ar" ? BADGE_AR[current.badge] : current.badge}</span>}
             <span className="eyebrow qv-cat">{catLabel(current.category, lang)}</span>
             <h2 className="display qv-name">{current.name}</h2>
-            <p className="qv-tagline">{current.tagline}</p>
-            <p className="qv-desc">{current.description}</p>
+            <p className="qv-tagline">{copy.tagline}</p>
+            <p className="qv-desc">{copy.description}</p>
 
             <div className="qv-finish">
               <span className="qv-label">
@@ -213,7 +219,7 @@ export default function ShopQuickView({
                         <img src={posterFor(p)} alt={p.name} loading="lazy" />
                       </span>
                       <span className="qv-mini-name display">{p.name}</span>
-                      <span className="qv-mini-tag">{p.tagline}</span>
+                      <span className="qv-mini-tag">{productCopy(p, lang).tagline}</span>
                       <span className="qv-mini-swatches" aria-hidden>
                         {p.colorways.slice(0, 3).map((c) => (
                           <span key={c.name} className="qv-mini-swatch" style={{ background: c.hex }} />

@@ -4,7 +4,7 @@ import { Suspense, useState, useMemo, useEffect, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, useGLTF, Center, Bounds } from "@react-three/drei";
 import * as THREE from "three";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { Rise, RevealLines } from "@/components/motion";
 
@@ -103,6 +103,7 @@ function Mini({ url }: { url: string }) {
 export default function ShopHero3D() {
   const { lang } = useT();
   const en = lang === "en";
+  const reduce = useReducedMotion();
   const [color, setColor] = useState(SWATCHES[0].hex);
   const [ready, setReady] = useState(false);
   const onReady = useCallback(() => setReady(true), []);
@@ -156,8 +157,8 @@ export default function ShopHero3D() {
       <div className="container sh3__more">
         {PRODUCTS.map((p, i) => (
           <motion.a key={p.id} href={p.href} className="sh3__card" data-cursor="hover"
-            initial={{ opacity: 0, y: 40, filter: "blur(6px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            viewport={{ once: true, margin: "0px 0px -10% 0px" }} transition={{ duration: 0.8, ease: EASE, delay: 0.06 * i }}>
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "0px 0px -10% 0px" }} transition={{ duration: 0.7, ease: EASE, delay: reduce ? 0 : 0.08 * i }}>
             <div className="sh3__cardstage">
               <Mini url={p.model} />
               <span className="sh3__card3d">{en ? "3D" : "ثلاثي"}</span>
