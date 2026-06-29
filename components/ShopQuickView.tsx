@@ -309,8 +309,29 @@ export default function ShopQuickView({
         .qv-link:hover { color: var(--brass, #a98445); }
 
         @media (max-width: 820px) {
-          .qv { grid-template-columns: 1fr; grid-template-rows: minmax(280px, 42vh) auto; max-height: 92vh; }
-          .qv-stage { border-inline-end: none; border-bottom: 1px solid var(--line-soft, rgba(0,0,0,0.07)); }
+          /* full-screen bottom sheet, docked to the bottom edge of the viewport */
+          .qv-overlay { padding: 0; place-items: end stretch; }
+          .qv { grid-template-columns: 1fr; grid-template-rows: 46dvh minmax(0, 1fr);
+            width: 100%; max-width: 100%; max-height: 92dvh;
+            border-radius: 18px 18px 0 0; }
+          .qv-stage { border-inline-end: none; border-bottom: 1px solid var(--line-soft, rgba(0,0,0,0.07)); min-height: 0; }
+          .qv-close { width: 44px; height: 44px; top: 0.7rem; inset-inline-end: 0.7rem; }
+          /* finish swatches — chunky and tap-friendly */
+          .qv-dots { gap: 0.7rem; }
+          .qv-swatch { width: 44px; height: 44px; }
+          /* Complete the room → a swipeable, snapping horizontal rail */
+          .qv-similar-row { display: flex; gap: 0.9rem; overflow-x: auto; overflow-y: hidden;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x mandatory;
+            margin-inline: calc(-1 * clamp(1.6rem, 3vw, 2.6rem)); padding-inline: clamp(1.6rem, 3vw, 2.6rem);
+            padding-bottom: 0.3rem; }
+          .qv-similar-row::-webkit-scrollbar { display: none; }
+          .qv-mini { flex: 0 0 62%; max-width: 240px; scroll-snap-align: start; }
+          /* footer clears the home indicator; CTAs stay ≥44px */
+          .qv-foot { padding-bottom: calc(1.1rem + env(safe-area-inset-bottom)); }
+          .qv-btn { min-height: 48px; }
+        }
+        @media (max-width: 480px) {
+          .qv-cta { flex-direction: column; }
         }
       `}</style>
     </motion.div>

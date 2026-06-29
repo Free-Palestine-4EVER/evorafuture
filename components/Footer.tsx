@@ -146,6 +146,15 @@ export default function Footer() {
         @media (max-width: 520px) {
           .ft__cols { grid-template-columns: 1fr; }
         }
+        /* phone: stack the newsletter input + button, and make every link a
+           comfortable 44px tap target (incl. the tel: numbers) */
+        @media (max-width: 640px) {
+          .ft__form { flex-direction: column; }
+          .ft__btn { min-height: 46px; padding: 0.85em 1.4em; }
+          .ft__list { gap: 0.15rem; }
+          .ft__link { display: inline-flex; align-items: center; min-height: 44px; }
+          .ft__addr a.ft__link { min-height: 40px; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .ft__input, .ft__btn, .ft__link { transition: none; }
         }

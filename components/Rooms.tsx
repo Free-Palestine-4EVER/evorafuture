@@ -197,8 +197,18 @@ export default function Rooms() {
               <a
                 href={r.href}
                 className={`rm__item${i === active ? " is-active" : ""}`}
+                aria-current={i === active ? "true" : undefined}
                 onMouseEnter={() => setActive(i)}
                 onFocus={() => setActive(i)}
+                onClick={(e) => {
+                  // Touch (no hover): first tap previews the room in the stage,
+                  // a second tap on the already-active room enters it. On desktop
+                  // hover has already set `active`, so the click navigates as before.
+                  if (i !== active) {
+                    e.preventDefault();
+                    setActive(i);
+                  }
+                }}
               >
                 <span className="rm__inum">{r.num}</span>
                 <span className="rm__iname">{r.name[lang]}</span>
@@ -322,10 +332,20 @@ export default function Rooms() {
           .rm__stage { aspect-ratio: 4 / 3; }
           .rm__list { border-top: none; }
           .rm__icons { grid-template-columns: repeat(4, 1fr); row-gap: 1.6rem; }
+          /* no hover on touch — keep the "Enter room" cue + the active arrow visible,
+             and guarantee a ≥44px tap target per room. */
+          .rm__enter { opacity: 1; transform: none; }
+          html[dir="rtl"] .rm__enter { transform: none; }
+          .rm__item { min-height: 48px; }
+          .rm__item.is-active .rm__iarrow { opacity: 1; transform: none; }
+          html[dir="rtl"] .rm__item.is-active .rm__iarrow { transform: scaleX(-1); }
         }
         @media (max-width: 460px) {
           .rm__icons { grid-template-columns: repeat(3, 1fr); }
           .rm__pieces { max-width: 80%; }
+          /* tighten the stage caption so the room name never collides with the pieces */
+          .rm__stagename { font-size: clamp(1.35rem, 7vw, 1.8rem); }
+          .rm__stage { aspect-ratio: 3 / 4; }
         }
       `}</style>
     </section>

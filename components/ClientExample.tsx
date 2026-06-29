@@ -351,6 +351,9 @@ export default function ClientExample() {
           .cx__copy { padding-top: 0.6rem; }
           .cx__cta { width: 100%; justify-content: center; }
           .cx__collection .cx__cta { width: auto; }
+          /* tap-friendly AR launch + a touch larger copy CTA on phones */
+          .cx__ar { min-height: 44px; padding-block: 0.55em; }
+          .cx__cta { min-height: 48px; }
         }
       `}</style>
     </section>

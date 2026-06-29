@@ -561,7 +561,7 @@
 
 .sr-scope .room-stage {
   position: relative;
-  height: min(80vh, 760px);
+  height: min(80dvh, 760px);
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -616,7 +616,7 @@
 
 @media (max-width: 760px) {
 .sr-scope .room-head { grid-template-columns: 1fr; }
-.sr-scope .room-stage { height: 70vh; }
+.sr-scope .room-stage { height: 70dvh; }
 .sr-scope .room-ar { left: 1rem; right: 1rem; justify-content: center; }
 .sr-scope .room-hud { display: none; }
 }
@@ -711,4 +711,64 @@
 
 @media (max-width: 760px) {
 [dir="rtl"] .sr-scope .room-ar { left: 1rem; right: 1rem; }
+}
+
+/* ── Phone refinements (≤640px) ──────────────────────────────────────────────
+   Full-screen product sheets, ≥44px touch targets, dvh sizing and safe-area
+   insets for fixed/overlay chrome. Desktop is untouched. */
+@media (max-width: 640px) {
+  /* Collection filters — comfortable tap targets */
+  .sr-scope .filter { min-height: 44px; }
+
+  /* Product dialog becomes a full-screen takeover sheet */
+  .sr-scope .dlg-overlay { padding: 0; place-items: stretch; }
+  .sr-scope .dlg {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border: none;
+    border-radius: 0;
+  }
+  .sr-scope .dlg-stage { min-height: 48dvh; }
+  .sr-scope .dlg-close {
+    width: 44px;
+    height: 44px;
+    top: max(0.8rem, env(safe-area-inset-top));
+    right: max(0.8rem, env(safe-area-inset-right));
+  }
+  .sr-scope .dlg-info {
+    padding-bottom: max(1.8rem, calc(1.4rem + env(safe-area-inset-bottom)));
+  }
+  [dir="rtl"] .sr-scope .dlg-close {
+    right: auto;
+    left: max(0.8rem, env(safe-area-inset-left));
+  }
+
+  /* Virtual-showroom vantage nav — one swipeable row of tappable chips */
+  .sr-scope .room-nav {
+    left: 0.75rem;
+    right: 0.75rem;
+    transform: none;
+    max-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .sr-scope .room-nav::-webkit-scrollbar { display: none; }
+  .sr-scope .room-nav-btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Whole-room QR — centered band rather than a pinned corner card */
+  .sr-scope .room-qr,
+  [dir="rtl"] .sr-scope .room-qr {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
 }

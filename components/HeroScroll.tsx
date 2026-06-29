@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
+
+const MOBILE_QUERY = "(max-width: 768px)";
 
 // frame count + scroll length per hero film. Film "c" is the new full-quality
 // walk-through: every native frame of the source clip (1920x1080 WebP), given a
@@ -34,8 +37,23 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   const hintRef = useRef<HTMLDivElement>(null);
 
   const [ready, setReady] = useState(false);
+  // On phones the heavy frame-scrub canvas (up to 361 preloaded WebPs) is
+  // replaced by a single full-bleed portrait video — far lighter + still
+  // cinematic. Decided client-side to avoid a hydration mismatch.
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    // Never preload the frame stack on phones — the mobile video hero owns it.
+    if (typeof window !== "undefined" && window.matchMedia?.(MOBILE_QUERY).matches) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -191,6 +209,26 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     );
   }
 
+  // ----- phones: a full-bleed portrait video hero (prefers hero-*-mobile.mp4),
+  //        with the copy overlaid. 100svh so browser chrome never crops it. -----
+  if (isMobile) {
+    return (
+      <section id="top" className={`hs hs--static hs--${variant} hs--mob`}>
+        <ResponsiveVideo
+          className="hs__video"
+          src={`/evora/hero-${variant}.mp4`}
+          poster="/evora/hero-mobile.jpg"
+          aria-label={lang === "en" ? "A walk through Evora showroom in Khalda, Amman" : "جولة داخل معرض إيفورا في خلدا، عمّان"}
+        />
+        <div className="hs__scrim" />
+        <div className="hs__left" />
+        <div className="hero__top" />
+        <HeroCopy t={t} lang={lang} ease={ease} staticMode />
+        <style>{heroCss}</style>
+      </section>
+    );
+  }
+
   return (
     <section id="top" ref={sectionRef} className={`hs hs--${variant}`} style={{ height: `${scrollVh}vh` }}>
       <div className="hs__sticky">
@@ -332,14 +370,33 @@ const heroCss = `
   html[dir="rtl"] .hero__scroll span:first-child { letter-spacing: 0.1em; }
   .hero__scroll-line { width: 1px; height: 40px; background: linear-gradient(rgba(251,247,240,0.85), transparent); animation: bob 2.4s ease-in-out infinite; }
 
+  .hs__video { position: absolute; inset: 0; z-index: 0; }
+  .hs--mob { height: 100svh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
+
   @media (max-width: 860px) {
     .hs__content { padding-block: clamp(7rem, 18vh, 9rem) clamp(4rem, 12vh, 6rem); }
     .hero__title { font-size: clamp(2.8rem, 13vw, 4.4rem); margin-top: 1.1rem; max-width: 14ch; }
     .hero__sub { font-size: 1.02rem; margin-top: 1.3rem; }
     .hero__cta { margin-top: 1.8rem; gap: 0.6rem; }
-    .hero__cta .btn { flex: 1 1 auto; justify-content: center; }
+    .hero__cta .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; align-items: center; }
     .hero__meta { margin-top: 2rem; gap: 0.6rem; font-size: 0.66rem; }
     .hs__tag { display: none; }
     .hero__scroll { display: none; }
+  }
+
+  @media (max-width: 640px) {
+    /* white copy must stay legible over any footage on a small bright phone */
+    .hs__scrim { background:
+      linear-gradient(180deg, rgba(8,6,4,0.46) 0%, rgba(8,6,4,0.12) 30%, rgba(8,6,4,0.32) 60%, rgba(8,6,4,0.84) 100%); }
+    .hs--c .hs__scrim { background:
+      linear-gradient(180deg, rgba(8,6,4,0.42) 0%, rgba(8,6,4,0.10) 30%, rgba(8,6,4,0.32) 60%, rgba(8,6,4,0.82) 100%); }
+    .hs__left { background: none; }
+    .hs__content { padding-block: clamp(6rem, 15vh, 8rem) clamp(3.5rem, 11vh, 5.5rem); }
+    .hero__title { font-size: clamp(2.6rem, 12vw, 3.8rem); max-width: 12ch; }
+    .hero__sub { font-size: clamp(0.98rem, 4.2vw, 1.1rem); max-width: 34ch; }
+    /* CTAs: stacked, full-width, comfy ≥48px touch targets */
+    .hero__cta { flex-direction: column; align-items: stretch; gap: 0.7rem; width: 100%; max-width: 22rem; }
+    .hero__cta .btn { width: 100%; min-height: 48px; justify-content: center; }
+    .hero__meta { font-size: 0.62rem; gap: 0.5rem; }
   }
 `;

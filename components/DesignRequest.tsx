@@ -90,7 +90,7 @@ export default function DesignRequest() {
         }
       `}</style>
 
-      <div className="container" style={{ display: "grid", gap: "clamp(2rem,5vw,5rem)", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", alignItems: "center" }}>
+      <div className="container" style={{ display: "grid", gap: "clamp(2rem,5vw,5rem)", gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))", alignItems: "center" }}>
         <Rise as="div">
           <p style={{ fontSize: "0.74rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--clay)", margin: 0 }}>{t("eyebrow")}</p>
           <h2 className="display" style={{ fontSize: "clamp(2.2rem,5.5vw,4rem)", lineHeight: 1.04, color: "var(--ink)", margin: "1rem 0 1.2rem", whiteSpace: "pre-line" }}>{t("title")}</h2>

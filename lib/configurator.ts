@@ -27,6 +27,15 @@ export type SurfaceVariant = {
 
 export const CONFIG_BASE = "/evora/configurator/base.webp";
 
+//  MOBILE  ────────────────────────────────────────────────────────────────
+//  On phones (≤768px) we skip the heavy 169-frame canvas scrub and play a
+//  light portrait video instead. Drop the file here:
+//      public/evora/configurator/kitchen-mobile.mp4
+//  Portrait (9:16), muted, ~6–10s loop, ending on the same island as base.webp.
+//  Until that file exists the video 404s and the UI falls back to base.webp
+//  as a still poster — so nothing breaks today.
+export const CONFIG_MOBILE_VIDEO = "/evora/configurator/kitchen-mobile.mp4";
+
 // The first entry IS the base render already shown when the scroll settles.
 export const SURFACES: SurfaceVariant[] = [
   {

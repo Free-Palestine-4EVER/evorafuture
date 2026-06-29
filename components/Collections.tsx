@@ -9,6 +9,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { Rise, RevealLines } from "@/components/motion";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -119,17 +120,11 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
         style={reduce ? undefined : { clipPath: clip }}
       >
         <motion.div className="world__media" style={reduce ? undefined : { y, scale }}>
-          <video
+          <ResponsiveVideo
             className="world__video"
+            src={world.video}
             poster={world.poster}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="none"
-          >
-            <source src={world.video} type="video/mp4" />
-          </video>
+          />
           <span className="world__scrim" />
           <span className="world__grain" aria-hidden />
         </motion.div>
@@ -215,14 +210,10 @@ export default function Collections() {
         </div>
 
         <a href="/showroom" className="rooms__film" data-cursor="hover">
-          <video
+          <ResponsiveVideo
             className="rooms__filmvideo"
             src="/evora/hero-c.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+            poster="/evora/room-living.jpg"
           />
           <span className="rooms__filmscrim" />
           <span className="rooms__filmbadge">{t("col_film_badge")}</span>
@@ -370,9 +361,34 @@ export default function Collections() {
           .rooms__intro { grid-template-columns: 1fr; }
           .rooms__film { aspect-ratio: 16 / 11; }
         }
+        @media (max-width: 640px) {
+          /* worlds go full-bleed on phones for cinematic impact */
+          .rooms__worlds { padding-inline: 0; gap: 2px; margin-inline: 0; }
+          .world__frame {
+            height: clamp(440px, 78svh, 640px);
+            border-radius: 0;
+          }
+          /* stronger, readable scrim under the caption on small screens */
+          .world__scrim {
+            background:
+              linear-gradient(180deg, rgba(16,15,13,0.30) 0%, transparent 26%, transparent 40%, rgba(16,15,13,0.86) 100%);
+          }
+          html[dir="rtl"] .world__scrim {
+            background:
+              linear-gradient(180deg, rgba(16,15,13,0.30) 0%, transparent 26%, transparent 40%, rgba(16,15,13,0.86) 100%);
+          }
+          .world__cap {
+            inset-inline: clamp(1.2rem, 6vw, 1.8rem);
+            bottom: clamp(1.4rem, 5vw, 2rem);
+            max-width: none;
+          }
+          .world__name { font-size: clamp(1.9rem, 9vw, 2.8rem); }
+          .world__blurb { font-size: clamp(0.95rem, 4vw, 1.05rem); max-width: 30ch; }
+          /* the whole panel is the tap target; make the visible CTA ≥44px */
+          .world__cta { min-height: 44px; align-items: center; padding-block: 6px; }
+        }
         @media (max-width: 520px) {
           .rooms__grid { grid-template-columns: 1fr; }
-          .world__frame { height: clamp(320px, 64vh, 520px); }
         }
       `}</style>
     </section>

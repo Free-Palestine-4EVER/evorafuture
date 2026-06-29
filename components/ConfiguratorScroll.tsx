@@ -6,7 +6,7 @@ import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
 import { openStartProject } from "@/lib/startProject";
 import { WHATSAPP } from "@/lib/brand";
-import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
+import { SURFACES, CONFIG_BASE, CONFIG_MOBILE_VIDEO, type SurfaceVariant } from "@/lib/configurator";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -16,6 +16,12 @@ const T = {
     en: "Hi Evora — I'd like to talk about a bespoke kitchen island.",
     ar: "مرحبًا إيفورا — أودّ التحدث عن جزيرة مطبخ حسب الطلب.",
   },
+  // tells the visitor the swatches are live — the whole point of the beat
+  cfg_instruct: {
+    en: "Tap a stone — your island re-renders live.",
+    ar: "اختر حجرًا — تتبدّل الجزيرة أمامك.",
+  },
+  cfg_active_label: { en: "Selected stone", ar: "الحجر المختار" },
   make_eyebrow: { en: "From plan to kitchen", ar: "من المخطط إلى المطبخ" },
   make_heading: { en: "How a bespoke island is made", ar: "كيف تُصنع جزيرة حسب الطلب" },
   make_lead: {
@@ -64,15 +70,29 @@ export default function ConfiguratorScroll() {
 
   const [ready, setReady] = useState(false);
   const [revealed, setRevealed] = useState(false); // configurator UI visible/interactive
+  const [isMobile, setIsMobile] = useState(false);  // ≤768px → video beat + bottom sheet
+  const [videoFailed, setVideoFailed] = useState(false); // kitchen-mobile.mp4 not provided yet
+
+  // ---- phone vs. desktop: drives the whole mobile beat (video + bottom sheet) ----
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // on mobile (or reduced motion) the panel is always present; desktop reveals on scroll
+  const panelOpen = revealed || reduce || isMobile;
 
   // ---- selected surface + any user-uploaded variants ----
   const [variants, setVariants] = useState<SurfaceVariant[]>(SURFACES);
   const [activeId, setActiveId] = useState<string>(SURFACES[0].id);
   const active = variants.find((v) => v.id === activeId) ?? variants[0];
 
-  // ---------- frame scrubbing ----------
+  // ---------- frame scrubbing (desktop only) ----------
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || isMobile) return; // mobile plays a portrait video, no 169-frame preload
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -172,7 +192,7 @@ export default function ConfiguratorScroll() {
       if (idleId !== undefined && ric.cancelIdleCallback) ric.cancelIdleCallback(idleId);
       if (idleTimer !== undefined) clearTimeout(idleTimer);
     };
-  }, [reduce]);
+  }, [reduce, isMobile]);
 
   // ---- handle a user-uploaded variant image (instant local preview) ----
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,20 +222,47 @@ export default function ConfiguratorScroll() {
     <section
       id="configurator"
       ref={sectionRef}
-      className="cfg"
-      style={{ height: reduce ? "100svh" : `${SCROLL_VH}vh` }}
+      className={`cfg ${isMobile ? "cfg--mobile" : ""}`}
+      style={{ height: reduce || isMobile ? "100svh" : `${SCROLL_VH}vh` }}
     >
       <div className="cfg__sticky">
-        {/* scrubbed video frames */}
-        {!reduce && (
+        {/* DESKTOP: scrubbed 169-frame canvas */}
+        {!reduce && !isMobile && (
           <canvas ref={canvasRef} className="cfg__canvas" role="img"
             aria-label={t("cfg_aria")} />
         )}
-        {(!ready || reduce) && <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />}
+        {!reduce && !isMobile && !ready && (
+          <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />
+        )}
+
+        {/* MOBILE: light portrait video, with base.webp as poster + 404 fallback */}
+        {isMobile && (
+          <>
+            <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />
+            {!reduce && !videoFailed && (
+              <video
+                className="cfg__video"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster={CONFIG_BASE}
+                onError={() => setVideoFailed(true)}
+                aria-label={t("cfg_aria")}
+              >
+                <source src={CONFIG_MOBILE_VIDEO} type="video/mp4" />
+              </video>
+            )}
+          </>
+        )}
+
+        {/* reduced-motion desktop: still poster */}
+        {reduce && !isMobile && <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />}
 
         {/* the selected variant image, layered over the final frame */}
         <AnimatePresence mode="popLayout">
-          {(revealed || reduce) && !isBase && active && (
+          {panelOpen && !isBase && active && (
             <motion.img
               key={active.id}
               src={active.image}
@@ -234,7 +281,7 @@ export default function ConfiguratorScroll() {
         <div className="cfg__scrim" />
 
         {/* heading sits over the footage until the configurator reveals */}
-        <motion.div className="cfg__intro" animate={{ opacity: revealed ? 0 : 1 }} transition={{ duration: 0.4 }}>
+        <motion.div className="cfg__intro" animate={{ opacity: revealed || isMobile ? 0 : 1 }} transition={{ duration: 0.4 }}>
           <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
             {t("cfg_eyebrow")}
           </span>
@@ -246,9 +293,9 @@ export default function ConfiguratorScroll() {
           </p>
         </motion.div>
 
-        {/* the configurator panel */}
+        {/* the configurator panel — bottom sheet on mobile */}
         <AnimatePresence>
-          {(revealed || reduce) && (
+          {panelOpen && (
             <motion.div
               className="cfg__panel"
               initial={{ opacity: 0, y: 24 }}
@@ -256,13 +303,27 @@ export default function ConfiguratorScroll() {
               exit={{ opacity: 0, y: 24 }}
               transition={{ duration: 0.5, ease }}
             >
+              {/* what this beat IS — always on screen so the interaction is obvious */}
+              <span className="eyebrow cfg__panel-eyebrow" style={{ color: "var(--brass-2)" }}>
+                {t("cfg_panel_eyebrow")}
+              </span>
+              <p className="cfg__instruct">{tl("cfg_instruct")}</p>
+
+              {/* the active stone, named prominently — swaps as you pick */}
               <div className="cfg__panel-head">
-                <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
-                  {t("cfg_panel_eyebrow")}
-                </span>
-                <strong className="cfg__active-name">
-                  {active ? active.label[lang] : ""}
-                </strong>
+                <span className="cfg__active-kicker">{tl("cfg_active_label")}</span>
+                <AnimatePresence mode="wait">
+                  <motion.strong
+                    key={active ? active.id : "none"}
+                    className="cfg__active-name"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.3, ease }}
+                  >
+                    {active ? active.label[lang] : ""}
+                  </motion.strong>
+                </AnimatePresence>
               </div>
 
               {/* the chosen stone's identity line — swaps as you pick */}
@@ -388,23 +449,31 @@ const css = `
     border: 1px solid rgba(251,247,240,0.14); border-radius: 18px;
     padding: clamp(1rem, 2vw, 1.6rem); width: min(92vw, 460px);
     box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
-  .cfg__panel-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
-  .cfg__active-name { color: #fbf7f0; font-size: 1.25rem; letter-spacing: 0.01em; }
-  .cfg__note { color: rgba(251,247,240,0.74); font-size: 0.92rem; line-height: 1.5;
+  .cfg__panel-eyebrow { display: block; }
+  .cfg__instruct { color: rgba(251,247,240,0.82); font-size: clamp(0.9rem, 1.1vw, 1rem);
+    line-height: 1.5; margin: 0.4rem 0 0.9rem; max-width: 34ch; }
+  .cfg__panel-head { display: flex; flex-direction: column; gap: 0.12rem; margin-bottom: 0.5rem; }
+  .cfg__active-kicker { color: rgba(251,247,240,0.55); font-size: 0.72rem;
+    letter-spacing: 0.16em; text-transform: uppercase; }
+  .cfg__active-name { color: #fbf7f0; font-size: clamp(1.6rem, 4.4vw, 2.1rem);
+    line-height: 1.05; letter-spacing: 0.005em; font-weight: 600; }
+  .cfg__note { color: rgba(251,247,240,0.74); font-size: clamp(0.88rem, 1vw, 0.95rem); line-height: 1.5;
     margin: 0 0 0.9rem; max-width: 34ch; }
   [dir="rtl"] .cfg__note { letter-spacing: 0; }
 
   .cfg__swatches { display: flex; gap: 0.7rem; flex-wrap: wrap; }
-  .cfg__swatch { width: 46px; height: 46px; border-radius: 50%;
+  .cfg__swatch { width: 46px; height: 46px; border-radius: 12px; flex: 0 0 auto;
     border: 2px solid rgba(251,247,240,0.25); cursor: pointer; padding: 0;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    background-position: center; }
+    background-position: center; background-size: cover; }
   .cfg__swatch:hover { transform: translateY(-2px) scale(1.05); }
   .cfg__swatch.is-active { border-color: var(--brass-2, #c8a972);
-    box-shadow: 0 0 0 3px rgba(200,169,114,0.3); transform: scale(1.06); }
+    box-shadow: 0 0 0 3px rgba(200,169,114,0.4); transform: scale(1.06); }
   .cfg__upload { display: grid; place-items: center; color: #fbf7f0;
     background: rgba(251,247,240,0.08); border-style: dashed; font-size: 1.3rem; }
   .cfg__upload:hover { background: rgba(251,247,240,0.16); }
+  .cfg__video { position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block; z-index: 0; }
 
   .cfg__cta { margin-top: 1.1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   .cfg__cta-1 { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
@@ -414,11 +483,38 @@ const css = `
 
   [dir="rtl"] .cfg__intro, [dir="rtl"] .cfg__panel { left: auto; right: clamp(1.4rem, 5vw, 5rem); }
 
-  @media (max-width: 720px) {
-    .cfg__intro { top: 16%; transform: none; }
-    .cfg__panel { left: 50%; right: auto; transform: translateX(-50%); bottom: 1.4rem; }
-    [dir="rtl"] .cfg__panel { right: auto; left: 50%; transform: translateX(-50%); }
+  /* ── MOBILE (≤768px): full-bleed video beat + bottom-sheet panel ──────── */
+  .cfg--mobile .cfg__sticky { height: 100svh; }
+  .cfg--mobile .cfg__intro { display: none; } /* the panel carries the explanation */
+
+  .cfg--mobile .cfg__panel,
+  [dir="rtl"] .cfg--mobile .cfg__panel {
+    left: 0; right: 0; bottom: 0; top: auto; transform: none;
+    width: 100%; max-width: none;
+    border-radius: 20px 20px 0 0;
+    border-width: 1px 0 0 0;
+    background: rgba(14,11,9,0.86);
+    box-shadow: 0 -18px 50px rgba(0,0,0,0.5);
+    padding: 1.1rem 1.2rem;
+    padding-top: 1.1rem;
+    padding-bottom: calc(1.1rem + env(safe-area-inset-bottom));
+    padding-left: max(1.2rem, env(safe-area-inset-left));
+    padding-right: max(1.2rem, env(safe-area-inset-right));
   }
+
+  /* swatch row scrolls horizontally instead of wrapping; chips ≥44px */
+  .cfg--mobile .cfg__swatches {
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.35rem; scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  .cfg--mobile .cfg__swatches::-webkit-scrollbar { display: none; }
+  .cfg--mobile .cfg__swatch { width: 54px; height: 54px; scroll-snap-align: start; }
+
+  /* full-width, finger-friendly CTAs */
+  .cfg--mobile .cfg__cta { gap: 0.85rem; margin-top: 1rem; }
+  .cfg--mobile .cfg__cta-1 { width: 100%; justify-content: center; min-height: 48px; }
+  .cfg--mobile .cfg__cta-wa { min-height: 44px; display: inline-flex; align-items: center; }
 
   /* ── closing "how it's made" beat ───────────────────────────────── */
   .cfg-make { background: #0d0b09; color: #fbf7f0; padding: clamp(4rem, 10vh, 8rem) 0; }

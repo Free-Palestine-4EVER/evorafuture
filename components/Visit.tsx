@@ -488,6 +488,11 @@ export default function Visit() {
         }
         @media (max-width: 560px) {
           .vst__expect-list { grid-template-columns: 1fr; }
+          /* taller photo so the badge + title + address + actions never clip */
+          .vst__store { aspect-ratio: 4 / 5; }
+          .vst__store-actions { gap: 0.55rem; }
+          /* keep each call/directions chip a comfortable tap target */
+          .vst__store-dir { min-height: 44px; }
         }
 
         /* ── map plate ── */

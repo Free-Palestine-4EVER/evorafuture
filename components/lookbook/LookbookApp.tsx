@@ -402,6 +402,17 @@ function LookbookStyles() {
       .lb-thumb { width:50px; height:50px; }
     }
 
+    /* phone: ≥44px touch targets for every reachable control */
+    @media (max-width: 560px) {
+      .lb { --bar: 60px; }
+      .lb-icon { width:44px; height:44px; }
+      .lb-dl { width:44px; height:44px; padding:0; justify-content:center; border-radius:50%; }
+      .lb-switch { padding:5px; }
+      .lb-switch__btn { min-height:44px; padding:0 0.85em; }
+      .lbz-tools { padding:0.4rem 0.55rem; gap:0.4rem; }
+      .lbz-btn { width:44px; height:44px; font-size:1.3rem; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .lbk-leaf, .lbk-book, .lbk-shade { transition:none; }
       .lbtour-img { animation:none; }

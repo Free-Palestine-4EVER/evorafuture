@@ -36,6 +36,13 @@
   /* Shared z-index for the branded curtain Loader (components/brand/Loader,
      Stream 5) — sits above all page chrome, just under the custom cursor (9999). */
   --z-loader: 9998;
+
+  /* Safe-area insets (notch / home indicator). Fixed & overlay chrome reference
+     these tokens instead of calling env() inline, so insets stay consistent. */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
 }
 
 @theme inline {
@@ -85,6 +92,11 @@
 
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; scroll-behavior: auto; }
 
+/* ---- Global horizontal-overflow guard ----
+   `clip` pins the viewport at its box edge without creating a scroll container,
+   so position:sticky descendants keep working (unlike overflow-x:hidden on html). */
+html, body { max-width: 100%; overflow-x: clip; }
+
 body {
   margin: 0;
   background: var(--paper);
@@ -130,6 +142,10 @@ html[dir="rtl"] .serif-i { font-style: normal; }
 /* ---- Layout helpers ---- */
 .container { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); }
 .section { padding-block: clamp(5rem, 11vw, 11rem); position: relative; }
+/* Opt-in full-bleed height that survives mobile browser chrome.
+   100svh = smallest viewport (toolbars shown); 100dvh = dynamic. vh is the fallback. */
+.full-bleed { min-height: 100vh; min-height: 100svh; }
+.full-bleed--dynamic { min-height: 100vh; min-height: 100dvh; }
 /* reserves the fixed-nav height on pages whose first band sits under a solid nav */
 .nav-spacer { height: var(--nav-h, 78px); }
 

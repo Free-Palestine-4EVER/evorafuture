@@ -286,8 +286,35 @@ export default function Shop({ seed }: { seed?: string }) {
         .shop-enquire-link { font-size: 0.82rem; font-weight: 500; color: var(--brass); cursor: none; }
         html[dir="rtl"] .shop-enquire-link span { display: inline-block; transform: scaleX(-1); }
 
-        @media (max-width: 720px) { .shop-enquire { grid-template-columns: 1fr; } .shop-enquire-media { min-height: 220px; } }
-        @media (max-width: 560px) { .shop-grid { grid-template-columns: 1fr 1fr; gap: 1.4rem 1rem; } .shop-name { font-size: 1.1rem; } .shop-sort { margin-inline-start: 0; } .shop-search { max-width: none; } }
+        @media (max-width: 720px) { .shop-enquire { grid-template-columns: 1fr; } .shop-enquire-media { min-height: 220px; } .shop-enquire-btn { min-height: 44px; } }
+
+        @media (max-width: 640px) {
+          /* search + sort: full-width, 16px text so iOS doesn't zoom, ≥44px tap */
+          .shop-controls { gap: 0.8rem; margin-bottom: 1.3rem; }
+          .shop-search { max-width: none; flex-basis: 100%; min-height: 44px; }
+          .shop-search input { font-size: 16px; }
+          .shop-sort { margin-inline-start: 0; }
+          .shop-sort select { font-size: 16px; min-height: 44px; }
+          /* filter bar → edge-to-edge horizontally scrollable strip */
+          .shop-filters { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 1.3rem;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+            margin-inline: calc(-1 * var(--gut)); padding-inline: var(--gut); margin-bottom: 2.2rem; }
+          .shop-filters::-webkit-scrollbar { display: none; }
+          .shop-tab { flex: 0 0 auto; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; }
+          .shop-count { flex: 0 0 auto; margin-inline-start: 0.4rem; align-self: center; }
+          /* the quick-view label is hover-only on desktop; reveal it on touch */
+          .shop-qv { opacity: 1; transform: none; }
+        }
+
+        @media (max-width: 560px) { .shop-grid { grid-template-columns: 1fr 1fr; gap: 1.4rem 1rem; } .shop-name { font-size: 1.1rem; } }
+
+        /* small phones: 2-col → a single generous, tap-friendly column */
+        @media (max-width: 430px) {
+          .shop-grid { grid-template-columns: 1fr; gap: 1.6rem; }
+          .shop-name { font-size: 1.35rem; }
+          .shop-card-img { aspect-ratio: 3/2; }
+          .shop-clear { min-height: 44px; }
+        }
       `}</style>
     </section>
   );

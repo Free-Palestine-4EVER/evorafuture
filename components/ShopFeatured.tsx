@@ -129,6 +129,15 @@ export default function ShopFeatured() {
         .feat-swatch.on { box-shadow: inset 0 0 0 2px #222a1e, 0 0 0 2px var(--brass, #d8b878); }
 
         @media (max-width: 900px) { .feat-grid { grid-template-columns: 1fr; max-width: 460px; } .feat-stage { aspect-ratio: 1/1; } }
+
+        @media (max-width: 640px) {
+          /* the look icon is hover-only on desktop; reveal it on touch */
+          .feat-look { opacity: 1; transform: none; }
+          /* let the finish row wrap and the swatches grow for thumbs */
+          .feat-finish { flex-wrap: wrap; }
+          .feat-dots { flex-wrap: wrap; gap: 0.6rem; }
+          .feat-swatch { width: 40px; height: 40px; }
+        }
       `}</style>
     </section>
   );

@@ -250,6 +250,15 @@ export default function ShopHero3D() {
           .sh3__hero { grid-template-columns: 1fr; }
           .sh3__more { grid-template-columns: 1fr; }
         }
+        @media (max-width: 640px) {
+          /* size the 3D stages for a phone viewport + give the swatches a ≥44px tap target */
+          .sh3__viewer { aspect-ratio: 1 / 1; }
+          .sh3__cardstage { aspect-ratio: 1 / 1; }
+          .sh3__sw { --size: 46px; }
+          .sh3__swatches { gap: 14px; }
+          .sh3__pcta { gap: 1rem 1.4rem; }
+          .sh3__btn, .sh3__viewallbtn { min-height: 48px; }
+        }
       `}</style>
     </section>
   );

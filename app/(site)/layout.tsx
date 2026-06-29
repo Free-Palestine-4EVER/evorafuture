@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
@@ -35,6 +35,13 @@ const arabic = IBM_Plex_Sans_Arabic({
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover", // enables env(safe-area-inset-*) on notched phones
+  themeColor: "#16150f",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://evorafuturehome.com"),

@@ -59,10 +59,14 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
     return () => window.removeEventListener("scroll", onScroll);
   }, [pinnedSolid, reduce]);
 
-  // lock body scroll while the drawer is open
+  // close the drawer whenever the route changes (belt-and-braces with onClick)
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  // lock body scroll while the drawer is open (touch-action stops iOS rubber-band)
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    document.body.style.touchAction = open ? "none" : "";
+    return () => { document.body.style.overflow = ""; document.body.style.touchAction = ""; };
   }, [open]);
 
   // focus-trap + Esc-to-close for the mobile drawer (a11y)
@@ -159,13 +163,15 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
           </Magnetic>
 
           <button className="nav-burger" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="evora-mobile-menu" onClick={() => setOpen((o) => !o)}
-            style={{ background: "transparent", border: "none", cursor: "none", width: 30, height: 22, position: "relative", padding: 0 }}>
-            <motion.span animate={{ top: open ? 10 : 3, rotate: open ? 45 : 0 }} transition={reduce ? { duration: 0 } : burgerSpring}
-              style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 3, transformOrigin: "center" }} />
-            <motion.span animate={{ opacity: open ? 0 : 1, scaleX: open ? 0 : 1 }} transition={reduce ? { duration: 0 } : { duration: 0.2 }}
-              style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 10 }} />
-            <motion.span animate={{ top: open ? 10 : 17, rotate: open ? -45 : 0 }} transition={reduce ? { duration: 0 } : burgerSpring}
-              style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 17, transformOrigin: "center" }} />
+            style={{ background: "transparent", border: "none", cursor: "none", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <span style={{ position: "relative", width: 30, height: 22, display: "block" }}>
+              <motion.span animate={{ top: open ? 10 : 3, rotate: open ? 45 : 0 }} transition={reduce ? { duration: 0 } : burgerSpring}
+                style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 3, transformOrigin: "center" }} />
+              <motion.span animate={{ opacity: open ? 0 : 1, scaleX: open ? 0 : 1 }} transition={reduce ? { duration: 0 } : { duration: 0.2 }}
+                style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 10 }} />
+              <motion.span animate={{ top: open ? 10 : 17, rotate: open ? -45 : 0 }} transition={reduce ? { duration: 0 } : burgerSpring}
+                style={{ position: "absolute", left: 0, right: 0, height: 1.6, background: fg, top: 17, transformOrigin: "center" }} />
+            </span>
           </button>
         </div>
       </nav>
@@ -174,8 +180,10 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
       <div ref={drawerRef} id="evora-mobile-menu" className="mobile-menu" role="dialog" aria-modal={open || undefined} aria-label={lang === "ar" ? "القائمة" : "Menu"} aria-hidden={!open}
         style={{
           position: "fixed", inset: 0, zIndex: 95, background: "var(--paper)",
-          display: "flex", flexDirection: "column", justifyContent: "center", padding: "var(--gut)",
+          display: "flex", flexDirection: "column", justifyContent: "center",
+          padding: "calc(var(--gut) + var(--safe-top)) calc(var(--gut) + var(--safe-right)) calc(var(--gut) + var(--safe-bottom)) calc(var(--gut) + var(--safe-left))",
           opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
+          overflowY: "auto", WebkitOverflowScrolling: "touch",
           clipPath: open ? "inset(0 0 0 0)" : "inset(0 0 100% 0)",
           transition: "clip-path .6s var(--ease), opacity .4s var(--ease)",
         }}>
@@ -184,7 +192,7 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
             <li key={l.id} style={{ overflow: "hidden" }}>
               <a href={l.id} onClick={() => setOpen(false)} className="display" aria-current={isActive(l.id) ? "page" : undefined}
                 style={{
-                  display: "block", color: isActive(l.id) ? "var(--clay)" : "var(--ink)", fontSize: "clamp(2.2rem,9vw,3.6rem)", padding: "0.25rem 0",
+                  display: "flex", alignItems: "center", minHeight: 44, color: isActive(l.id) ? "var(--clay)" : "var(--ink)", fontSize: "clamp(2.2rem,9vw,3.6rem)", padding: "0.25rem 0",
                   transform: open ? "translateY(0)" : "translateY(110%)", opacity: open ? 1 : 0,
                   transition: `transform .7s var(--ease) ${0.12 + i * 0.07}s, opacity .7s ease ${0.12 + i * 0.07}s, color .3s var(--ease)`,
                 }}>
