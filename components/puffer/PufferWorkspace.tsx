@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
-/* Responsive shell for the Puffer tool.
+/* Responsive shell for the Evora Future Studio tool.
  * ≥ lg (1024px, e.g. iPad landscape / desktop): the original 3-column layout.
  * < lg (iPad portrait / iPhone): one full-screen pane at a time with a bottom
  *   tab bar — so every pane is big enough to actually use with fingers. */
@@ -81,7 +81,7 @@ export default function PufferWorkspace({
               onClick={() => setTab(t.id)}
               aria-pressed={active}
               className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
-                active ? "text-sky-400" : "text-neutral-400 active:text-neutral-200"
+                active ? "text-[var(--brass-2)]" : "text-neutral-400 active:text-neutral-200"
               }`}
             >
               {t.icon}

@@ -3,18 +3,26 @@
 import type { Lang } from "../i18n";
 
 export const P = {
+  // ── Lockups ────────────────────────────────────────────────
   portal: { en: "Client Portal", ar: "بوابة العملاء" },
   portal_admin: { en: "Admin Dashboard", ar: "لوحة الإدارة" },
-  welcome: { en: "Welcome back", ar: "مرحبًا بعودتك" },
-  signin_sub: { en: "Sign in to view your Evora designs", ar: "سجّل الدخول لعرض تصاميم إيفورا الخاصة بك" },
-  admin_sub: { en: "Studio access — manage client projects", ar: "دخول الاستوديو — إدارة مشاريع العملاء" },
+  team_lockup: { en: "Evora Future Studio · Team", ar: "استوديو إيفورا المستقبلي · الفريق" },
+  // ── Sign in ────────────────────────────────────────────────
+  welcome_home: { en: "Welcome home", ar: "أهلًا بعودتك" },
+  signin_sub: { en: "Sign in to see your designs", ar: "سجّل الدخول لتشاهد تصاميمك" },
+  team_sub: { en: "Staff sign-in — manage client projects", ar: "دخول الفريق — إدارة مشاريع العملاء" },
   phone: { en: "Phone number", ar: "رقم الهاتف" },
+  admin_id_label: { en: "Email / phone", ar: "البريد الإلكتروني / الهاتف" },
   password: { en: "Password", ar: "كلمة المرور" },
   signin: { en: "Sign in", ar: "تسجيل الدخول" },
   signing: { en: "Signing in…", ar: "جارٍ الدخول…" },
   signout: { en: "Sign out", ar: "تسجيل الخروج" },
   bad_creds: { en: "Wrong phone number or password.", ar: "رقم الهاتف أو كلمة المرور غير صحيحة." },
-  help: { en: "Your login is set up by the Evora team. Contact us if you need access.", ar: "يتم إعداد تسجيل الدخول من قبل فريق إيفورا. تواصل معنا إذا احتجت إلى الوصول." },
+  login_help_wa: { en: "Can't sign in? Message us on WhatsApp", ar: "لا تستطيع الدخول؟ راسلنا على واتساب" },
+  wa_help_prefill: { en: "Hi Evora — I can't sign in to my client portal.", ar: "مرحبًا إيفورا — لا أستطيع تسجيل الدخول إلى بوابتي." },
+  not_admin: { en: "This account is not an administrator.", ar: "هذا الحساب ليس مشرفًا." },
+  tagline: { en: "Your Future Home", ar: "بيت المستقبل" },
+  // ── Client dashboard ───────────────────────────────────────
   my_designs: { en: "My designs", ar: "تصاميمي" },
   no_projects: { en: "No designs saved yet. Your Evora consultant will publish them here after your session.", ar: "لا توجد تصاميم محفوظة بعد. سينشرها مستشار إيفورا هنا بعد جلستك." },
   view_3d: { en: "View in 3D", ar: "عرض ثلاثي الأبعاد" },
@@ -23,7 +31,7 @@ export const P = {
   approved_badge: { en: "Approved by you", ar: "تمت موافقتك" },
   updated: { en: "Updated", ar: "آخر تحديث" },
   close: { en: "Close", ar: "إغلاق" },
-  // admin
+  // ── Admin ──────────────────────────────────────────────────
   projects: { en: "Projects", ar: "المشاريع" },
   clients: { en: "Clients", ar: "العملاء" },
   add_project: { en: "Add project", ar: "إضافة مشروع" },
@@ -39,27 +47,22 @@ export const P = {
   notes: { en: "Notes", ar: "ملاحظات" },
   thumb: { en: "Thumbnail / 2D image URL", ar: "رابط الصورة المصغّرة / المخطط" },
   model: { en: "3D model URL (.glb)", ar: "رابط النموذج ثلاثي الأبعاد (.glb)" },
-  viewer: { en: "Puffer 3D viewer URL", ar: "رابط عارض بافر ثلاثي الأبعاد" },
+  viewer: { en: "Studio 3D viewer URL", ar: "رابط عارض الاستوديو ثلاثي الأبعاد" },
   client_name: { en: "Client name", ar: "اسم العميل" },
-  demo_mode: { en: "Demo mode — using local sample data. Add Firebase keys to go live.", ar: "وضع العرض — بيانات تجريبية محلية. أضف مفاتيح Firebase للتشغيل المباشر." },
-  demo_login: { en: "Demo login — client · client", ar: "دخول تجريبي — client · client" },
-  demo_admin: { en: "Demo admin — admin · admin", ar: "مشرف تجريبي — admin · admin" },
-  not_admin: { en: "This account is not an administrator.", ar: "هذا الحساب ليس مشرفًا." },
   back_site: { en: "Back to site", ar: "العودة للموقع" },
-  // registration
-  first_time: { en: "First time? Create your account", ar: "أول مرة؟ أنشئ حسابك" },
+  // ── Registration ───────────────────────────────────────────
+  first_time: { en: "First time? Create your account", ar: "أوّل مرة؟ أنشئ حسابك" },
   have_account: { en: "Already have an account? Sign in", ar: "لديك حساب؟ سجّل الدخول" },
   create_account: { en: "Create account", ar: "إنشاء حساب" },
   register_sub: { en: "Enter your phone number — the same one Evora used for your project — and set a password.", ar: "أدخل رقم هاتفك — نفس الرقم الذي استخدمته إيفورا لمشروعك — واختر كلمة مرور." },
   full_name: { en: "Full name", ar: "الاسم الكامل" },
   creating: { en: "Creating…", ar: "جارٍ الإنشاء…" },
   already_registered: { en: "This number already has an account — sign in instead.", ar: "هذا الرقم لديه حساب — سجّل الدخول بدلاً من ذلك." },
-  staff_hint: { en: "Staff login (e.g. bakri@evorafuture.com)", ar: "دخول الموظفين (مثل bakri@evorafuture.com)" },
-  // journey
+  // ── Journey ────────────────────────────────────────────────
   journey: { en: "Your project journey", ar: "رحلة مشروعك" },
   updates: { en: "Updates", ar: "التحديثات" },
   no_updates: { en: "No updates yet — we'll post progress here.", ar: "لا توجد تحديثات بعد — سننشر التقدم هنا." },
-  // admin manage
+  // ── Admin manage ───────────────────────────────────────────
   manage: { en: "Manage", ar: "إدارة" },
   current_stage: { en: "Current stage", ar: "المرحلة الحالية" },
   post_update: { en: "Post an update", ar: "نشر تحديث" },

@@ -30,7 +30,7 @@ const rooms: Room[] = [
     name: { en: "Living Room", ar: "غرفة المعيشة" },
     note: { en: "Where the home gathers", ar: "حيث يجتمع البيت" },
     img: "/evora/room-living.jpg",
-    href: "/shop?room=living",
+    href: "/shop/living",
     pieces: [
       { en: "Sofas", ar: "كنب" },
       { en: "Armchairs", ar: "كراسي" },
@@ -42,9 +42,9 @@ const rooms: Room[] = [
     id: "dining",
     num: "02",
     name: { en: "Dining Room", ar: "غرفة الطعام" },
-    note: { en: "Long evenings, well set", ar: "أمسيات طويلة، مائدة أنيقة" },
+    note: { en: "Long evenings, well set", ar: "أمسياتٌ طويلة وسفرةٌ أنيقة" },
     img: "/evora/room-dining.jpg",
-    href: "/shop?room=dining",
+    href: "/shop/dining",
     pieces: [
       { en: "Dining Tables", ar: "طاولات طعام" },
       { en: "Chairs", ar: "كراسي" },
@@ -58,7 +58,7 @@ const rooms: Room[] = [
     name: { en: "Bedroom", ar: "غرفة النوم" },
     note: { en: "The quiet end of the day", ar: "نهاية اليوم الهادئة" },
     img: "/evora/room-bedrooms.jpg",
-    href: "/shop?room=bedroom",
+    href: "/shop/bedroom",
     pieces: [
       { en: "Beds", ar: "أسرّة" },
       { en: "Wardrobes", ar: "خزائن" },
@@ -70,9 +70,9 @@ const rooms: Room[] = [
     id: "guest",
     num: "04",
     name: { en: "Guest Room", ar: "غرفة الضيوف" },
-    note: { en: "A warm welcome, every time", ar: "ترحيب دافئ في كل مرّة" },
+    note: { en: "Where guests see your taste first", ar: "حيث يرى ضيوفك ذوقك أوّلًا" },
     img: "/evora/ig-lounge.jpg",
-    href: "/shop?room=guest",
+    href: "/shop/guest",
     pieces: [
       { en: "Majlis Seating", ar: "جلسات مجلس" },
       { en: "Ottomans", ar: "بوفات" },
@@ -86,7 +86,7 @@ const rooms: Room[] = [
     name: { en: "Tables & Accessories", ar: "طاولات وإكسسوارات" },
     note: { en: "The finishing details", ar: "اللمسات الأخيرة" },
     img: "/evora/p11.jpg",
-    href: "/shop?room=tables",
+    href: "/shop/tables",
     pieces: [
       { en: "Console Tables", ar: "طاولات كونسول" },
       { en: "Floor & Table Lamps", ar: "أباجورات وقوايم" },
@@ -98,9 +98,9 @@ const rooms: Room[] = [
     id: "chandeliers",
     num: "06",
     name: { en: "Chandeliers", ar: "الثريات" },
-    note: { en: "Light, made an event", ar: "ضوء يصنع المناسبة" },
+    note: { en: "Light, made an occasion", ar: "ضوءٌ يصنع المناسبة" },
     img: "/evora/p10.jpg",
-    href: "/shop?room=chandeliers",
+    href: "/shop/chandeliers",
     pieces: [
       { en: "Chandeliers", ar: "ثريات" },
       { en: "Pendants", ar: "معلّقات" },

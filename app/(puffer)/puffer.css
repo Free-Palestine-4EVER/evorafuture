@@ -5,6 +5,29 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ── Evora Future Studio — midnight-atelier tokens ─────────────────────────
+   This layout does NOT import globals.css, so the brand palette is redeclared
+   here. The Studio chrome reads off these: an --ink base, --paper text, antique
+   --brass accents and deep --ever green for saved/portal state. (Arbitrary
+   Tailwind values like bg-[var(--ink)] resolve against these at runtime.) */
+:root {
+  --ink: #16150F;          /* near-black base — the atelier field */
+  --ink-2: #201E16;        /* faintly raised surface */
+  --paper: #FFFFFF;        /* on-dark text + gallery white */
+  --paper-soft: #CFC9BC;   /* secondary labels on dark */
+  --brass: #8A6A3C;        /* antique brass — rules, dashed borders */
+  --brass-2: #C5A06A;      /* lighter brass on-dark — primary accent */
+  --brass-2-hi: #D9BC8B;   /* brass hover lift (keeps --ink text legible) */
+  --brass-tint: rgba(197, 160, 106, 0.12);  /* active/selected wash */
+  --brass-ring: rgba(197, 160, 106, 0.40);  /* focus ring */
+  --ever: #36412F;         /* deep ever-green — saved/portal panels */
+  --ever-2: #4C5A40;       /* ever hover/secondary state */
+  --ever-2-hi: #5C6B4E;    /* ever hover lift */
+  --ever-text: #A9BE8E;    /* legible sage for success text on dark */
+  --ever-tint: rgba(54, 65, 47, 0.45);       /* ever panel wash */
+  --line: rgba(197, 160, 106, 0.16);         /* brass-tinted hairline */
+}
+
 /* ── iPad / iPhone PWA usability ──────────────────────────────────────────
    Lock the app shell so swipes/pinches drive the editor & 3D view instead of
    scrolling or zooming the page. (The 2D <svg> already sets touch-action:none
@@ -14,6 +37,8 @@ html, body {
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  background: var(--ink);
+  color: var(--paper);
 }
 @supports (height: 100dvh) {
   html, body { height: 100dvh; }

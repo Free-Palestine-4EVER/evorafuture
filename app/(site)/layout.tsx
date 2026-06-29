@@ -2,11 +2,17 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
+import Loader from "@/components/brand/Loader";
 import SmoothScroll from "@/components/SmoothScroll";
 import Cursor from "@/components/Cursor";
 import WhatsappCTA from "@/components/WhatsappCTA";
 import ScrollProgress from "@/components/ScrollProgress";
 import StartProjectModal from "@/components/StartProjectModal";
+
+// Re-exported so the Studio (Stream 1) and portal (Stream 3) layouts can mount
+// the same branded loader. (They may also import it directly from
+// @/components/brand/Loader to avoid pulling this layout's font imports.)
+export { default as Loader } from "@/components/brand/Loader";
 
 // Bold modern luxury — a confident display grotesk for headlines.
 const display = Bricolage_Grotesque({
@@ -54,6 +60,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable}`}>
       <body>
         <I18nProvider>
+          <Loader />
           <SmoothScroll />
           <ScrollProgress />
           <Cursor />

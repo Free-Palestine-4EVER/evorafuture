@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
+import { FOLLOWERS } from "@/lib/brand";
 
 // frame count + scroll length per hero film. Film "c" is the new full-quality
 // walk-through: every native frame of the source clip (1920x1080 WebP), given a
@@ -276,7 +277,7 @@ function HeroCopy({
       </motion.div>
 
       <motion.div {...fade(1.15)} className="hero__meta">
-        <span>103K+ {lang === "en" ? "following" : "متابع"}</span>
+        <span>{FOLLOWERS}+ {lang === "en" ? "following" : "متابع"}</span>
         <span className="hero__dot" />
         <span>{lang === "en" ? "Khalda · Amman" : "خلدا · عمّان"}</span>
         <span className="hero__dot" />

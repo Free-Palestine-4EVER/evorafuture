@@ -3,6 +3,7 @@
 import { useT } from "@/lib/i18n";
 import { usePortalAuth } from "@/lib/portal/auth";
 import { promptPush, pushConfigured } from "@/lib/portal/push";
+import Wordmark from "@/components/brand/Wordmark";
 
 export interface NavItem { key: string; label: string; icon: React.ReactNode; badge?: number }
 
@@ -42,14 +43,16 @@ export default function PortalShell({
     <div className="ps-root">
       {/* desktop rail */}
       <aside className="ps-rail">
-        <a href="/" className="display ps-logo">EVORA</a>
+        <a href="/" className="ps-logo" aria-label="Evora — Future Home">
+          <Wordmark tone="paper" tagline={false} style={{ height: "1.45rem", width: "auto" }} />
+        </a>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, marginTop: "1.6rem" }}>
           {nav.map(railLink)}
         </nav>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          {pushConfigured && <button onClick={() => promptPush()} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span>🔔</span><span className="ps-rail-label">{lang === "ar" ? "الإشعارات" : "Notifications"}</span></button>}
-          <button onClick={toggle} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span style={{ fontFamily: lang === "en" ? "var(--f-ar)" : "var(--f-sans)" }}>ع</span><span className="ps-rail-label">{lang === "en" ? "العربية" : "English"}</span></button>
-          <button onClick={() => signOut()} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span>⏻</span><span className="ps-rail-label">{lang === "ar" ? "خروج" : "Sign out"}</span></button>
+          {pushConfigured && <button onClick={() => promptPush()} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span style={{ display: "grid", placeItems: "center", width: 22, height: 22 }}>{Icons.bell}</span><span className="ps-rail-label">{lang === "ar" ? "الإشعارات" : "Notifications"}</span></button>}
+          <button onClick={toggle} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span style={{ display: "grid", placeItems: "center", width: 22, height: 22, fontFamily: lang === "en" ? "var(--f-ar)" : "var(--f-sans)", fontSize: "1.05rem" }}>{lang === "en" ? "ع" : "EN"}</span><span className="ps-rail-label">{lang === "en" ? "العربية" : "English"}</span></button>
+          <button onClick={() => signOut()} className="ps-rail-link" style={{ color: "rgba(255,255,255,0.62)" }}><span style={{ display: "grid", placeItems: "center", width: 22, height: 22 }}>{Icons.power}</span><span className="ps-rail-label">{lang === "ar" ? "خروج" : "Sign out"}</span></button>
         </div>
       </aside>
 
@@ -116,4 +119,7 @@ export const Icons = {
   leads: ic("M22 6l-10 7L2 6|M2 6h20v12H2z"),
   designs: ic("M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M9 22V12h6v10"),
   scan: ic("M3 7V5a2 2 0 0 1 2-2h2|M17 3h2a2 2 0 0 1 2 2v2|M21 17v2a2 2 0 0 1-2 2h-2|M7 21H5a2 2 0 0 1-2-2v-2|M7 12h10"),
+  bell: ic("M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0"),
+  power: ic("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4|M16 17l5-5-5-5|M21 12H9"),
+  arrow: ic("M5 12h14|M13 6l6 6-6 6"),
 };

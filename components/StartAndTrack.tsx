@@ -63,15 +63,15 @@ export default function StartAndTrack() {
           <span className="st__eyebrow">{ar ? "ابدأ وتابع" : "Create & track"}</span>
           <h2 className="st__title">
             {ar ? (
-              <>ارفع مخطّطك. <em>وشاهد منزلك يُبنى.</em></>
+              <>ارفع مخطّطك. <em>وشاهد بيتك يُبنى.</em></>
             ) : (
               <>Upload your plan. <em>Watch your home come to life.</em></>
             )}
           </h2>
           <p className="st__lead">
             {ar
-              ? "من مخطط مسطّح إلى منزل مؤثّث ثلاثي الأبعاد ومُقدّم بعرض واقعي — وبمجرد اعتمادك يبدأ الإنتاج، وتتابع كل مرحلة مباشرةً من لوحتك."
-              : "From a flat plan to a furnished, photoreal 3D home — and once you approve, production begins and every stage streams live to your dashboard."}
+              ? "من مخطّطٍ مسطّح إلى بيتٍ مؤثّثٍ واقعيٍّ بالأبعاد الثلاثية — وبمجرّد موافقتك يبدأ الإنتاج، وتتابع كل مرحلة مباشرةً من لوحتك. وافِق على الشاشة أوّلًا؛ لا نصنع شيئًا قبل ذلك."
+              : "From a flat plan to a furnished, photoreal 3D home — and once you approve, production begins and every stage streams live to your dashboard. Approve on screen first; we don't cut a board until you do."}
           </p>
         </header>
 

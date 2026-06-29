@@ -26,11 +26,11 @@ const SWATCHES: { name: Bi; hex: string }[] = [
 ];
 
 /* ── the top 3 shop pieces — real 3D models ── */
-type Product = { id: string; name: Bi; tag: Bi; model: string };
+type Product = { id: string; name: Bi; tag: Bi; model: string; href: string };
 const PRODUCTS: Product[] = [
-  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, model: "/models/featured/hd-coffee-table.glb" },
-  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, model: "/models/featured/src-chair.glb" },
-  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, model: "/models/furni/bed.glb" },
+  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, model: "/models/featured/hd-coffee-table.glb", href: "/shop/tables" },
+  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, model: "/models/featured/src-chair.glb", href: "/shop/seating" },
+  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, model: "/models/furni/bed.glb", href: "/shop/bedroom" },
 ];
 
 /* shared model — optionally recolours every material (only the sofa uses tint) */
@@ -118,7 +118,7 @@ export default function ShopHero3D() {
           </div>
           <RevealLines lines={en ? ["Make the sofa", "yours."] : ["اجعل الكنبة", "لك."]} className="display sh3__title" delay={0.06} />
           <Rise delay={0.12} as="p" className="sh3__sub">
-            {en ? "Spin it, change the fabric in real time — then upload your plan and watch your whole home come to life." : "أدِرها، غيّر القماش فورياً — ثم ارفع مخططك وشاهد بيتك ينبض بالحياة."}
+            {en ? "Spin it, change the fabric in real time — then upload your plan and watch your whole home come to life, designed with you, under one roof." : "أدِرها، غيّر القماش لحظيًّا — ثم ارفع مخطّطك وشاهد بيتك كاملًا ينبض بالحياة، مُصمَّمًا معك، تحت سقف واحد."}
           </Rise>
         </div>
         <Rise delay={0.16} className="sh3__viewall-wrap">
@@ -146,8 +146,8 @@ export default function ShopHero3D() {
             ))}
           </div>
           <div className="sh3__pcta">
-            <a href="/shop" className="sh3__btn" data-cursor="hover">{en ? "Shop this sofa" : "تسوّق هذه الكنبة"}<span aria-hidden>↗</span></a>
-            <a href="/shop" className="sh3__link" data-cursor="hover">{en ? "Try in your home (AR)" : "جرّبها في منزلك"}</a>
+            <a href="/shop/sofas" className="sh3__btn" data-cursor="hover">{en ? "Shop this sofa" : "تسوّق هذه الكنبة"}<span aria-hidden>↗</span></a>
+            <a href="/shop/sofas" className="sh3__link" data-cursor="hover">{en ? "Try it in your home (AR)" : "جرّبها في بيتك"}</a>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function ShopHero3D() {
       {/* the 3 top pieces — all live 3D */}
       <div className="container sh3__more">
         {PRODUCTS.map((p, i) => (
-          <motion.a key={p.id} href="/shop" className="sh3__card" data-cursor="hover"
+          <motion.a key={p.id} href={p.href} className="sh3__card" data-cursor="hover"
             initial={{ opacity: 0, y: 40, filter: "blur(6px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             viewport={{ once: true, margin: "0px 0px -10% 0px" }} transition={{ duration: 0.8, ease: EASE, delay: 0.06 * i }}>
             <div className="sh3__cardstage">

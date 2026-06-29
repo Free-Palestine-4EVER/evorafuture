@@ -2,10 +2,20 @@
 
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
+import { tp } from "@/lib/portal/strings";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import { STATUS_LABEL, type PortalUser, type Project } from "@/lib/portal/types";
 
 const norm = (s: string) => (s || "").replace(/[^\d]/g, "");
+
+// Line icons (stroke = currentColor) — SVG affordances in place of the emoji
+// the rebrand bans on branded surfaces.
+const svg = (children: React.ReactNode) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+const PhoneIc = svg(<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />);
+const WhatsIc = svg(<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />);
+const LinkIc = svg(<>{[<path key="a" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />, <path key="b" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />]}</>);
 
 export default function ClientDetail({
   client, projects, onClose, onManage, onAddProject,
@@ -50,23 +60,23 @@ export default function ClientDetail({
 
         {/* contact + actions */}
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1.4rem" }}>
-          <a href={`tel:${client.phone}`} style={pill}>📞 {t("Call", "اتصال")}</a>
-          <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" style={pill}>💬 WhatsApp</a>
+          <a href={`tel:${client.phone}`} style={pill}>{PhoneIc} {t("Call", "اتصال")}</a>
+          <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" style={pill}>{WhatsIc} WhatsApp</a>
           <button onClick={() => { navigator.clipboard?.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1200); }} style={pill}>
-            🔗 {copied ? t("Copied", "تم النسخ") : t("Sign-up link", "رابط التسجيل")}
+            {LinkIc} {copied ? t("Copied", "تم النسخ") : t("Sign-up link", "رابط التسجيل")}
           </button>
           <button onClick={() => onAddProject(client)} style={{ ...pill, background: "var(--clay)", color: "#fff", border: "none" }}>+ {t("New project", "مشروع جديد")}</button>
         </div>
 
         {/* stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.8rem", marginBottom: "1.6rem" }}>
-          {stat(mine.length, t("Projects", "المشاريع"))}
+          {stat(mine.length, tp("projects", lang))}
           {stat(mine.filter((p) => p.approvedByClient).length, t("Approved", "موافق عليها"))}
-          {stat(mine.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length, t("In production", "قيد التنفيذ"))}
+          {stat(mine.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length, t("In production", "قيد الإنتاج"))}
         </div>
 
         {/* projects */}
-        <p style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.8rem", fontWeight: 600 }}>{t("Projects", "المشاريع")}</p>
+        <p style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.8rem", fontWeight: 600 }}>{tp("projects", lang)}</p>
         {mine.length === 0 && <p style={{ color: "var(--ink-faint)", fontSize: "0.9rem" }}>{t("No projects yet.", "لا توجد مشاريع بعد.")}</p>}
         <div style={{ display: "grid", gap: "0.7rem" }}>
           {mine.map((p) => {

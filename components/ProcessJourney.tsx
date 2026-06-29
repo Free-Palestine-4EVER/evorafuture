@@ -30,7 +30,7 @@ const TAGLINES = [
 ];
 
 export default function ProcessJourney({ showFinale = true }: { showFinale?: boolean }) {
-  const { lang, dir } = useT();
+  const { t, lang, dir } = useT();
   const ar = lang === "ar";
   const [active, setActive] = useState(0);
 
@@ -63,10 +63,11 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
         <Rise delay={0.18}>
           <span className="pj-free">
             <span className="pj-free-dot" aria-hidden />
-            {ar
-              ? "خدمة التصميم الداخلي الكاملة — مجانًا لعملاء المعرض"
-              : "The full interior-design service — complimentary for showroom clients"}
+            {t("pj_free")}
           </span>
+        </Rise>
+        <Rise delay={0.24}>
+          <p className="pj-loss">{t("pj_loss")}</p>
         </Rise>
       </div>
 
@@ -165,6 +166,14 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           border-radius: 999px; text-wrap: balance;
         }
         .pj-free-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--ever, #2f5d4a); flex: 0 0 auto; }
+        .pj-loss {
+          max-width: 56ch; margin: 1.1rem auto 0;
+          font-family: var(--f-display), Georgia, serif; font-style: italic;
+          font-optical-sizing: auto; font-variation-settings: "opsz" 40, "SOFT" 60;
+          font-size: clamp(1.04rem, 1.5vw, 1.26rem); line-height: 1.5;
+          color: var(--ink-soft); text-wrap: balance;
+        }
+        html[dir="rtl"] .pj-loss { font-style: normal; }
 
         /* ---------- Left↔right swap-column scroll ---------- */
         .pj-swap { position: relative; margin-top: clamp(2rem, 5vw, 4rem); }

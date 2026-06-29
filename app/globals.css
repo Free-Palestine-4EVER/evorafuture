@@ -28,6 +28,10 @@
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --gut: clamp(1.25rem, 5vw, 6rem);
+
+  /* Shared z-index for the branded curtain Loader (components/brand/Loader,
+     Stream 5) — sits above all page chrome, just under the custom cursor (9999). */
+  --z-loader: 9998;
 }
 
 @theme inline {
@@ -38,6 +42,39 @@
   --color-brass: var(--brass);
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
+}
+
+/* ============================================================
+   MIDNIGHT ATELIER — the dark-base scheme for Studio & portal
+   ------------------------------------------------------------
+   The Evora Future Studio chrome and the client/admin portal read
+   on a near-black "midnight atelier" base instead of gallery white:
+
+     surface / base     →  --ink      #16150F   (NOT neutral-950)
+     text on dark        →  --paper    #FFFFFF
+     primary accent      →  --brass-2  #C5A06A   (hero, lockups, chrome)
+     eyebrow / rule      →  --brass    #8A6A3C
+     state / success     →  --ever-2   #4C5A40
+     hairline on dark    →  rgba(255,255,255,0.10)
+
+   NOTE for Stream 1: the (puffer) layout does NOT import globals.css,
+   so these tokens must be REDECLARED at the top of puffer.css — using
+   bare var(--ink) there without defining it renders black-on-black.
+
+   Site-side dark surfaces (the /studio presentation page, Stream 2)
+   DO inherit globals, so they can opt in via the scoped class below.
+   This only scopes tokens; it does not restyle any component.
+   ============================================================ */
+.midnight-atelier {
+  --surface: var(--ink);
+  --on-surface: var(--paper);
+  --accent: var(--brass-2);
+  --accent-2: var(--brass);
+  --state: var(--ever-2);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-soft: rgba(255, 255, 255, 0.06);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 * { box-sizing: border-box; }

@@ -104,7 +104,7 @@ function Furniture({ rect, imgW, imgH, s, selected, userProducts }: {
       <group position={[worldX, 0, worldZ]} rotation={[0, (-rect.rotationDeg * Math.PI) / 180, 0]}>
         <mesh position={[0, boxH / 2, 0]} castShadow receiveShadow>
           <boxGeometry args={[boxW, boxH, boxD]} />
-          <meshStandardMaterial color={selected ? "#7aa2ff" : "#b27457"} roughness={0.75} transparent opacity={0.92} />
+          <meshStandardMaterial color={selected ? "#C5A06A" : "#b27457"} roughness={0.75} transparent opacity={0.92} />
         </mesh>
       </group>
     );
@@ -165,7 +165,7 @@ function WallMesh({ wall, imgW, imgH, s, selected, solid, wallTex, wallTileM, wa
   // Frosted-glass from outside (translucent, depthWrite keeps them solid & flicker-
   // free); near-opaque when standing inside (360) so the room encloses you.
   const opacity = solid ? 0.97 : selected ? 0.85 : 0.6;
-  const color = tex ? (selected ? "#bae6fd" : "#ffffff") : selected ? "#7dd3fc" : wallColor;
+  const color = tex ? (selected ? "#E7D3AC" : "#ffffff") : selected ? "#C5A06A" : wallColor;
   return (
     <mesh position={[worldX, heightM / 2, worldZ]} rotation={[0, angleY, 0]} receiveShadow>
       <boxGeometry args={[lengthM + thickM, heightM, thickM]} />
@@ -225,7 +225,7 @@ export default function SceneView() {
   const wallColor = wallMat.kind === "color" ? wallMat.color : "#ffffff";
 
   return (
-    <div className="relative h-full w-full bg-neutral-900">
+    <div className="relative h-full w-full bg-[var(--ink)]">
       {!ready && (
         <div className="absolute inset-0 z-10 flex items-center justify-center text-center text-sm text-neutral-500">
           <p>The 3D view appears once you upload a plan and set its scale.</p>
@@ -237,7 +237,7 @@ export default function SceneView() {
           <button
             onClick={() => setView360((v) => !v)}
             className={`rounded-md px-3 py-1.5 text-sm font-medium shadow-lg transition ${
-              view360 ? "bg-white text-neutral-900 hover:bg-neutral-200" : "bg-sky-600 text-white hover:bg-sky-500"
+              view360 ? "bg-white text-neutral-900 hover:bg-neutral-200" : "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]"
             }`}
           >
             {view360 ? "✕ Exit 360" : "⦿ 360 view"}

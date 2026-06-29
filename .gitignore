@@ -45,3 +45,4 @@ next-env.d.ts
 /.evora-data.json
 /service-account.json
 /.evora-uploads/
+.evora-plan/

@@ -1,13 +1,13 @@
 {
-  "name": "Puffer · Evora 2D→3D",
-  "short_name": "Puffer",
-  "description": "Turn a 2D floor plan into a furnished 3D space and save it to a client.",
+  "name": "Evora Future Studio",
+  "short_name": "Evora Studio",
+  "description": "Design any room in 3D from a 2D plan, and save it to your client. Evora Future Studio.",
   "id": "/pufferweb",
   "start_url": "/pufferweb",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#16150F",
+  "theme_color": "#16150F",
   "orientation": "any",
   "icons": [
     { "src": "/icons/evora-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

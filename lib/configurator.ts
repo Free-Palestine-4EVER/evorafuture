@@ -21,6 +21,8 @@ export type SurfaceVariant = {
   label: { en: string; ar: string };
   swatch: string;            // hex color OR image path for the chip
   image: string;             // full-scene render in public/evora/configurator/
+  note?: { en: string; ar: string }; // one-line stone identity, shown under the active swatch
+                                      // (optional: runtime-uploaded variants have none)
 };
 
 export const CONFIG_BASE = "/evora/configurator/base.webp";
@@ -32,35 +34,41 @@ export const SURFACES: SurfaceVariant[] = [
     label: { en: "Patagonia", ar: "باتاغونيا" },
     swatch: "#d9cdbe",
     image: "/evora/configurator/base.webp",
+    note: { en: "Storm-grey movement, a statement island", ar: "حركة رماديّة كالعاصفة، جزيرة تلفت الأنظار" },
   },
   {
     id: "calacatta-gold",
     label: { en: "Calacatta Gold", ar: "كالاكاتا غولد" },
     swatch: "#efe9dc",
     image: "/evora/configurator/surface-calacatta-gold.webp",
+    note: { en: "Warm gold veining, quiet wealth", ar: "عروقٌ ذهبية دافئة، ثراءٌ هادئ" },
   },
   {
     id: "emperador",
     label: { en: "Emperador", ar: "إمبرادور" },
     swatch: "#5a463a",
     image: "/evora/configurator/surface-emperador.webp",
+    note: { en: "Deep brown, soft light", ar: "بنيٌّ عميق وضوءٌ ناعم" },
   },
   {
     id: "nero-marquina",
     label: { en: "Nero Marquina", ar: "نيرو مركينا" },
     swatch: "#1c1a18",
     image: "/evora/configurator/surface-nero-marquina.webp",
+    note: { en: "Black marble, white lightning, for the bold", ar: "رخامٌ أسود ببرقٍ أبيض، لمن يجرؤ" },
   },
   {
     id: "verde-alpi",
     label: { en: "Verde Alpi", ar: "فيردي ألبي" },
     swatch: "#2f4338",
     image: "/evora/configurator/surface-verde-alpi.webp",
+    note: { en: "Forest green, rare and alive", ar: "أخضرُ غابيٌّ نادر وحيّ" },
   },
   {
     id: "travertine",
     label: { en: "Travertine", ar: "ترافرتين" },
     swatch: "#c9b79a",
     image: "/evora/configurator/surface-travertine.webp",
+    note: { en: "Sand-toned, honest stone", ar: "حجرٌ رمليٌّ صادق" },
   },
 ];

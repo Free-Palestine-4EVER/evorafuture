@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { categories } from "@/lib/data";
+import { normalizeSlug } from "@/lib/shopTaxonomy";
 import {
   motion,
   useScroll,
@@ -61,10 +62,10 @@ export default function CategoryRail() {
             preload="metadata"
           />
           <span className="crail__scrim" />
-          <span className="crail__feature-badge">{en ? "Showroom film" : "فيلم المعرض"}</span>
+          <span className="crail__feature-badge">{t("col_film_badge")}</span>
           <div className="crail__feature-cap">
             <span className="crail__feature-t display">
-              {en ? "Step inside Evora" : "ادخل إلى إيفورا"}
+              {t("col_film_caption")}
             </span>
             <span className="crail__feature-arrow" aria-hidden>↗</span>
           </div>
@@ -72,7 +73,7 @@ export default function CategoryRail() {
       </a>
 
       {categories.map((c, i) => (
-        <a key={c.id} href="/shop" className="crail__card" data-cursor="hover">
+        <a key={c.id} href={`/shop/${normalizeSlug(c.id)}`} className="crail__card" data-cursor="hover">
           <div className="crail__imgwrap">
             <img src={c.img} alt={c.name[lang]} className="crail__img" loading="lazy" />
             <span className="crail__scrim" />
@@ -275,7 +276,7 @@ export default function CategoryRail() {
           display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
           color: var(--paper);
         }
-        .crail__feature-t { font-size: clamp(1.4rem, 2.2vw, 2.1rem); line-height: 1.05; }
+        .crail__feature-t { font-size: clamp(1.1rem, 1.7vw, 1.5rem); line-height: 1.2; max-width: 22ch; }
         .crail__feature-arrow { color: var(--brass-2); font-size: 1.3rem; transition: transform .5s var(--ease); }
         .crail__feature:hover .crail__feature-arrow { transform: translate(3px, -3px); }
         html[dir="rtl"] .crail__feature-arrow { transform: scaleX(-1); }

@@ -12,8 +12,20 @@ import ProjectViewer from "@/components/portal/ProjectViewer";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
 import LiveScanner from "@/components/portal/LiveScanner";
 import PortalShell, { Icons } from "@/components/portal/PortalShell";
+import Monogram from "@/components/brand/Monogram";
 import { scanToProject, type ScanFile } from "@/lib/puffer/importScan";
 import { buildRoomGlbBlob } from "@/lib/puffer/liveScan";
+
+const Arrow = ({ rtl, size = 20 }: { rtl: boolean; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ transform: rtl ? "scaleX(-1)" : undefined, flexShrink: 0 }} aria-hidden="true">
+    <path d="M5 12h14" /><path d="M13 6l6 6-6 6" />
+  </svg>
+);
+const ScanGlyph = ({ size = 48 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
 
 function dataUrlToFile(dataUrl: string, name: string): File {
   const [head, b64] = dataUrl.split(",");
@@ -24,7 +36,7 @@ function dataUrlToFile(dataUrl: string, name: string): File {
 }
 
 export default function DashboardPage() {
-  const { lang } = useT();
+  const { lang, dir } = useT();
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
   const { user, loading } = usePortalAuth();
   const [section, setSection] = useState("designs");
@@ -103,7 +115,7 @@ export default function DashboardPage() {
                   <span style={{ fontSize: "0.74rem", color: "var(--ink-soft)" }}>{lang === "ar" ? JOURNEY[ci(latest)].ar : JOURNEY[ci(latest)].en}</span>
                 </div>
               </div>
-              <span style={{ color: "var(--clay)", fontSize: "1.4rem", flexShrink: 0, paddingInlineEnd: "0.6rem" }}>→</span>
+              <span style={{ color: "var(--clay)", display: "grid", placeItems: "center", flexShrink: 0, paddingInlineEnd: "0.6rem" }}><Arrow rtl={dir === "rtl"} /></span>
             </button>
           )}
 
@@ -130,7 +142,7 @@ export default function DashboardPage() {
                       <span>{lang === "ar" ? JOURNEY[ci(p)].ar : JOURNEY[ci(p)].en}</span><span>{ci(p) + 1}/{JOURNEY.length}</span>
                     </div>
                     <div style={{ height: 4, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: "var(--clay)" }} /></div>
-                    <p style={{ fontSize: "0.8rem", color: "var(--clay)", margin: "0.8rem 0 0", fontWeight: 500 }}>{tp("view_3d", lang)} →</p>
+                    <p style={{ fontSize: "0.8rem", color: "var(--clay)", margin: "0.8rem 0 0", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>{tp("view_3d", lang)} <Arrow rtl={dir === "rtl"} size={15} /></p>
                   </div>
                 </button>
               );
@@ -141,10 +153,10 @@ export default function DashboardPage() {
 
       {section === "scan" && (
         <div style={{ ...card, padding: "clamp(1.6rem,5vw,3rem)", textAlign: "center", maxWidth: 560, margin: "1rem auto" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.8rem" }}>◎</div>
+          <div style={{ color: "var(--clay)", marginBottom: "0.8rem", display: "grid", placeItems: "center" }}><ScanGlyph size={48} /></div>
           <h2 className="display" style={{ fontSize: "1.8rem", color: "var(--ink)", margin: "0 0 0.8rem" }}>{t("Scan your room in 3D", "امسح غرفتك ثلاثي الأبعاد")}</h2>
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, margin: "0 0 1.6rem" }}>{t("Walk around your room with your phone camera. Evora turns it into a 2D plan and a 3D model — then our designers furnish it for you.", "تجول في غرفتك بكاميرا هاتفك. تحوّلها إيفورا إلى مخطط ثنائي ونموذج ثلاثي الأبعاد، ثم يفرشها مصممونا لك.")}</p>
-          <button onClick={() => setScanning(true)} style={{ padding: "1rem 2rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer" }}>◎ {t("Start scanning", "ابدأ المسح")}</button>
+          <button onClick={() => setScanning(true)} style={{ padding: "1rem 2rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.6rem" }}><ScanGlyph size={20} /> {t("Start scanning", "ابدأ المسح")}</button>
           {scanStatus && <p style={{ color: "var(--clay)", fontWeight: 600, marginTop: "1.2rem" }}>{scanStatus}</p>}
         </div>
       )}
@@ -156,4 +168,14 @@ export default function DashboardPage() {
 }
 
 const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--line)", borderRadius: 16 };
-function Splash() { return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontFamily: "var(--f-display)" }}>EVORA</div>; }
+
+// Branded auth-resolving splash — the 'E' monogram breathing on the ink field,
+// not a bare 'EVORA' text. The once-per-session curtain Loader lives in the layout.
+function Splash() {
+  return (
+    <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", background: "var(--ink)" }}>
+      <Monogram tone="brass" style={{ height: "2.6rem", width: "2.6rem", animation: "ev-splash-pulse 1.6s var(--ease) infinite" }} />
+      <style>{`@keyframes ev-splash-pulse { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } } @media (prefers-reduced-motion: reduce) { [style*="ev-splash-pulse"] { animation: none !important; opacity: 0.85; } }`}</style>
+    </div>
+  );
+}

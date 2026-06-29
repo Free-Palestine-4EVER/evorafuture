@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Loader from "@/components/brand/Loader";
 import "./puffer.css";
 
-/* Root layout for Puffer, hosted in-app at /pufferweb. Its own dark, Tailwind
- * shell — independent of the Evora marketing/portal chrome.
+/* Root layout for Evora Future Studio, hosted in-app at /pufferweb. Its own
+ * midnight-atelier, Tailwind shell — independent of the marketing/portal chrome.
  *
  * PWA-installable on iPad / iPhone (manifest + apple-web-app meta): the studio
  * adds it to the home screen and it opens full-screen with no Safari chrome.
@@ -16,11 +17,11 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Puffer · Evora",
-  description: "Turn a 2D floor plan into a furnished 3D space and save it to a client.",
+  title: "Evora Future Studio",
+  description: "Design any room in 3D from a 2D plan, and save it to your client. Evora Future Studio.",
   manifest: "/puffer.webmanifest",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Puffer" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Evora Studio" },
   icons: {
     icon: [
       { url: "/icons/evora-192.png", sizes: "192x192", type: "image/png" },
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#16150F",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -42,7 +43,13 @@ export const viewport: Viewport = {
 export default function PufferLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col overscroll-none bg-neutral-950 text-neutral-100">{children}</body>
+      <body
+        className="min-h-full flex flex-col overscroll-none"
+        style={{ background: "var(--ink)", color: "var(--paper)" }}
+      >
+        <Loader />
+        {children}
+      </body>
     </html>
   );
 }

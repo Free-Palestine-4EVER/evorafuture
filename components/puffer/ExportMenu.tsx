@@ -38,7 +38,7 @@ export default function ExportMenu() {
         disabled={!hasContent}
         title={hasContent ? "Export the 3D plan as an editable file" : "Add walls or furniture first"}
         className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-          hasContent ? "bg-emerald-600 text-white hover:bg-emerald-500" : "cursor-not-allowed bg-neutral-800 text-neutral-500"
+          hasContent ? "bg-[var(--ever-2)] text-[var(--paper)] hover:bg-[var(--ever-2-hi)]" : "cursor-not-allowed bg-neutral-800 text-neutral-500"
         }`}
       >
         <span>⤓</span> Export

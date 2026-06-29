@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { newId } from "@/lib/portal/store";
-import type { PortalUser, Project, ProjectStatus } from "@/lib/portal/types";
+import { STATUS_LABEL, type PortalUser, type Project, type ProjectStatus } from "@/lib/portal/types";
 
 const STATUSES: ProjectStatus[] = ["draft", "approved", "in_production", "delivered"];
 
@@ -79,7 +79,7 @@ export default function ProjectForm({
           <label style={label}>{tp("room", lang)}<input style={field} value={p.room || ""} onChange={(e) => set("room", e.target.value)} /></label>
           <label style={label}>{tp("status", lang)}
             <select style={field} value={p.status} onChange={(e) => set("status", e.target.value as ProjectStatus)}>
-              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s][lang]}</option>)}
             </select>
           </label>
         </div>
@@ -87,7 +87,7 @@ export default function ProjectForm({
         <div style={{ height: "0.9rem" }} />
         <label style={label}>{tp("thumb", lang)}<input style={field} value={p.thumbnailUrl || ""} onChange={(e) => { set("thumbnailUrl", e.target.value); if (!p.plan2dUrl) set("plan2dUrl", e.target.value); }} placeholder="/evora/p07.jpg" /></label>
         <div style={{ height: "0.9rem" }} />
-        <label style={label}>{tp("viewer", lang)}<input style={field} value={p.viewerUrl || ""} onChange={(e) => set("viewerUrl", e.target.value)} placeholder="https://puffer.../viewer/..." /></label>
+        <label style={label}>{tp("viewer", lang)}<input style={field} value={p.viewerUrl || ""} onChange={(e) => set("viewerUrl", e.target.value)} placeholder="https://studio.evorafuture.com/viewer/…" /></label>
         <div style={{ height: "0.9rem" }} />
         <label style={label}>{tp("model", lang)}<input style={field} value={p.model3dUrl || ""} onChange={(e) => set("model3dUrl", e.target.value)} placeholder="https://.../scene.glb" /></label>
         <div style={{ height: "0.9rem" }} />

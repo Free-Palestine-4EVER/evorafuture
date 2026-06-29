@@ -13,6 +13,27 @@ import ProjectManage from "@/components/portal/ProjectManage";
 import ClientDetail from "@/components/portal/ClientDetail";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
 import PortalShell, { Icons } from "@/components/portal/PortalShell";
+import Monogram from "@/components/brand/Monogram";
+
+// Brass studio identity lockup — the Team door's antique-brass counterpart to
+// the client portal's green 'Client Portal' mark. Sits above the working area
+// on every section so staff always read 'this is Evora, at work'.
+function StudioLockup({ label }: { label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0 0 1rem", marginBottom: "1.6rem", borderBottom: "1px solid var(--line-soft)" }}>
+      <Monogram tone="brass" style={{ height: "1.15rem", width: "1.15rem", flexShrink: 0 }} />
+      <span style={{ fontSize: "0.66rem", letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, color: "var(--brass)" }}>{label}</span>
+    </div>
+  );
+}
+
+// Small line phone glyph (stroke = currentColor) — replaces the 📞 emoji
+// affordance the rebrand bans on branded surfaces.
+const PhoneIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
 
 const timeAgo = (t?: number, ar?: boolean) => {
   if (!t) return "";
@@ -64,7 +85,7 @@ export default function AdminPage() {
     { key: "leads", label: t("Leads", "الطلبات"), icon: Icons.leads, badge: newLeads || undefined },
   ];
   const titles: Record<string, [string, string]> = {
-    overview: [t("Studio overview", "نظرة عامة"), `${t("Welcome back", "مرحبًا")}, ${user.name}`],
+    overview: [t("Studio overview", "نظرة عامة على الاستوديو"), `${t("Welcome back", "أهلًا بعودتك")}، ${user.name}`],
     projects: [t("Projects", "المشاريع"), `${projects.length} ${t("total", "إجمالي")}`],
     clients: [t("Clients", "العملاء"), `${clients.length} ${t("total", "إجمالي")}`],
     leads: [t("Design requests", "طلبات التصميم"), `${newLeads} ${t("new", "جديد")}`],
@@ -75,6 +96,7 @@ export default function AdminPage() {
 
   return (
     <PortalShell nav={nav} active={section} onNavigate={setSection} title={titles[section][0]} subtitle={titles[section][1]} actions={actions} accentName={user.name}>
+      <StudioLockup label={tp("team_lockup", lang)} />
       <NotifyPrompt />
 
       {section === "overview" && (
@@ -83,7 +105,7 @@ export default function AdminPage() {
             {[
               { l: t("Projects", "المشاريع"), v: projects.length, sub: `${projects.filter((p) => p.status === "delivered").length} ${t("delivered", "مسلّم")}` },
               { l: t("Clients", "العملاء"), v: clients.length },
-              { l: t("In production", "قيد التنفيذ"), v: inProd },
+              { l: t("In production", "قيد الإنتاج"), v: inProd },
               { l: t("New leads", "طلبات جديدة"), v: newLeads, accent: newLeads > 0 },
             ].map((s) => (
               <div key={s.l} style={{ ...card, padding: "1.3rem 1.4rem", background: s.accent ? "var(--ink)" : "#fff" }}>
@@ -134,7 +156,7 @@ export default function AdminPage() {
               {leads.filter((l) => l.status === "new").slice(0, 5).map((l) => (
                 <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.6rem", padding: "0.6rem 0", borderTop: "1px solid var(--line-soft)" }}>
                   <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem" }}>{l.name || "—"}</span><span style={{ fontSize: "0.76rem", color: "var(--ink-faint)" }}>{l.phone}</span></span>
-                  <a href={`tel:${l.phone}`} style={{ ...miniBtn, textDecoration: "none" }}>📞 {t("Call", "اتصال")}</a>
+                  <a href={`tel:${l.phone}`} style={{ ...miniBtn, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}><PhoneIcon /> {t("Call", "اتصال")}</a>
                 </div>
               ))}
               {newLeads === 0 && <p style={{ color: "var(--ink-faint)", fontSize: "0.88rem" }}>{t("No new requests.", "لا طلبات جديدة.")}</p>}
@@ -220,7 +242,7 @@ export default function AdminPage() {
                 {l.planUrl && (
                   <button onClick={async () => { await sendLeadToPuffer(l.id, !l.sentToPuffer); load(); }}
                     style={{ ...miniBtn, ...(l.sentToPuffer ? { background: "var(--clay)", color: "#fff", border: "none" } : { borderColor: "var(--clay)", color: "var(--clay)" }) }}>
-                    {l.sentToPuffer ? `✓ ${t("In Puffer", "في بافر")}` : `↗ ${t("Send to Puffer", "أرسل لبافر")}`}
+                    {l.sentToPuffer ? `✓ ${t("In the Studio", "في الاستوديو")}` : `↗ ${t("Send to Studio", "أرسل إلى الاستوديو")}`}
                   </button>
                 )}
                 <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
@@ -252,7 +274,16 @@ export default function AdminPage() {
   );
 }
 
-function Splash() { return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontFamily: "var(--f-display)" }}>EVORA</div>; }
+// Branded auth-resolving splash — the brass 'E' monogram breathing on the
+// midnight-atelier field, not a bare 'EVORA' text.
+function Splash() {
+  return (
+    <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", background: "var(--ink)" }}>
+      <Monogram tone="brass" style={{ height: "2.6rem", width: "2.6rem", animation: "ev-splash-pulse 1.6s var(--ease) infinite" }} />
+      <style>{`@keyframes ev-splash-pulse { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } } @media (prefers-reduced-motion: reduce) { [style*="ev-splash-pulse"] { animation: none !important; opacity: 0.85; } }`}</style>
+    </div>
+  );
+}
 
 function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { lang, dir } = useT();

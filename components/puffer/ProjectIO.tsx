@@ -11,7 +11,7 @@ export default function ProjectIO() {
     const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "puffer-project.json";
+    a.download = "evora-studio-project.json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -23,10 +23,10 @@ export default function ProjectIO() {
     reader.onload = () => {
       try {
         const p = JSON.parse(reader.result as string) as ProjectFile;
-        if (!p || typeof p !== "object" || !("rects" in p)) throw new Error("not a Puffer project");
+        if (!p || typeof p !== "object" || !("rects" in p)) throw new Error("not an Evora Studio project");
         loadProject(p);
       } catch {
-        alert("That doesn't look like a Puffer project file (.json).");
+        alert("That doesn't look like an Evora Studio project file (.json).");
       }
     };
     reader.readAsText(file);

@@ -22,7 +22,8 @@ type World = {
   num: string;
   name: Bi;
   count: Bi;
-  blurb: Bi;
+  blurbKey: "col_world_coffee" | "col_world_sofa" | "col_world_armchair" | "col_world_bed";
+  href: string;
   video: string;
   poster: string;
 };
@@ -33,10 +34,8 @@ const worlds: World[] = [
     num: "01",
     name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" },
     count: { en: "30 pieces", ar: "٣٠ قطعة" },
-    blurb: {
-      en: "Sculpted Patagonia stone on warm walnut — the quiet centre of the room.",
-      ar: "حجر باتاغونيا منحوت على جوز دافئ — قلب الغرفة الهادئ.",
-    },
+    blurbKey: "col_world_coffee",
+    href: "/shop/tables",
     video: "/evora/vid-coffee.mp4",
     poster: "/evora/vid-coffee.jpg",
   },
@@ -45,10 +44,8 @@ const worlds: World[] = [
     num: "02",
     name: { en: "Sofas & Couches", ar: "كنب وأرائك" },
     count: { en: "28 pieces", ar: "٢٨ قطعة" },
-    blurb: {
-      en: "Deep cream bouclé, modular and soft — built to be lived in.",
-      ar: "بوكليه كريمي عميق، وحدات طريّة — صُنع ليُعاش.",
-    },
+    blurbKey: "col_world_sofa",
+    href: "/shop/sofas",
     video: "/evora/vid-sofa.mp4",
     poster: "/evora/vid-sofa.jpg",
   },
@@ -57,10 +54,8 @@ const worlds: World[] = [
     num: "03",
     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" },
     count: { en: "24 pieces", ar: "٢٤ قطعة" },
-    blurb: {
-      en: "A single sculptural seat — the detail that finishes a corner.",
-      ar: "مقعد منحوت واحد — اللمسة التي تُكمل الزاوية.",
-    },
+    blurbKey: "col_world_armchair",
+    href: "/shop/seating",
     video: "/evora/vid-armchair.mp4",
     poster: "/evora/vid-armchair.jpg",
   },
@@ -69,10 +64,8 @@ const worlds: World[] = [
     num: "04",
     name: { en: "Beds & Bedrooms", ar: "أسرّة وغرف نوم" },
     count: { en: "42 pieces", ar: "٤٢ قطعة" },
-    blurb: {
-      en: "Linen, walnut and marble — a room that lowers your shoulders.",
-      ar: "كتان وجوز ورخام — غرفة تُرخي كتفيك.",
-    },
+    blurbKey: "col_world_bed",
+    href: "/shop/bedroom",
     video: "/evora/vid-bed.mp4",
     poster: "/evora/vid-bed.jpg",
   },
@@ -80,19 +73,19 @@ const worlds: World[] = [
 
 // ── "The rest" — smaller categories as slide-in photo cards.
 //    Swap each `img` for the generated amazing photo at the same path.
-type RoomCard = { id: string; name: Bi; count: Bi; img: string };
+type RoomCard = { id: string; name: Bi; count: Bi; img: string; href: string };
 
 const cards: RoomCard[] = [
-  { id: "accessories", name: { en: "Accessories", ar: "إكسسوارات" }, count: { en: "90+ pieces", ar: "+٩٠ قطعة" }, img: "/evora/p11.jpg" },
-  { id: "lighting",    name: { en: "Lighting",     ar: "إضاءة" },      count: { en: "45+ pieces", ar: "+٤٥ قطعة" }, img: "/evora/p10.jpg" },
-  { id: "rugs",        name: { en: "Rugs & Textiles", ar: "سجاد ومنسوجات" }, count: { en: "60+ pieces", ar: "+٦٠ قطعة" }, img: "/evora/p09.jpg" },
-  { id: "storage",     name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" }, count: { en: "Built-in", ar: "حسب القياس" }, img: "/evora/p02.jpg" },
-  { id: "tables",      name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" }, count: { en: "30 pieces", ar: "٣٠ قطعة" }, img: "/evora/p04.jpg" },
-  { id: "seating",     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" }, count: { en: "24 pieces", ar: "٢٤ قطعة" }, img: "/evora/ig-chesterfield.jpg" },
+  { id: "accessories", name: { en: "Accessories", ar: "إكسسوارات" }, count: { en: "90+ pieces", ar: "+٩٠ قطعة" }, img: "/evora/p11.jpg", href: "/shop/decor" },
+  { id: "lighting",    name: { en: "Lighting",     ar: "إضاءة" },      count: { en: "45+ pieces", ar: "+٤٥ قطعة" }, img: "/evora/p10.jpg", href: "/shop/lighting" },
+  { id: "rugs",        name: { en: "Rugs & Textiles", ar: "سجاد ومنسوجات" }, count: { en: "60+ pieces", ar: "+٦٠ قطعة" }, img: "/evora/p09.jpg", href: "/shop/rugs" },
+  { id: "storage",     name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" }, count: { en: "Built-in", ar: "حسب القياس" }, img: "/evora/p02.jpg", href: "/shop/storage" },
+  { id: "tables",      name: { en: "Coffee & Side Tables", ar: "طاولات قهوة وجانبية" }, count: { en: "30 pieces", ar: "٣٠ قطعة" }, img: "/evora/p04.jpg", href: "/shop/tables" },
+  { id: "seating",     name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" }, count: { en: "24 pieces", ar: "٢٤ قطعة" }, img: "/evora/ig-chesterfield.jpg", href: "/shop/seating" },
 ];
 
 function WorldPanel({ world, i }: { world: World; i: number }) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const reduce = useReducedMotion();
   const ref = useRef<HTMLAnchorElement>(null);
 
@@ -116,7 +109,7 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
   return (
     <a
       ref={ref}
-      href="/shop"
+      href={world.href}
       className="world"
       data-cursor="hover"
       lang={lang}
@@ -149,7 +142,7 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
         >
           <span className="world__count">{world.count[lang]}</span>
           <span className="world__name display">{world.name[lang]}</span>
-          <span className="world__blurb">{world.blurb[lang]}</span>
+          <span className="world__blurb">{t(world.blurbKey)}</span>
           <span className="world__cta">
             {lang === "en" ? "Step inside" : "ادخل"}
             <span className="world__arrow" aria-hidden>↗</span>
@@ -165,7 +158,7 @@ function SlideCard({ card, i }: { card: RoomCard; i: number }) {
   const fromLeft = i % 2 === 0;
   return (
     <motion.a
-      href="/shop"
+      href={card.href}
       className="rcard"
       data-cursor="hover"
       initial={{ opacity: 0, x: fromLeft ? -64 : 64, filter: "blur(8px)" }}
@@ -189,7 +182,7 @@ function SlideCard({ card, i }: { card: RoomCard; i: number }) {
 }
 
 export default function Collections() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const en = lang === "en";
 
   return (
@@ -216,7 +209,7 @@ export default function Collections() {
           />
           <Rise delay={0.12} as="p" className="rooms__sub">
             {en
-              ? "Step through six rooms of Evora — then everything else that finishes the home."
+              ? "Step through six rooms of Evora — then everything that finishes the home."
               : "تنقّل بين ست غرف من إيفورا — ثم كل ما يكمّل البيت."}
           </Rise>
         </div>
@@ -232,10 +225,10 @@ export default function Collections() {
             preload="metadata"
           />
           <span className="rooms__filmscrim" />
-          <span className="rooms__filmbadge">{en ? "Showroom film" : "فيلم المعرض"}</span>
+          <span className="rooms__filmbadge">{t("col_film_badge")}</span>
           <div className="rooms__filmcap">
             <span className="rooms__filmt display">
-              {en ? "Step inside Evora" : "ادخل إلى إيفورا"}
+              {t("col_film_caption")}
             </span>
             <span className="rooms__filmarrow" aria-hidden>↗</span>
           </div>

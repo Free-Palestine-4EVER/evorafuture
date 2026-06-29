@@ -44,6 +44,7 @@ export const STR = {
   nav_catalog: { en: "Lookbook", ar: "الكتالوج" },
   nav_showroom: { en: "AR Showroom", ar: "معرض الواقع المعزّز" },
   nav_design: { en: "Design Studio", ar: "استوديو التصميم" },
+  nav_studio: { en: "The Studio", ar: "الاستوديو" },
 
   shop_page_eyebrow: { en: "The Catalogue", ar: "الكتالوج" },
   shop_page_title: { en: "Shop the collection", ar: "تسوّق المجموعة" },
@@ -77,8 +78,8 @@ export const STR = {
   hero_l2: { en: "beautifully", ar: "بكل" },
   hero_l3: { en: "furnished.", ar: "تفاصيله." },
   hero_sub: {
-    en: "See your home in 3D before it's built — then we design, craft and deliver every room. All under one roof in Amman.",
-    ar: "شاهد منزلك ثلاثي الأبعاد قبل أن يُبنى — ثم نصمّم ونصنع ونوصّل كل غرفة. كل ذلك تحت سقف واحد في عمّان.",
+    en: "See every room of your home in 3D before a single piece is made — then approve it, and we design, craft and deliver it. All under one roof in Amman.",
+    ar: "شاهد كل غرفة في بيتك بالأبعاد الثلاثية قبل أن تُصنع أيّ قطعة — ثم وافِق عليها، ونحن نصمّم ونصنع ونوصّل. كل ذلك تحت سقف واحد في عمّان.",
   },
   hero_cta1: { en: "Explore the Collection", ar: "اكتشف المجموعة" },
   hero_cta2: { en: "Enter the Showroom", ar: "ادخل المعرض" },
@@ -86,12 +87,12 @@ export const STR = {
 
   manifesto_eyebrow: { en: "Your Future Home", ar: "بيت المستقبل" },
   manifesto_lead: {
-    en: "We don't just sell furniture — we design the whole space. Warm woods, soft tones and quiet luxury, composed in 3D for the way you actually live.",
-    ar: "نحن لا نبيع الأثاث فحسب — نصمّم المساحة بأكملها. أخشاب دافئة، ألوان ناعمة، وفخامة هادئة، مُصمَّمة ثلاثية الأبعاد لتناسب أسلوب حياتك.",
+    en: "We don't just sell furniture — we design the whole space: named stone, solid walnut, hand-finished brass, composed in 3D for the way you actually live.",
+    ar: "نحن لا نبيع الأثاث فحسب — نصمّم المساحة بأكملها: حجرٌ بالاسم، جوزٌ صلب، نحاسٌ مشغول باليد، مُصمَّمٌ بالأبعاد الثلاثية ليناسب حياتك فعلًا.",
   },
   manifesto_body: {
-    en: "From a single statement piece to a fully designed home, Evora brings together craftsmanship, comfort and care — with flexible installments and a design team that sees it through, from concept to delivery.",
-    ar: "من قطعة واحدة مميزة إلى منزل متكامل التصميم، يجمع إيفورا بين الحرفية والراحة والعناية — مع تقسيط مريح وفريق تصميم يرافقك من الفكرة حتى التسليم.",
+    en: "From a single statement piece to a whole home, with flexible installments and a design team that sees it through, from concept to delivery.",
+    ar: "من قطعةٍ واحدة مميّزة إلى بيتٍ كامل، مع تقسيطٍ مريح وفريق تصميمٍ يرافقك من الفكرة حتى التسليم.",
   },
 
   collections_eyebrow: { en: "Collections", ar: "المجموعات" },
@@ -130,7 +131,7 @@ export const STR = {
   visit_eyebrow: { en: "Visit Us", ar: "زورونا" },
   visit_title: { en: "Come find your space", ar: "تعال واكتشف مساحتك" },
   visit_addr: { en: "Wasfi Al-Tal St., Khalda — Amman, Jordan · opposite Paradise Bakeries", ar: "شارع وصفي التل، خلدا — عمّان، الأردن · مقابل أفران الجنّة" },
-  visit_hours: { en: "Sat – Thu · 10:00 — 22:00", ar: "السبت – الخميس · ١٠:٠٠ — ٢٢:٠٠" },
+  visit_hours: { en: "Sat – Thu · 10:00 — 22:00 · Friday by appointment", ar: "السبت – الخميس · ١٠:٠٠ — ٢٢:٠٠ · الجمعة بموعد مسبق" },
   visit_cta: { en: "Book a Showroom Visit", ar: "احجز زيارة للمعرض" },
   visit_call: { en: "Call the Studio", ar: "اتصل بالاستوديو" },
 
@@ -138,8 +139,8 @@ export const STR = {
   footer_rights: { en: "Designing & furnishing Jordan's homes — your future home, under one roof.", ar: "نصمّم ونؤثّث بيوت الأردن — بيت المستقبل، تحت سقف واحد." },
   footer_demo: { en: "Concept preview — built for Evora", ar: "نسخة تجريبية — صُمّمت لإيفورا" },
 
-  proof_eyebrow: { en: "Loved across Amman", ar: "محبوب في كل عمّان" },
-  proof_title: { en: "Homes, beautifully delivered", ar: "بيوت، سُلّمت بأبهى صورة" },
+  proof_eyebrow: { en: "Homes furnished from Abdoun to Khalda", ar: "بيوتٌ أثّثناها من عبدون إلى خلدا" },
+  proof_title: { en: "2,400+ homes, beautifully delivered.", ar: "أكثر من ٢٤٠٠ بيت، سُلّمت بأبهى صورة." },
   proof_since: { en: "Furnishing Jordan's homes since 2017", ar: "نؤثّث بيوت الأردن منذ ٢٠١٧" },
   stat_homes: { en: "homes furnished", ar: "بيت تم تأثيثه" },
   stat_followers: { en: "community", ar: "متابع" },
@@ -161,10 +162,10 @@ export const STR = {
   },
 
   fin_eyebrow: { en: "Pay Your Way", ar: "ادفع بطريقتك" },
-  fin_title: { en: "Cash price. Up to 2 years to pay.", ar: "بسعر الكاش. وتقسيط حتى سنتين." },
+  fin_title: { en: "Cash price. Up to 3 years to pay.", ar: "بسعر الكاش. وتقسيط حتى ٣ سنوات." },
   fin_body: {
-    en: "Furnish now and spread the cost with comfortable installments through Safwa Islamic Bank — at the same cash price, with no hidden cost.",
-    ar: "أثّث الآن وقسّط التكلفة بمرونة عبر بنك صفوة الإسلامي — بنفس سعر الكاش، وبدون أي تكلفة خفية.",
+    en: "Furnish now and spread the cost over up to 36 months through Safwa Islamic Bank — the same cash price, no interest, no hidden cost.",
+    ar: "بدون فوائد ولا ربا، عبر بنك صفوة الإسلامي — أثّث الآن وقسّط التكلفة على مدى ٣٦ شهرًا، بنفس سعر الكاش، وبدون أيّ تكلفة خفية.",
   },
 
   faq_eyebrow: { en: "Good to Know", ar: "أسئلة شائعة" },
@@ -184,5 +185,98 @@ export const STR = {
   wa_msg: {
     en: "Hi Evora! I'd love to book a design consultation.",
     ar: "مرحبًا إيفورا! أودّ حجز استشارة تصميم.",
+  },
+
+  // ── Configurator beat (the kitchen-island video) — Stream 7 ───────────────
+  cfg_eyebrow: { en: "Bespoke kitchens · made in Amman", ar: "مطابخ حسب الطلب · تُصنع في عمّان" },
+  cfg_heading: { en: "A kitchen cut to your stone.", ar: "مطبخٌ يُفصَّل على حجرك." },
+  cfg_lead: {
+    en: "Every Evora island is built to order in our own workshop. Choose the marble, the finish, the proportions — and watch the room change as you decide.",
+    ar: "كل جزيرة من إيفورا تُصنع خصيصًا في ورشتنا. اختر الرخام والتشطيب والمقاسات، وشاهد الغرفة تتبدّل أمام عينيك.",
+  },
+  cfg_panel_eyebrow: { en: "Choose your stone", ar: "اختر حجرك" },
+  cfg_cta: { en: "Book a kitchen consultation", ar: "احجز استشارة مطبخك" },
+  cfg_aria: { en: "Evora kitchen island, in 3D", ar: "جزيرة مطبخ إيفورا، بالأبعاد الثلاثية" },
+
+  // ── Collections beat (showroom film + four worlds) — Stream 7 ─────────────
+  col_film_badge: { en: "Inside the Khalda showroom", ar: "داخل معرض خلدا" },
+  col_film_caption: {
+    en: "Two floors of finished rooms — walk through before you decide.",
+    ar: "طابقان من الغرف المكتملة — تجوّل فيها قبل أن تقرّر.",
+  },
+  col_world_coffee: {
+    en: "Patagonia marble on solid walnut — the first thing a guest's eye lands on.",
+    ar: "رخام باتاغونيا على جوز صلب — أوّل ما تقع عليه عين الضيف.",
+  },
+  col_world_sofa: {
+    en: "Cream boucle, modular and deep — where the family lands every evening.",
+    ar: "بوكليه كريمي، وحداتٌ وعمق — حيث تجتمع العائلة كل مساء.",
+  },
+  col_world_armchair: {
+    en: "One sculpted seat — the detail that makes a corner feel finished.",
+    ar: "مقعدٌ منحوت واحد — التفصيل الذي يجعل الزاوية مكتملة.",
+  },
+  col_world_bed: {
+    en: "Linen, walnut and stone — the room you exhale in at the end of the day.",
+    ar: "كتانٌ وجوز وحجر — الغرفة التي ترتاح فيها في آخر النهار.",
+  },
+
+  // ── Process journey (the free design service) — Stream 7 ──────────────────
+  pj_free: {
+    en: "The complete interior-design service — yours, free, when you furnish with Evora",
+    ar: "خدمة التصميم الداخلي الكاملة — هديّتنا لك عند التأثيث مع إيفورا",
+  },
+  pj_loss: {
+    en: "You approve the photoreal render before we cut a single board — change your mind on screen, not in your living room.",
+    ar: "توافق على التصميم النهائي قبل أن نقصّ أوّل لوح خشب — غيّر رأيك على الشاشة، لا في بيتك.",
+  },
+
+  // ── Shop: rooms hub, similar rail, popup CTAs, empty state — Stream 6 ──────
+  shop_rooms_eyebrow: { en: "Shop by room", ar: "تسوّق حسب الغرفة" },
+  shop_rooms_title: { en: "Every room, arranged the way you live in it", ar: "كل غرفة، مرتّبة كما تعيشها" },
+  shop_rooms_sub: {
+    en: "Step into a room and see the full Evora collection that lives in it — then bring it home, or design the whole space with us.",
+    ar: "ادخل أي غرفة وشاهد تشكيلة إيفورا الكاملة التي تعيش فيها — ثم خذها إلى بيتك، أو صمّم المساحة كاملة معنا.",
+  },
+  shop_similar: { en: "Complete the room", ar: "أكمِل الغرفة" },
+  shop_view_all: { en: "View all", ar: "اعرض الكل" },
+  shop_enquire: { en: "Enquire about this piece", ar: "استفسر عن هذه القطعة" },
+  shop_add_design: { en: "Add to my design", ar: "أضِفها إلى تصميمي" },
+  shop_showroom_cta: { en: "See it in the Khalda showroom", ar: "شاهدها في معرض خلدا" },
+  shop_empty_enquire: {
+    en: "We're adding this collection to the site. See it now in our Khalda showroom.",
+    ar: "نضيف هذه المجموعة إلى الموقع قريبًا. شاهدها الآن في معرض خلدا.",
+  },
+
+  // ── Evora Future Studio presentation page — Stream 2 ──────────────────────
+  studio_eyebrow: { en: "Evora Future Studio", ar: "استوديو إيفورا المستقبلي" },
+  studio_hero_title: {
+    en: "See your whole home in 3D — before it exists.",
+    ar: "شاهد بيتك كاملًا بالأبعاد الثلاثية — قبل أن يوجد.",
+  },
+  studio_hero_sub: {
+    en: "Bring us your floor plan. We design every room in 3D, you walk through it, and only when you approve do we build it — under one roof, complimentary with your furnishing.",
+    ar: "أحضر لنا مخطّطك. نصمّم كل غرفة بالأبعاد الثلاثية، تتجوّل فيها، وحين توافق فقط نبدأ التنفيذ — تحت سقف واحد، هديّة مع تأثيثك.",
+  },
+  studio_cta: { en: "Book a design consultation", ar: "احجز استشارة تصميم" },
+  studio_b1_t: { en: "Bring us your floor plan", ar: "أحضر لنا مخطّطك" },
+  studio_b1_b: {
+    en: "A bare blueprint — walls, rooms, dimensions. That's all we need to begin.",
+    ar: "مخطّطٌ فارغ — جدران وغرف وأبعاد. هذا كل ما نحتاجه لنبدأ.",
+  },
+  studio_b2_t: { en: "Watch it become a room", ar: "شاهده يصبح غرفة" },
+  studio_b2_b: {
+    en: "We furnish your plan and rebuild it in real 3D — every piece placed to scale, in finishes you choose.",
+    ar: "نؤثّث مخطّطك ونعيد بناءه بأبعاد ثلاثية حقيقية — كل قطعة بمقاسها، وبتشطيبات تختارها أنت.",
+  },
+  studio_b3_t: { en: "Walk inside before it's yours", ar: "تجوّل في الداخل قبل أن يصبح لك" },
+  studio_b3_b: {
+    en: "Step into your home from your screen — look anywhere, check it against your light, change your mind freely.",
+    ar: "ادخل بيتك من شاشتك — انظر في كل اتجاه، جرّبه مع إضاءتك، وغيّر رأيك براحتك.",
+  },
+  studio_b4_t: { en: "Approve it, then we build it", ar: "وافِق عليه، ثم نصنعه" },
+  studio_b4_b: {
+    en: "You sign off on a photoreal render — then we craft and deliver every room, and you track each stage live. Complimentary, under one roof.",
+    ar: "توافق على تصميمٍ واقعي — ثم نصنع ونوصّل كل غرفة، وأنت تتابع كل مرحلة مباشرةً. هديّة، وتحت سقف واحد.",
   },
 } satisfies Dict;

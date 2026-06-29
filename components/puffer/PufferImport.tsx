@@ -1,7 +1,7 @@
 "use client";
 
-// Shows 2D plans the admin sent to Puffer (design requests) and imports the
-// chosen plan straight into the editor. Lives in the Puffer toolbar.
+// Shows 2D plans the admin sent to the Studio (design requests) and imports the
+// chosen plan straight into the editor. Lives in the Studio toolbar.
 
 import { useCallback, useEffect, useState } from "react";
 import { useStudio } from "@/lib/puffer/store";
@@ -16,7 +16,7 @@ function portalBase() {
   return typeof window === "undefined" ? "" : window.location.origin;
 }
 
-// A built-in sample LiDAR scan (a 4×3 m room with a few pieces) so Puffer import
+// A built-in sample LiDAR scan (a 4×3 m room with a few pieces) so Studio import
 // can be demoed without running the iOS app. Same shape the app produces.
 const DEMO_SCAN: ScanFile = {
   version: 1, units: "m",
@@ -131,19 +131,19 @@ export default function PufferImport() {
     <div className="relative">
       <button onClick={() => setOpen((o) => !o)} className="relative rounded-md bg-neutral-800 px-2.5 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-700">
         📥 Import
-        {(items.length + scans.length) > 0 && <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-sky-500 px-1 text-[10px] font-bold text-white">{items.length + scans.length}</span>}
+        {(items.length + scans.length) > 0 && <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brass-2)] px-1 text-[10px] font-bold text-[var(--ink)]">{items.length + scans.length}</span>}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-neutral-800 bg-neutral-950 p-3 shadow-2xl">
+        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-[var(--line)] bg-[var(--ink)] p-3 shadow-2xl">
           {/* LiDAR scans → import as walls + furniture */}
           <p className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-neutral-400">
-            <span className="text-sky-400">◳</span> LiDAR room scans
+            <span className="text-[var(--brass-2)]">◳</span> LiDAR room scans
           </p>
           <button
             data-testid="demo-scan"
             disabled={busy}
             onClick={() => { loadProject(scanToProject(DEMO_SCAN)); setOpen(false); }}
-            className="mb-2 w-full rounded-md border border-dashed border-sky-700 bg-sky-950/40 px-2 py-1.5 text-[11px] font-medium text-sky-300 hover:bg-sky-900/40 disabled:opacity-50">
+            className="mb-2 w-full rounded-md border border-dashed border-[var(--brass)] bg-[var(--brass-tint)] px-2 py-1.5 text-[11px] font-medium text-[var(--brass-2)] hover:bg-[var(--brass-tint)] disabled:opacity-50">
             ▶ Load demo scan (no app needed)
           </button>
           {scans.length === 0 && <p className="mb-3 text-xs text-neutral-500">No room scans yet. Scan a room in the Evora app.</p>}
@@ -156,9 +156,9 @@ export default function PufferImport() {
                   : <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded bg-neutral-800 text-base">◳</div>}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-neutral-100">{p.title || "Scanned room"}</p>
-                  <p className="truncate text-[11px] text-neutral-500">{p.ownerName || p.ownerPhone}{p.sentToPuffer ? " · sent to Puffer" : ""}</p>
+                  <p className="truncate text-[11px] text-neutral-500">{p.ownerName || p.ownerPhone}{p.sentToPuffer ? " · sent to Studio" : ""}</p>
                 </div>
-                <button disabled={busy} onClick={() => importScanProject(p)} className="rounded bg-sky-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-sky-500 disabled:opacity-50">Import</button>
+                <button disabled={busy} onClick={() => importScanProject(p)} className="rounded bg-[var(--brass-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink)] hover:bg-[var(--brass-2-hi)] disabled:opacity-50">Import</button>
               </div>
             ))}
           </div>
@@ -179,7 +179,7 @@ export default function PufferImport() {
             <input type="file" accept="application/json,.json" className="hidden" onChange={onSplatFile} />
           </label>
           <p className="mb-3 text-[11px] leading-snug text-neutral-500">
-            From <span className="text-neutral-400">splat_analyzer</span>: a Gaussian-splat room → furniture boxes. Detection sets the type + spot; Puffer keeps each piece&apos;s true mm size.
+            From <span className="text-neutral-400">splat_analyzer</span>: a Gaussian-splat room → furniture boxes. Detection sets the type + spot; the Studio keeps each piece&apos;s true mm size.
           </p>
 
           <p className="mb-2 border-t border-neutral-800 pt-3 text-[11px] uppercase tracking-wide text-neutral-400">Client 2D plans to import</p>
@@ -193,7 +193,7 @@ export default function PufferImport() {
                   <p className="truncate text-sm font-medium text-neutral-100">{l.name || "—"}</p>
                   <p className="text-[11px] text-neutral-500">{l.phone}</p>
                 </div>
-                <button disabled={busy} onClick={() => importPlan(l)} className="rounded bg-sky-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-sky-500 disabled:opacity-50">Import</button>
+                <button disabled={busy} onClick={() => importPlan(l)} className="rounded bg-[var(--brass-2)] px-2 py-1 text-[11px] font-medium text-[var(--ink)] hover:bg-[var(--brass-2-hi)] disabled:opacity-50">Import</button>
               </div>
             ))}
           </div>

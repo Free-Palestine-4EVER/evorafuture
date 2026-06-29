@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 730 316" role="img" aria-label="EVORA — Future Home" fill="none">
+  <title>EVORA — Future Home</title>
+  <g class="evora-mark" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M30 28 L30 158" />
+    <path d="M30 28 L118 28" />
+    <path d="M30 93 L104 93" />
+    <path d="M30 158 L118 158" />
+    <path d="M152 28 L214 158 L276 28" />
+    <path d="M363 28 A65 65 0 0 1 363 158 A65 65 0 0 1 363 28 Z" />
+    <path d="M452 28 L452 158" />
+    <path d="M452 28 L512 28 A33 33 0 0 1 512 94 L452 94" />
+    <path d="M502 94 L548 158" />
+    <path d="M580 158 L640 28 L700 158" />
+  </g>
+  <g class="evora-sub" transform="translate(178 222)" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter">
+    <path transform="translate(0 0)" d="M0 0 L0 30 M0 0 L20 0 M0 14 L16 14" />
+    <path transform="translate(34 0)" d="M0 0 L0 19 A11 11 0 0 0 22 19 L22 0" />
+    <path transform="translate(70 0)" d="M0 0 L24 0 M12 0 L12 30" />
+    <path transform="translate(108 0)" d="M0 0 L0 19 A11 11 0 0 0 22 19 L22 0" />
+    <path transform="translate(144 0)" d="M0 0 L0 30 M0 0 L16 0 A8 8 0 0 1 16 16 L0 16 M11 16 L22 30" />
+    <path transform="translate(180 0)" d="M0 0 L0 30 M0 0 L18 0 M0 14 L15 14 M0 30 L18 30" />
+    <path transform="translate(244 0)" d="M0 0 L0 30 M22 0 L22 30 M0 15 L22 15" />
+    <path transform="translate(280 0)" d="M12 0 A12 15 0 0 1 12 30 A12 15 0 0 1 12 0 Z" />
+    <path transform="translate(318 0)" d="M0 30 L0 0 L12 18 L24 0 L24 30" />
+    <path transform="translate(356 0)" d="M0 0 L0 30 M0 0 L18 0 M0 14 L15 14 M0 30 L18 30" />
+  </g>
+</svg>

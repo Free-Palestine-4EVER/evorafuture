@@ -11,7 +11,7 @@ export const featured: Product[] = [
     name: "Azur",
     tagline: "Curved velvet sofa",
     category: "Sofas",
-    currency: "€",
+    rooms: ["living", "guest"],
     dimensions: { w: 248, d: 96, h: 78 },
     materials: ["Navy velvet", "Blackened steel", "Brass"],
     // Names match the model's KHR variants — swatches switch the designed finish.
@@ -33,7 +33,7 @@ export const featured: Product[] = [
     name: "Carrara",
     tagline: "Marble & brass coffee table",
     category: "Tables",
-    currency: "€",
+    rooms: ["living", "guest"],
     dimensions: { w: 110, d: 110, h: 42 },
     materials: ["Carrara marble", "Polished brass"],
     colorways: [
@@ -54,7 +54,7 @@ export const featured: Product[] = [
     name: "Castello",
     tagline: "Tufted velvet lounge",
     category: "Seating",
-    currency: "€",
+    rooms: ["living", "guest"],
     dimensions: { w: 116, d: 78, h: 80 },
     materials: ["Velvet", "Stained oak"],
     // Names match the model's KHR variants — Mango / Peacock velvet.

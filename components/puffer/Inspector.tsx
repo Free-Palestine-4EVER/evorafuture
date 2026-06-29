@@ -11,7 +11,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       onClick={onClick}
       className={`rounded px-2.5 py-1 text-xs font-medium transition ${
-        active ? "bg-sky-600 text-white" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+        active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
       }`}
     >
       {children}
@@ -24,7 +24,7 @@ function UploadChip({ active, onChange, children }: {
 }) {
   return (
     <label className={`cursor-pointer rounded px-2.5 py-1 text-xs font-medium transition ${
-      active ? "bg-sky-600 text-white" : "bg-neutral-700 text-neutral-100 hover:bg-neutral-600"
+      active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-700 text-neutral-100 hover:bg-neutral-600"
     }`}>
       {children}
       <input type="file" accept="image/*" className="hidden" onChange={onChange} />
@@ -75,7 +75,7 @@ function MaterialsPanel() {
               title={c}
               style={{ background: c }}
               className={`h-6 w-6 rounded border ${
-                wallMat.kind === "color" && wallMat.color === c ? "border-sky-400 ring-2 ring-sky-400/40" : "border-neutral-600"
+                wallMat.kind === "color" && wallMat.color === c ? "border-[var(--brass-2)] ring-2 ring-[var(--brass-ring)]" : "border-neutral-600"
               }`}
             />
           ))}
@@ -151,7 +151,7 @@ export default function Inspector() {
               <li>Calibrate, draw furniture slots, raise walls.</li>
               <li>Set floor &amp; wall materials below for a realistic look.</li>
             </ol>
-            <div className="mt-4 rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+            <div className="mt-4 rounded-lg border border-neutral-800 bg-[var(--ink)] p-3">
               <div className="mb-1 font-medium text-neutral-200">Your library</div>
               <p className="text-neutral-500">{userProducts.length} saved product{userProducts.length === 1 ? "" : "s"}. Assign products to slots from the demo catalog.</p>
             </div>
@@ -315,7 +315,7 @@ function WallEditor({
             onClick={() => onHeight(o.h)}
             className={`flex w-full items-center justify-between rounded border px-3 py-2 transition ${
               height === o.h
-                ? "border-sky-500 bg-sky-950/50 text-white"
+                ? "border-[var(--brass-2)] bg-[var(--brass-tint)] text-white"
                 : "border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
             }`}
           >

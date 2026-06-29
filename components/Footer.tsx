@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Logo from "./Logo";
 import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
@@ -7,10 +8,11 @@ import { Rise } from "@/components/motion";
 export default function Footer() {
   const { t, lang } = useT();
   const en = lang === "en";
+  const [subscribed, setSubscribed] = useState(false);
 
   const explore: { href: string; en: string; ar: string }[] = [
     { href: "/shop", en: "Shop", ar: "تسوّق" },
-    { href: "/#rooms", en: "Shop by Room", ar: "تسوّق حسب الغرفة" },
+    { href: "/shop/rooms", en: "Shop by Room", ar: "تسوّق حسب الغرفة" },
     { href: "/showroom", en: "Virtual Showroom", ar: "المعرض الافتراضي" },
     { href: "/how-it-works", en: "Design Service", ar: "خدمة التصميم" },
     { href: "/visit", en: "Visit Us", ar: "زورونا" },
@@ -150,6 +152,35 @@ export default function Footer() {
       `}</style>
 
       <div className="container">
+        {/* newsletter — first look at new pieces each month */}
+        <Rise as="div" className="ft__news">
+          <div className="ft__news-text">
+            <h2 className="ft__news-title">{t("news_title")}</h2>
+            <p className="ft__news-sub">{t("news_body")}</p>
+          </div>
+          {subscribed ? (
+            <span className="ft__thanks">{t("news_thanks")}</span>
+          ) : (
+            <form
+              className="ft__form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSubscribed(true);
+              }}
+            >
+              <input
+                className="ft__input"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder={t("news_placeholder")}
+                aria-label={t("news_placeholder")}
+              />
+              <button className="ft__btn" type="submit">{t("news_cta")}</button>
+            </form>
+          )}
+        </Rise>
+
         {/* columns */}
         <div className="ft__cols">
           <Rise className="ft__brand">
@@ -197,7 +228,6 @@ export default function Footer() {
         {/* legal */}
         <div className="ft__legal">
           <span>© {2026} Evora · {t("footer_tag")}</span>
-          <span>{t("footer_demo")}</span>
         </div>
       </div>
     </footer>

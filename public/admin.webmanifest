@@ -1,6 +1,6 @@
 {
-  "name": "Evora Admin",
-  "short_name": "Evora Admin",
+  "name": "Evora Future Studio · Team",
+  "short_name": "Evora Future Studio · Team",
   "description": "Manage Evora client projects, journeys and leads.",
   "id": "/admindashboard",
   "start_url": "/admindashboard",

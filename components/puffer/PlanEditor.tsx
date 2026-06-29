@@ -89,7 +89,7 @@ export default function PlanEditor() {
       loadProject(scanToProject(scan));
     } catch (err) {
       console.error("scan import failed", err);
-      alert("Couldn't read that scan. It should be a Puffer Scan .json from the LiDAR app.");
+      alert("Couldn't read that scan. It should be an Evora Scan .json from the LiDAR app.");
     } finally {
       e.target.value = "";
     }
@@ -294,7 +294,7 @@ export default function PlanEditor() {
           ))}
         </select>
 
-        <label className="cursor-pointer rounded bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-600" title="Import a LiDAR room scan (.json) from the Puffer Scan iOS app">
+        <label className="cursor-pointer rounded bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-600" title="Import a LiDAR room scan (.json) from the Evora Scan iOS app">
           📷 Import scan
           <input type="file" accept="application/json,.json" className="hidden" onChange={onScanFile} />
         </label>
@@ -325,7 +325,7 @@ export default function PlanEditor() {
               disabled={!mmPerPx || detecting}
               title={mmPerPx ? "Detect the walls in the plan and raise them in 3D" : "Calibrate the plan first"}
               className={`rounded px-3 py-1.5 font-medium transition ${
-                autoWallsOn ? "bg-sky-600 text-white hover:bg-sky-500" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                autoWallsOn ? "bg-[var(--brass-2)] text-[var(--ink)] hover:bg-[var(--brass-2-hi)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
               } ${!mmPerPx || detecting ? "cursor-not-allowed opacity-50" : ""}`}
             >
               {detecting ? "Detecting…" : autoWallsOn ? "⚡ Walls raised ✓" : "⚡ Auto-walls"}
@@ -393,11 +393,11 @@ export default function PlanEditor() {
 
       {/* walls helper bar */}
       {planImage && (mode === "wall" || selectedWallId) && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-sky-950/40 px-3 py-2 text-xs text-sky-100">
-          <span className="text-sky-200">
+        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-[var(--brass-tint)] px-3 py-2 text-xs text-[var(--paper)]">
+          <span className="text-[var(--brass-2)]">
             {selectedWallId ? "Selected wall:" : "New walls:"}
           </span>
-          <div className="flex overflow-hidden rounded border border-sky-800">
+          <div className="flex overflow-hidden rounded border border-[var(--brass)]">
             {(["none", "half", "full"] as const).map((h) => {
               const active = selectedWallId
                 ? walls.find((w) => w.id === selectedWallId)?.height === h
@@ -408,7 +408,7 @@ export default function PlanEditor() {
                   key={h}
                   onClick={() => setWallHeight(h)}
                   className={`px-3 py-1 font-medium transition ${
-                    active ? "bg-sky-600 text-white" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                    active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
                 >
                   {label}
@@ -418,10 +418,10 @@ export default function PlanEditor() {
           </div>
           {mode === "wall" && (
             <>
-              <span className="text-sky-300/80">— drag along a wall in the plan to raise it.</span>
+              <span className="text-[var(--paper-soft)]">— drag along a wall in the plan to raise it.</span>
               <button
                 onClick={tracePerimeter}
-                className="ml-auto rounded bg-sky-800 px-2 py-1 font-medium text-white hover:bg-sky-700"
+                className="ml-auto rounded bg-[var(--brass)] px-2 py-1 font-medium text-[var(--paper)] hover:bg-[var(--brass-2)] hover:text-[var(--ink)]"
               >
                 Trace perimeter
               </button>
@@ -431,7 +431,7 @@ export default function PlanEditor() {
       )}
 
       {/* canvas */}
-      <div className="flex-1 overflow-auto bg-neutral-950 p-4">
+      <div className="flex-1 overflow-auto bg-[var(--ink)] p-4">
         {!planImage ? (
           <div className="flex h-full items-center justify-center text-center text-neutral-500">
             <div>
@@ -459,7 +459,7 @@ export default function PlanEditor() {
               {walls.map((w) => {
                 const selected = w.id === selectedWallId;
                 const color = selected
-                  ? "#38bdf8"
+                  ? "#C5A06A"
                   : w.source === "auto" ? "#f59e0b"
                   : w.height === "full" ? "#334155"
                   : w.height === "half" ? "#64748b"
@@ -483,7 +483,7 @@ export default function PlanEditor() {
                     {selected && mmPerPx && (
                       <text
                         x={(w.x1 + w.x2) / 2} y={(w.y1 + w.y2) / 2 - Math.max(8, imgW / 90)}
-                        fill="#bae6fd" fontSize={Math.max(11, imgW / 60)}
+                        fill="#E7D3AC" fontSize={Math.max(11, imgW / 60)}
                         textAnchor="middle" dominantBaseline="middle"
                         style={{ paintOrder: "stroke", pointerEvents: "none" }}
                         stroke="#000" strokeWidth={Math.max(2, imgW / 350)}
@@ -507,7 +507,7 @@ export default function PlanEditor() {
                   const slotW = r.w * mmPerPx, slotD = r.h * mmPerPx;
                   oversize = product.dimensions_mm.w > slotW + 1 || product.dimensions_mm.d > slotD + 1;
                 }
-                const stroke = selected ? "#38bdf8" : oversize ? "#ef4444" : product ? "#22c55e" : "#a3a3a3";
+                const stroke = selected ? "#C5A06A" : oversize ? "#ef4444" : product ? "#22c55e" : "#a3a3a3";
                 const sw = Math.max(2, imgW / 400);
                 const fs = Math.max(11, imgW / 55);
                 const dimFs = Math.max(10, imgW / 70);
@@ -561,7 +561,7 @@ export default function PlanEditor() {
                       <rect
                         key={id}
                         x={hx(id) - hs / 2} y={hy(id) - hs / 2} width={hs} height={hs}
-                        fill="#38bdf8" stroke="#fff" strokeWidth={sw * 0.6}
+                        fill="#C5A06A" stroke="#fff" strokeWidth={sw * 0.6}
                         style={{ cursor: cursorFor[id] }}
                         onPointerDown={(e) => {
                           e.stopPropagation();
@@ -579,7 +579,7 @@ export default function PlanEditor() {
               {drag && mode === "wall" && (
                 <line
                   x1={drag.start.x} y1={drag.start.y} x2={drag.cur.x} y2={drag.cur.y}
-                  stroke="#38bdf8" strokeWidth={Math.max(3, imgW / 180)} strokeLinecap="round" strokeDasharray="8 6"
+                  stroke="#C5A06A" strokeWidth={Math.max(3, imgW / 180)} strokeLinecap="round" strokeDasharray="8 6"
                 />
               )}
               {drag && mode === "draw" && (
@@ -588,7 +588,7 @@ export default function PlanEditor() {
                   y={Math.min(drag.start.y, drag.cur.y)}
                   width={Math.abs(drag.cur.x - drag.start.x)}
                   height={Math.abs(drag.cur.y - drag.start.y)}
-                  fill="#38bdf822" stroke="#38bdf8" strokeDasharray="6 4"
+                  fill="#C5A06A33" stroke="#C5A06A" strokeDasharray="6 4"
                   strokeWidth={Math.max(2, imgW / 400)}
                 />
               )}
@@ -662,7 +662,7 @@ function ModeButton({
       onClick={onClick}
       disabled={disabled}
       className={`rounded px-3 py-1.5 font-medium transition ${
-        active ? "bg-sky-600 text-white" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+        active ? "bg-[var(--brass-2)] text-[var(--ink)]" : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
       } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >
       {children}

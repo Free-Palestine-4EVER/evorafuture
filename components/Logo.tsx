@@ -1,20 +1,18 @@
 "use client";
 
-// Official EVORA — Future Home wordmark. `tone` picks the white mark (for dark
-// backgrounds, e.g. the nav over the hero) or the ink mark (for light ones).
+import Wordmark from "./brand/Wordmark";
+
+// Official EVORA — Future Home wordmark, now a crisp currentColor vector.
+// `tone` picks the paper (white) mark for dark backgrounds (e.g. the nav over
+// the hero) or the ink mark for light ones. API unchanged for Nav/Footer/Portal.
 export default function Logo({ tone = "ink", size = 1 }: { tone?: "ink" | "paper"; size?: number }) {
-  const src = tone === "paper" ? "/textures/evora-wordmark-paper.png" : "/textures/evora-wordmark-ink.png";
   return (
-    <img
-      src={src}
-      alt="Evora — Future Home"
-      draggable={false}
+    <Wordmark
+      tone={tone}
       style={{
-        display: "block",
         height: `${2.4 * size}rem`,
         width: "auto",
-        objectFit: "contain",
-        transition: "opacity .4s var(--ease)",
+        transition: "color .4s var(--ease)",
       }}
     />
   );

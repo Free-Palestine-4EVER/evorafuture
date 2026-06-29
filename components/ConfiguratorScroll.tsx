@@ -143,7 +143,7 @@ export default function ConfiguratorScroll() {
         {/* scrubbed video frames */}
         {!reduce && (
           <canvas ref={canvasRef} className="cfg__canvas" role="img"
-            aria-label={lang === "en" ? "Kitchen island fly-through" : "جولة جزيرة المطبخ"} />
+            aria-label={t("cfg_aria")} />
         )}
         {(!ready || reduce) && <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />}
 
@@ -170,15 +170,13 @@ export default function ConfiguratorScroll() {
         {/* heading sits over the footage until the configurator reveals */}
         <motion.div className="cfg__intro" animate={{ opacity: revealed ? 0 : 1 }} transition={{ duration: 0.4 }}>
           <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
-            {lang === "en" ? "Design studio" : "استوديو التصميم"}
+            {t("cfg_eyebrow")}
           </span>
           <h2 className="display cfg__h">
-            {lang === "en" ? "Make it yours" : "صمّمها على ذوقك"}
+            {t("cfg_heading")}
           </h2>
           <p className="cfg__lead">
-            {lang === "en"
-              ? "Keep scrolling — then choose your stone."
-              : "تابع التمرير — ثم اختر الرخام المناسب."}
+            {t("cfg_lead")}
           </p>
         </motion.div>
 
@@ -194,12 +192,28 @@ export default function ConfiguratorScroll() {
             >
               <div className="cfg__panel-head">
                 <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
-                  {lang === "en" ? "Island finish" : "تشطيب الجزيرة"}
+                  {t("cfg_panel_eyebrow")}
                 </span>
                 <strong className="cfg__active-name">
                   {active ? active.label[lang] : ""}
                 </strong>
               </div>
+
+              {/* the chosen stone's identity line — swaps as you pick */}
+              <AnimatePresence mode="wait">
+                {active && active.note && (
+                  <motion.p
+                    key={active.id}
+                    className="cfg__note"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.35, ease }}
+                  >
+                    {active.note[lang]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
               <div className="cfg__swatches">
                 {variants.map((v) => {
@@ -227,8 +241,8 @@ export default function ConfiguratorScroll() {
               </div>
 
               <div className="cfg__cta">
-                <a href="/showroom" className="btn cfg__cta-1">
-                  {lang === "en" ? "Enquire about this kitchen" : "استفسر عن هذا المطبخ"} <span className="arrow">→</span>
+                <a href="/visit" className="btn cfg__cta-1">
+                  {t("cfg_cta")} <span className="arrow">→</span>
                 </a>
               </div>
             </motion.div>
@@ -266,8 +280,11 @@ const css = `
     border: 1px solid rgba(251,247,240,0.14); border-radius: 18px;
     padding: clamp(1rem, 2vw, 1.6rem); width: min(92vw, 460px);
     box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
-  .cfg__panel-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .cfg__panel-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
   .cfg__active-name { color: #fbf7f0; font-size: 1.25rem; letter-spacing: 0.01em; }
+  .cfg__note { color: rgba(251,247,240,0.74); font-size: 0.92rem; line-height: 1.5;
+    margin: 0 0 0.9rem; max-width: 34ch; }
+  [dir="rtl"] .cfg__note { letter-spacing: 0; }
 
   .cfg__swatches { display: flex; gap: 0.7rem; flex-wrap: wrap; }
   .cfg__swatch { width: 46px; height: 46px; border-radius: 50%;

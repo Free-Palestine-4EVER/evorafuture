@@ -66,13 +66,13 @@ export default function Financing() {
               <Rise delay={0.3}>
                 <div className="fin-stat">
                   <span className="fin-stat-upto">{ar ? "حتى" : "up to"}</span>
-                  <CountUp value="24" className="fin-stat-num" />
+                  <CountUp value="36" className="fin-stat-num" />
                   <span className="fin-stat-unit">
                     {ar ? "شهرًا" : "months"}
                   </span>
                 </div>
                 <p className="fin-stat-cap">
-                  {ar ? "بدون فوائد · بنفس سعر الكاش" : "Interest-free · at the same cash price"}
+                  {ar ? "بدون ربا · بنفس سعر الكاش" : "Interest-free, same cash price"}
                 </p>
               </Rise>
 

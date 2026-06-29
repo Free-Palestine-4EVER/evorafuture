@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="EVORA" fill="none">
+  <title>EVORA</title>
+  <g fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M30 22 L30 78" />
+    <path d="M30 22 L70 22" />
+    <path d="M30 50 L64 50" />
+    <path d="M30 78 L70 78" />
+  </g>
+</svg>

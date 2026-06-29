@@ -132,16 +132,16 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
 
         {/* DETAILS */}
         <p style={sectionTitle}>{t("Details", "التفاصيل")}</p>
-        <label style={label}>{t("Title", "العنوان")}<input style={field} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+        <label style={label}>{tp("title", lang)}<input style={field} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginTop: "0.8rem" }}>
-          <label style={label}>{t("Room", "الغرفة")}<input style={field} value={room} onChange={(e) => setRoom(e.target.value)} /></label>
-          <label style={label}>{t("Status", "الحالة")}
+          <label style={label}>{tp("room", lang)}<input style={field} value={room} onChange={(e) => setRoom(e.target.value)} /></label>
+          <label style={label}>{tp("status", lang)}
             <select style={field} value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
               {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s][lang]}</option>)}
             </select>
           </label>
         </div>
-        <label style={{ ...label, display: "block", marginTop: "0.8rem" }}>{t("Notes", "ملاحظات")}<textarea style={{ ...field, minHeight: 60, resize: "vertical" }} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <label style={{ ...label, display: "block", marginTop: "0.8rem" }}>{tp("notes", lang)}<textarea style={{ ...field, minHeight: 60, resize: "vertical" }} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <button onClick={saveDetails} disabled={busy} style={{ marginTop: "0.9rem", padding: "0.6rem 1.2rem", borderRadius: 10, border: "none", background: savedFlash ? "var(--clay)" : "var(--ink)", color: "#fff", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
           {savedFlash ? t("Saved ✓", "تم الحفظ ✓") : t("Save details", "حفظ التفاصيل")}
         </button>
@@ -230,11 +230,11 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
 
         {/* SHARE LINK */}
         <div style={{ marginTop: "1.8rem", padding: "0.9rem 1rem", borderRadius: 12, background: "rgba(178,116,87,0.07)", border: "1px solid rgba(178,116,87,0.2)" }}>
-          <p style={{ fontSize: "0.66rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--clay)", margin: "0 0 0.4rem" }}>{t("Customer sign-up link", "رابط تسجيل العميل")}</p>
+          <p style={{ fontSize: "0.66rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--clay)", margin: "0 0 0.4rem" }}>{tp("share_link", lang)}</p>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <input readOnly value={signupLink} style={{ flex: 1, background: "transparent", border: "none", color: "var(--ink-soft)", fontSize: "0.74rem", outline: "none" }} />
             <button onClick={() => { navigator.clipboard?.writeText(signupLink); setCopied(true); setTimeout(() => setCopied(false), 1200); }}
-              style={{ padding: "0.35rem 0.8rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontSize: "0.74rem", cursor: "pointer" }}>{copied ? t("Copied", "تم النسخ") : t("Copy", "نسخ")}</button>
+              style={{ padding: "0.35rem 0.8rem", borderRadius: 999, border: "none", background: "var(--clay)", color: "#fff", fontSize: "0.74rem", cursor: "pointer" }}>{copied ? tp("copied", lang) : tp("copy", lang)}</button>
           </div>
         </div>
       </div>
