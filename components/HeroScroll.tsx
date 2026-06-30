@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
-import ResponsiveVideo from "@/components/ResponsiveVideo";
+import { preload } from "@/lib/preload";
+
+// How many leading frames the branded Loader waits to buffer before it lifts
+// the curtain — enough that the first stretch of the scroll-scrub is butter,
+// while the remaining frames stream in lazily behind the revealed page.
+const CRITICAL_FRAMES = 64;
 
 const MOBILE_QUERY = "(max-width: 768px)";
 
@@ -61,12 +66,6 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
     let mounted = true;
 
-    // Film "c" auto-plays on load so the hero never sits on a frozen first
-    // frame; the moment the user scrolls, it hands over to scroll-scrubbing.
-    let autoplaying = variant === "c";
-    let autoFrame = 1;
-    let rafAuto = 0;
-
     const sizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
@@ -99,31 +98,29 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       ctx.drawImage(img, x, y, w, h);
     };
 
-    // auto-play loop (variant "c" only, until the first user scroll)
-    const autoTick = () => {
-      if (!autoplaying) return;
-      autoFrame = autoFrame >= TOTAL ? 1 : autoFrame + 1;
-      currentFrame.current = autoFrame;
-      targetFrame.current = autoFrame;
-      draw(autoFrame);
-      rafAuto = requestAnimationFrame(autoTick);
-    };
+    // Tell the branded Loader how many leading frames it should buffer before
+    // it reveals the page (capped at the film's length for short films).
+    const critical = Math.min(CRITICAL_FRAMES, TOTAL);
+    preload.add(critical);
 
-    // preload all frames — draw the first as soon as it lands
+    // preload every frame — but only the leading `critical` set gates the
+    // Loader. The hero never auto-plays: it holds on frame 1 and advances
+    // solely with the scroll. Each frame is drawn as it's scrolled to.
     let loaded = 0;
     for (let i = 1; i <= TOTAL; i++) {
       const im = new Image();
       im.decoding = "async";
-      im.onload = () => {
+      const settle = () => {
         loaded++;
+        if (i <= critical) preload.done();
         if (i === 1 && mounted) {
           sizeCanvas();
           draw(1);
           setReady(true);
-          if (autoplaying) rafAuto = requestAnimationFrame(autoTick);
         }
       };
-      im.onerror = () => { loaded++; };
+      im.onload = settle;
+      im.onerror = settle;
       im.src = frameSrc(i);
       imagesRef.current[i] = im;
     }
@@ -172,27 +169,13 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       draw(Math.round(currentFrame.current));
     };
 
-    // a real user scroll stops autoplay and snaps to the scroll position
-    const onUserScroll = () => {
-      if (autoplaying) {
-        autoplaying = false;
-        cancelAnimationFrame(rafAuto);
-        onScroll();
-        currentFrame.current = targetFrame.current;
-        draw(Math.round(currentFrame.current));
-        return;
-      }
-      onScroll();
-    };
-
-    window.addEventListener("scroll", onUserScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     onScroll();
 
     return () => {
       mounted = false;
-      cancelAnimationFrame(rafAuto);
-      window.removeEventListener("scroll", onUserScroll);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
   }, [TOTAL, variant]);
@@ -209,16 +192,26 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     );
   }
 
-  // ----- phones: a full-bleed portrait video hero (prefers hero-*-mobile.mp4),
-  //        with the copy overlaid. 100svh so browser chrome never crops it. -----
+  // ----- phones: a still, full-bleed portrait hero (no autoplay video) with the
+  //        copy overlaid. 100svh so browser chrome never crops it. A single
+  //        poster is the lightest, smoothest first paint on a phone. -----
   if (isMobile) {
     return (
       <section id="top" className={`hs hs--static hs--${variant} hs--mob`}>
-        <ResponsiveVideo
+        <img
           className="hs__video"
-          src={`/evora/hero-${variant}.mp4`}
-          poster="/evora/hero-mobile.jpg"
-          aria-label={lang === "en" ? "A walk through Evora showroom in Khalda, Amman" : "جولة داخل معرض إيفورا في خلدا، عمّان"}
+          src="/evora/hero-mobile.jpg"
+          alt=""
+          aria-label={lang === "en" ? "Evora showroom in Khalda, Amman" : "معرض إيفورا في خلدا، عمّان"}
+          onLoad={() => preload.done()}
+          ref={(el) => {
+            // register the single critical mobile image with the Loader once
+            if (el && !el.dataset.counted) {
+              el.dataset.counted = "1";
+              preload.add(1);
+              if (el.complete) preload.done();
+            }
+          }}
         />
         <div className="hs__scrim" />
         <div className="hs__left" />
