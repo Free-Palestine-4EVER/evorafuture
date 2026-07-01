@@ -14,7 +14,7 @@ export default function ProjectViewer({
   onApprove?: (p: Project) => void;
 }) {
   const { lang } = useT();
-  const [tab, setTab] = useState<"3d" | "2d">(project.viewerUrl || project.model3dUrl ? "3d" : "2d");
+  const [tab, setTab] = useState<"3d" | "2d">(project.viewerUrl || project.model3dUrl || project.usdzUrl ? "3d" : "2d");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -32,7 +32,11 @@ export default function ProjectViewer({
     }
   }, [project.model3dUrl, project.viewerUrl]);
 
-  const has3d = Boolean(project.viewerUrl || project.model3dUrl);
+  const has3d = Boolean(project.viewerUrl || project.model3dUrl || project.usdzUrl);
+  const ar = lang === "ar";
+  const fileName = (url: string, fallback: string) => {
+    try { return decodeURIComponent(new URL(url).pathname.split("/").pop() || fallback); } catch { return fallback; }
+  };
 
   return (
     <div onClick={onClose}
@@ -71,7 +75,7 @@ export default function ProjectViewer({
             {tab === "3d" && !project.viewerUrl && project.model3dUrl && (
               <>
                 {/* spinnable furnished room, self-hosted model-viewer */}
-                <model-viewer src={project.model3dUrl} camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
+                <model-viewer src={project.model3dUrl} ios-src={project.usdzUrl} camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
                   tone-mapping="neutral" shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05"
                   camera-orbit="40deg 68deg 105%" min-camera-orbit="auto 0deg auto" max-camera-orbit="auto 95deg auto"
                   rotation-per-second="22deg" auto-rotate-delay="600" interaction-prompt="none"
@@ -81,11 +85,31 @@ export default function ProjectViewer({
                 </span>
               </>
             )}
-            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && (
+            {/* USDZ-only (real LiDAR scan, no web GLB yet): AR on iPhone/iPad + download everywhere */}
+            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && project.usdzUrl && (
+              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem" }}>
+                <div style={{ display: "grid", gap: "0.9rem", justifyItems: "center" }}>
+                  <div style={{ fontSize: "2.4rem", opacity: 0.75 }}>◳</div>
+                  <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--ink)", fontWeight: 600 }}>
+                    {ar ? "تم التقاط الغرفة ثلاثية الأبعاد بالليدار" : "3D room captured by LiDAR"}
+                  </p>
+                  {/* AR Quick Look on iOS Safari needs the single <img> child */}
+                  <a rel="ar" href={project.usdzUrl}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "0.5em", padding: "0.7rem 1.2rem", borderRadius: 999, background: "var(--ink)", color: "#fff", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none" }}>
+                    <img alt="" width={1} height={1} style={{ opacity: 0, position: "absolute", pointerEvents: "none" }} src={project.plan2dUrl || project.thumbnailUrl || project.usdzUrl} />
+                    ⛶ {ar ? "عرض في مساحتك (AR)" : "View in your space (AR)"}
+                  </a>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--ink-faint)" }}>
+                    {ar ? "على آيفون/آيباد. أو نزّل الموديل بالأسفل." : "on iPhone / iPad — or download the model below."}
+                  </p>
+                </div>
+              </div>
+            )}
+            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && !project.usdzUrl && (
               <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem", color: "var(--ink-faint)" }}>
                 <div>
                   <div style={{ fontSize: "2rem", marginBottom: "0.5rem", opacity: 0.5 }}>◳</div>
-                  <p style={{ margin: 0, fontSize: "0.9rem" }}>{lang === "ar" ? "نموذجك ثلاثي الأبعاد قيد التحضير" : "Your 3D room is being prepared"}</p>
+                  <p style={{ margin: 0, fontSize: "0.9rem" }}>{ar ? "نموذجك ثلاثي الأبعاد قيد التحضير" : "Your 3D room is being prepared"}</p>
                 </div>
               </div>
             )}
@@ -95,6 +119,15 @@ export default function ProjectViewer({
               : <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--ink-faint)", fontSize: "0.9rem" }}>{lang === "ar" ? "لم يُرفع مخطط بعد" : "No 2D plan uploaded yet"}</div>
             )}
           </div>
+
+          {/* downloads: real 3D scan + dimensioned 2D plan */}
+          {(project.usdzUrl || project.plan2dPdfUrl || project.plan2dUrl) && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", marginTop: "1rem" }}>
+              {project.usdzUrl && <DownloadPill href={project.usdzUrl} name={fileName(project.usdzUrl, "room.usdz")} icon="◳" label={ar ? "الموديل ثلاثي الأبعاد (USDZ)" : "3D model (.usdz)"} primary />}
+              {project.plan2dPdfUrl && <DownloadPill href={project.plan2dPdfUrl} name={fileName(project.plan2dPdfUrl, "floor-plan.pdf")} icon="▤" label={ar ? "المخطط (PDF)" : "Floor plan (PDF)"} />}
+              {project.plan2dUrl && <DownloadPill href={project.plan2dUrl} name={fileName(project.plan2dUrl, "floor-plan.png")} icon="▦" label={ar ? "المخطط (صورة)" : "Floor plan (PNG)"} />}
+            </div>
+          )}
 
           {project.notes && <p style={{ color: "var(--ink-soft)", marginTop: "1.2rem", lineHeight: 1.6 }}>{project.notes}</p>}
 
@@ -155,6 +188,20 @@ export default function ProjectViewer({
         )}
       </div>
     </div>
+  );
+}
+
+function DownloadPill({ href, name, icon, label, primary }: { href: string; name: string; icon: string; label: string; primary?: boolean }) {
+  return (
+    <a href={href} download={name} target="_blank" rel="noopener noreferrer"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "0.5em", padding: "0.6rem 1rem", borderRadius: 999,
+        border: "1px solid", borderColor: primary ? "var(--ink)" : "var(--line)",
+        background: primary ? "var(--ink)" : "transparent", color: primary ? "var(--paper)" : "var(--ink)",
+        fontSize: "0.82rem", fontWeight: 600, textDecoration: "none",
+      }}>
+      <span aria-hidden style={{ fontSize: "1em" }}>↓</span><span aria-hidden>{icon}</span> {label}
+    </a>
   );
 }
 

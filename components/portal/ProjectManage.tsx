@@ -33,6 +33,7 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const [notes, setNotes] = useState(project.notes || "");
   const [plan2dUrl, setPlan2d] = useState(project.plan2dUrl || "");
   const [model3dUrl, setModel3d] = useState(project.model3dUrl || "");
+  const [usdzUrl, setUsdz] = useState(project.usdzUrl || "");
   const [savedFlash, setSavedFlash] = useState(false);
 
   // stage
@@ -46,6 +47,7 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const photoRef = useRef<HTMLInputElement>(null);
   const plan2dRef = useRef<HTMLInputElement>(null);
   const modelRef = useRef<HTMLInputElement>(null);
+  const usdzRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
 
   // live scanner
@@ -88,7 +90,7 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
 
   async function saveDetails() {
     setBusy(true);
-    await saveProject({ ...project, title, room, status, notes, plan2dUrl, thumbnailUrl: project.thumbnailUrl || plan2dUrl, model3dUrl, stage });
+    await saveProject({ ...project, title, room, status, notes, plan2dUrl, thumbnailUrl: project.thumbnailUrl || plan2dUrl, model3dUrl, usdzUrl, stage });
     setBusy(false); setSavedFlash(true); setTimeout(() => setSavedFlash(false), 1500);
   }
   async function changeStage(key: string) { setStageVal(key); await setStage(project.id, key); }
@@ -109,6 +111,10 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   async function on3d(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
     setBusy(true); try { const url = await uploadFile(f); setModel3d(url); await saveProject({ ...project, model3dUrl: url }); } finally { setBusy(false); }
+  }
+  async function onUsdz(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (!f) return;
+    setBusy(true); try { const url = await uploadFile(f); setUsdz(url); await saveProject({ ...project, usdzUrl: url }); } finally { setBusy(false); }
   }
 
   const field: React.CSSProperties = { width: "100%", padding: "0.65rem 0.8rem", marginTop: "0.3rem", border: "1px solid var(--line)", borderRadius: 10, fontFamily: "var(--f-sans)", fontSize: "0.9rem", color: "var(--ink)", background: "#fff" };
@@ -177,6 +183,19 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
             </div>
             <button style={upBtn} onClick={() => modelRef.current?.click()}>⤓ {model3dUrl ? t("Replace 3D (.glb)", "استبدال النموذج") : t("Upload 3D (.glb)", "رفع نموذج 3D")}</button>
             <input ref={modelRef} type="file" accept=".glb,model/gltf-binary" onChange={on3d} style={{ display: "none" }} />
+          </div>
+          {/* Real LiDAR 3D scan (.usdz) from the Evora Scan app — AR Quick Look + download */}
+          <div style={{ gridColumn: "1 / -1", border: "1px solid var(--line)", borderRadius: 12, padding: "0.8rem", display: "flex", alignItems: "center", gap: "0.9rem", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "1.5rem", opacity: 0.7 }}>◳</span>
+            <div style={{ flex: 1, minWidth: 160, textAlign: "start" }}>
+              <div style={{ fontSize: "0.86rem", fontWeight: 600, color: "var(--ink)" }}>{t("LiDAR 3D scan (.usdz)", "مسح ليدار ثلاثي الأبعاد (USDZ)")}</div>
+              <div style={{ fontSize: "0.75rem", color: usdzUrl ? "var(--clay)" : "var(--ink-faint)" }}>
+                {usdzUrl ? t("✓ real 3D room on file — AR-ready", "✓ غرفة ثلاثية الأبعاد محفوظة — جاهزة للواقع المعزز") : t("no 3D scan yet", "لا يوجد مسح بعد")}
+              </div>
+            </div>
+            {usdzUrl && <a href={usdzUrl} download target="_blank" rel="noopener noreferrer" style={upBtn}>↓ {t("Download", "تنزيل")}</a>}
+            <button style={upBtn} onClick={() => usdzRef.current?.click()}>⤓ {usdzUrl ? t("Replace .usdz", "استبدال") : t("Upload .usdz", "رفع USDZ")}</button>
+            <input ref={usdzRef} type="file" accept=".usdz,model/vnd.usdz+zip" onChange={onUsdz} style={{ display: "none" }} />
           </div>
         </div>
 
