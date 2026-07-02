@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
 
 /* ------------------------------------------------------------------ *
  * TransformStage — the "flat plan → finished home" film, in 4 parts,
@@ -73,14 +74,10 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
             transition={{ duration: 0.8, ease: "easeOut" }}
             style={{ zIndex: 3 }}
           >
-            <video
+            <ResponsiveVideo
               className="ts-img"
               src={REVEAL_VIDEO}
               poster={STAGES[3].src}
-              autoPlay
-              muted
-              loop
-              playsInline
               preload="auto"
             />
             <ApprovedBadge ar={ar} reduced={!!reduced} />

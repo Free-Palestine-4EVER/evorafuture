@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import Monogram from "@/components/brand/Monogram";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
 import {
   Rise,
   RevealWords,
@@ -197,20 +198,7 @@ export default function StudioPresentation() {
           className="studio-hero__bg"
           style={{ backgroundImage: "url(/evora/room-living.jpg)" }}
         >
-          {reduce ? (
-            <img src="/evora/room-living.jpg" alt="" aria-hidden />
-          ) : (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              poster="/evora/room-living.jpg"
-              aria-hidden
-            >
-              <source src="/evora/room-living.mp4" type="video/mp4" />
-            </video>
-          )}
+          <ResponsiveVideo src="/evora/room-living.mp4" poster="/evora/room-living.jpg" aria-hidden />
         </div>
         <div className="studio-hero__scrim" />
 
@@ -287,9 +275,7 @@ export default function StudioPresentation() {
               {reduce ? (
                 <img src="/evora/kitchen/stage-4.jpg" alt={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"} />
               ) : (
-                <video autoPlay muted loop playsInline poster="/evora/kitchen/stage-4.jpg" aria-label={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"}>
-                  <source src="/evora/kitchen/reveal.mp4" type="video/mp4" />
-                </video>
+                <ResponsiveVideo src="/evora/kitchen/reveal.mp4" poster="/evora/kitchen/stage-4.jpg" aria-label={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"} />
               )}
             </Rise>
             <div className="studio-beat__copy">

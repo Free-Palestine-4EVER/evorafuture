@@ -160,7 +160,7 @@ export default function EvoraSync() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="rounded-md bg-[var(--brass-2)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink)] hover:bg-[var(--brass-2-hi)]">
+      <button onClick={() => setOpen((o) => !o)} className="whitespace-nowrap rounded-md bg-[var(--brass-2)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink)] hover:bg-[var(--brass-2-hi)]">
         {staff ? "Save to Evora" : "Studio sign-in"}
       </button>
 

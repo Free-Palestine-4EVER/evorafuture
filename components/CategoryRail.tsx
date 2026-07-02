@@ -12,6 +12,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { Rise, RevealLines } from "@/components/motion";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -52,13 +53,9 @@ export default function CategoryRail() {
       {/* lead feature — the framed showroom film */}
       <a href="/showroom" className="crail__card crail__feature" data-cursor="hover">
         <div className="crail__imgwrap crail__feature-media">
-          <video
+          <ResponsiveVideo
             className="crail__video"
             src="/evora/hero-c.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
             preload="metadata"
           />
           <span className="crail__scrim" />

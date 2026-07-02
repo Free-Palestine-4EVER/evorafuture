@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { JOURNEY } from "@/lib/portal/journey";
 import { openStartProject } from "@/lib/startProject";
+import ResponsiveVideo from "@/components/ResponsiveVideo";
 
 /* ── Start & Track ─────────────────────────────────────────────────────────
  * The home page's create + track showpiece, fully rebuilt. Two columns under
@@ -118,7 +119,7 @@ export default function StartAndTrack() {
 
             <div className="st__card">
               <figure className="st__film">
-                <video src={REVEAL} poster={POSTER} autoPlay muted loop playsInline preload="metadata" />
+                <ResponsiveVideo src={REVEAL} poster={POSTER} preload="metadata" />
                 <figcaption><LiveDot /> {ar ? "معاينة حيّة · نموذجك الحقيقي" : "Live preview · your real model"}</figcaption>
               </figure>
 

@@ -198,20 +198,9 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   if (isMobile) {
     return (
       <section id="top" className={`hs hs--static hs--${variant} hs--mob`}>
-        <img
-          className="hs__video"
-          src="/evora/hero-mobile.jpg"
-          alt=""
-          aria-label={lang === "en" ? "Evora showroom in Khalda, Amman" : "معرض إيفورا في خلدا، عمّان"}
-          onLoad={() => preload.done()}
-          ref={(el) => {
-            // register the single critical mobile image with the Loader once
-            if (el && !el.dataset.counted) {
-              el.dataset.counted = "1";
-              preload.add(1);
-              if (el.complete) preload.done();
-            }
-          }}
+        <MobileHeroMedia
+          reduce={!!reduce}
+          label={lang === "en" ? "Evora showroom in Khalda, Amman" : "معرض إيفورا في خلدا، عمّان"}
         />
         <div className="hs__scrim" />
         <div className="hs__left" />
@@ -259,6 +248,52 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
       <style>{heroCss}</style>
     </section>
+  );
+}
+
+/* ---------- mobile hero media ----------
+ * A guaranteed full-bleed poster JPG (which gates the Loader and paints
+ * instantly) with an OPTIONAL portrait 9:16 video fading in on top once it can
+ * play. If /evora/hero-mobile.mp4 isn't supplied yet, the video simply 404s and
+ * stays hidden — the JPG remains, nothing breaks. Drop the file in to activate.
+ */
+function MobileHeroMedia({ reduce, label }: { reduce: boolean; label: string }) {
+  const [videoOk, setVideoOk] = useState(false);
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="hs__video"
+        src="/evora/hero-mobile.jpg"
+        alt=""
+        aria-label={label}
+        onLoad={() => preload.done()}
+        ref={(el) => {
+          if (el && !el.dataset.counted) {
+            el.dataset.counted = "1";
+            preload.add(1);
+            if (el.complete) preload.done();
+          }
+        }}
+      />
+      {!reduce && (
+        <video
+          className="hs__video hs__video--mp4"
+          poster="/evora/hero-mobile.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden
+          style={{ opacity: videoOk ? 1 : 0, transition: "opacity .7s ease" }}
+          onCanPlay={() => setVideoOk(true)}
+          onError={() => setVideoOk(false)}
+        >
+          <source src="/evora/hero-mobile.mp4" type="video/mp4" />
+        </video>
+      )}
+    </>
   );
 }
 
@@ -363,7 +398,8 @@ const heroCss = `
   html[dir="rtl"] .hero__scroll span:first-child { letter-spacing: 0.1em; }
   .hero__scroll-line { width: 1px; height: 40px; background: linear-gradient(rgba(251,247,240,0.85), transparent); animation: bob 2.4s ease-in-out infinite; }
 
-  .hs__video { position: absolute; inset: 0; z-index: 0; }
+  .hs__video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hs__video--mp4 { z-index: 0; } /* sits above the poster img (same layer, later in DOM) */
   .hs--mob { height: 100svh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
 
   @media (max-width: 860px) {

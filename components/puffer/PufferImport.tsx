@@ -145,7 +145,7 @@ export default function PufferImport() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="relative inline-flex items-center gap-1.5 rounded-md bg-neutral-800 px-2.5 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-700">
+      <button onClick={() => setOpen((o) => !o)} className="relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-neutral-800 px-2.5 py-1.5 text-sm font-medium text-neutral-100 hover:bg-neutral-700">
         <Glyph d={ICON.inbox} size={15} /> Import
         {(items.length + scans.length) > 0 && <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--brass-2)] px-1 text-[10px] font-bold text-[var(--ink)]">{items.length + scans.length}</span>}
       </button>

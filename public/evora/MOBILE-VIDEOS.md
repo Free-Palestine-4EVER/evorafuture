@@ -35,20 +35,20 @@ the mobile portrait version is expected at:
 
 ## Expected filenames
 
-### Hero (full-screen scroll/landing hero — `components/HeroScroll.tsx`)
+### ★ Hero (full-screen homepage hero — `components/HeroScroll.tsx`)
 
-On phones the heavy frame-scrub canvas is replaced by a single portrait video.
-The hero uses the variant that the page passes in (`a` / `b` / `c`; the live home
-hero is variant **c**). Provide whichever variants you use:
+On phones the heavy frame-scrub canvas is replaced by **one portrait video**. It
+is a **single fixed file** (the mobile hero is the same regardless of which
+desktop variant `a`/`b`/`c` the page uses — it matches the existing mobile poster
+`hero-mobile.jpg`):
 
-| Desktop file        | Mobile portrait file        |
-| ------------------- | --------------------------- |
-| `/evora/hero-a.mp4` | `/evora/hero-a-mobile.mp4`  |
-| `/evora/hero-b.mp4` | `/evora/hero-b-mobile.mp4`  |
-| `/evora/hero-c.mp4` | `/evora/hero-c-mobile.mp4`  |
+| Poster (ships already) | Mobile portrait video (add this) |
+| ---------------------- | -------------------------------- |
+| `/evora/hero-mobile.jpg` | **`/evora/hero-mobile.mp4`** ★ |
 
-> `hero-c-mobile.mp4` is the important one for the live homepage. It is **also**
-> reused by the "Six worlds" intro showroom film in `components/Collections.tsx`.
+The JPG is always painted first (instant, gates the loader); the MP4 fades in on
+top once it can play. If the MP4 is absent, the JPG simply stays — never blank.
+**This is the single most important clip to produce.**
 
 ### World films (the four cinematic category panels — `components/Collections.tsx`)
 
@@ -73,7 +73,25 @@ backgrounds. Provide portrait copies when ready:
 | `/evora/room-kitchen.mp4`   | `/evora/room-kitchen-mobile.mp4`   |
 | `/evora/room-garden.mp4`    | `/evora/room-garden-mobile.mp4`    |
 
+### Category film & reveal (now wired via ResponsiveVideo)
+
+| Desktop file                     | Mobile portrait file                    | Appears in |
+| -------------------------------- | --------------------------------------- | ---------- |
+| `/evora/hero-c.mp4`              | `/evora/hero-c-mobile.mp4`              | Category rail feature card |
+| `/evora/kitchen/reveal.mp4`      | `/evora/kitchen/reveal-mobile.mp4`      | Transform stage · Start-&-track · Studio |
+
+### Configurator (already expects this exact name)
+
+| Desktop beat                      | Mobile portrait file (add this)         |
+| --------------------------------- | --------------------------------------- |
+| Marble-island configurator        | `/evora/configurator/kitchen-mobile.mp4` |
+
+> Note: `kitchen/reveal-mobile.mp4` and `configurator/kitchen-mobile.mp4` live in
+> **sub-folders** — keep the folder structure.
+
 ---
 
 Nothing else to wire up — once a `-mobile.mp4` file exists at the path above,
-phones pick it up automatically on next load.
+phones pick it up automatically on next load. Priority order:
+**1) `hero-mobile.mp4`**, 2) the four `vid-*-mobile.mp4` world films,
+3) `hero-c-mobile.mp4`, 4) `kitchen/reveal-mobile.mp4`, 5) the rest.

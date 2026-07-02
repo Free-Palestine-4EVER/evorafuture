@@ -13,15 +13,15 @@ export default function PufferPage() {
   return (
     <main className="flex h-[100dvh] flex-col bg-[var(--ink)] text-[var(--paper)]">
       <header
-        className="flex shrink-0 items-center gap-3 border-b border-[var(--line)] px-4 py-2"
+        className="flex shrink-0 items-center gap-2 border-b border-[var(--line)] px-3 py-2 sm:gap-3 sm:px-4"
         style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
       >
         <Monogram tone="brass" title="Evora Future Studio" className="h-5 w-5 shrink-0" />
-        <h1 className="text-sm font-semibold tracking-wide">
+        <h1 className="min-w-0 truncate text-sm font-semibold tracking-wide">
           Evora <span className="text-[var(--brass-2)]">Future Studio</span>
         </h1>
-        <div className="ml-auto flex items-center gap-3">
-          <a href="/admindashboard" className="text-xs text-[var(--paper-soft)] hover:text-[var(--paper)]">← Admin</a>
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <a href="/admindashboard" className="whitespace-nowrap text-xs text-[var(--paper-soft)] hover:text-[var(--paper)]"><span className="sm:hidden">←</span><span className="hidden sm:inline">← Admin</span></a>
           <PufferImport />
           <EvoraSync />
         </div>
