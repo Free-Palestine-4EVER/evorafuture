@@ -5,7 +5,7 @@
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
 import { getDatabase, type Database } from "firebase-admin/database";
 import { getStorage } from "firebase-admin/storage";
-import { readFileSync } from "fs";
+import { readFileSync, mkdirSync, writeFileSync } from "fs";
 import path from "path";
 
 const DB_URL = process.env.FIREBASE_DB_URL || "https://evorafuture-bdb21-default-rtdb.firebaseio.com";
@@ -34,6 +34,17 @@ export function rtdb(): Database {
 // Upload bytes to Firebase Storage (serverless-safe, unlike local disk) and
 // return a public URL. Used for Puffer's GLB + 2D plans + journey photos.
 export async function uploadToStorage(name: string, buf: Buffer, contentType: string): Promise<string> {
+  // Local-first mode: when EVORA_LOCAL_STORAGE=1, write the bytes into the app's
+  // public/ dir and return a URL served by this same server. Bypasses Firebase
+  // Storage entirely (used when the cloud billing account is disabled).
+  if (process.env.EVORA_LOCAL_STORAGE === "1") {
+    const rel = path.join("uploads", name.replace(/^uploads\//, ""));
+    const abs = path.join(process.cwd(), "public", rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, buf);
+    const base = (process.env.EVORA_PUBLIC_BASE || "").replace(/\/+$/, "");
+    return `${base}/${rel}`;
+  }
   const file = getStorage(ensure()).bucket().file(name);
   await file.save(buf, { contentType, resumable: false, metadata: { cacheControl: "public, max-age=31536000, immutable" } });
   await file.makePublic();

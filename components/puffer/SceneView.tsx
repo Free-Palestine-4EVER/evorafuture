@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, useTexture, Environment, Lightformer, ContactShadows, useGLTF } from "@react-three/drei";
 import type { Texture } from "three";
@@ -17,6 +17,48 @@ function SceneCapture() {
   const scene = useThree((s) => s.scene);
   sceneRef.current = scene;
   return null;
+}
+
+// Image-based lighting via drei <Environment> needs a float/half-float colour
+// render-target. macOS (Metal) supports it; some Linux Mesa/ANGLE stacks don't,
+// and when it can't build the target the WHOLE canvas goes blank. So: only mount
+// <Environment> where the GL context actually supports it, and wrap it so any
+// runtime failure falls back to plain lighting instead of a black scene. The
+// scene also keeps ambient + directional lights, so the fallback is fully lit.
+class EnvBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+function SafeEnvironment({ spanM }: { spanM: number }) {
+  const gl = useThree((s) => s.gl);
+  const canEnv = useMemo(() => {
+    try {
+      const ctx = gl.getContext();
+      if (!ctx) return false;
+      return (
+        gl.extensions.has("EXT_color_buffer_float") ||
+        gl.extensions.has("EXT_color_buffer_half_float") ||
+        !!ctx.getExtension("EXT_color_buffer_half_float")
+      );
+    } catch {
+      return false;
+    }
+  }, [gl]);
+
+  const fallback = <hemisphereLight intensity={0.9} color="#ffffff" groundColor="#aab0b8" />;
+  if (!canEnv) return fallback;
+
+  return (
+    <EnvBoundary fallback={fallback}>
+      <Environment resolution={256}>
+        <Lightformer intensity={1.3} position={[0, spanM * 2.2, 0]} scale={[spanM * 2.5, spanM * 2.5, 1]} rotation={[Math.PI / 2, 0, 0]} />
+        <Lightformer intensity={0.7} position={[spanM * 2, spanM, spanM * 2]} scale={[spanM, spanM * 1.5, 1]} />
+        <Lightformer intensity={0.5} position={[-spanM * 2, spanM, -spanM]} scale={[spanM, spanM * 1.5, 1]} />
+      </Environment>
+    </EnvBoundary>
+  );
 }
 
 const EYE_HEIGHT = 1.6; // metres — standing eye level for the walk-in 360 view
@@ -290,6 +332,19 @@ export default function SceneView() {
   const spanM = ready ? Math.max(imgW, imgH) * s : 8;
   const [view360, setView360] = useState(false);
 
+  // WebGL2 preflight — if the browser can't create a context (hardware
+  // acceleration off, blocklisted driver, headless), show a helpful message
+  // instead of an unexplained blank canvas. null = still checking.
+  const [glSupported, setGlSupported] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      const c = document.createElement("canvas");
+      setGlSupported(!!(c.getContext("webgl2") || c.getContext("webgl")));
+    } catch {
+      setGlSupported(false);
+    }
+  }, []);
+
   // shared wall texture (cloned + tiled per wall inside WallMesh)
   const wallTex = useMemo(() => buildTexture(wallMat), [wallMat]);
   useEffect(() => () => wallTex?.dispose(), [wallTex]);
@@ -345,14 +400,24 @@ export default function SceneView() {
         </div>
       )}
 
-      <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }} camera={{ position: [spanM * 0.6, spanM * 1.15, spanM * 1.0], fov: 42 }}>
+      {glSupported === false && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center">
+          <div className="max-w-sm rounded-lg bg-black/70 px-5 py-4 text-sm text-neutral-200">
+            <p className="font-medium text-white">3D can’t start on this browser</p>
+            <p className="mt-1.5 text-neutral-300">
+              WebGL is unavailable. On Linux this is usually hardware acceleration being off —
+              enable it in your browser settings (or visit <span className="font-mono">chrome://gpu</span> to check),
+              then reload.
+            </p>
+          </div>
+        </div>
+      )}
+      {glSupported !== false && (
+      <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true, powerPreference: "high-performance" }} camera={{ position: [spanM * 0.6, spanM * 1.15, spanM * 1.0], fov: 42 }}>
         <color attach="background" args={[view360 ? "#cfd6de" : "#e7ebf0"]} />
-        {/* soft image-based lighting built in-memory (no external HDRI download) */}
-        <Environment resolution={256}>
-          <Lightformer intensity={1.3} position={[0, spanM * 2.2, 0]} scale={[spanM * 2.5, spanM * 2.5, 1]} rotation={[Math.PI / 2, 0, 0]} />
-          <Lightformer intensity={0.7} position={[spanM * 2, spanM, spanM * 2]} scale={[spanM, spanM * 1.5, 1]} />
-          <Lightformer intensity={0.5} position={[-spanM * 2, spanM, -spanM]} scale={[spanM, spanM * 1.5, 1]} />
-        </Environment>
+        {/* soft image-based lighting built in-memory (no external HDRI download);
+            gated + guarded so a Linux GL stack that can't build it stays lit, not blank */}
+        <SafeEnvironment spanM={spanM} />
         <ambientLight intensity={0.3} />
         <directionalLight
           position={[spanM * 0.9, spanM * 1.8, spanM * 0.7]}
@@ -428,6 +493,7 @@ export default function SceneView() {
           mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
         />
       </Canvas>
+      )}
     </div>
   );
 }
