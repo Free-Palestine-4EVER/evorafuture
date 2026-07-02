@@ -18,7 +18,7 @@ const FILTERS: Filter[] = ["All", ...CATEGORIES];
 
 const T = {
   eyebrow: { en: "The collection", ar: "المجموعة" },
-  heading_a: { en: "Twenty-nine pieces.", ar: "تسعٌ وعشرون قطعة." },
+  heading_a: { en: "Pieces to live with.", ar: "قطعٌ تُعاش." },
   heading_em: { en: "Your", ar: "جدرانك" },
   heading_b: { en: " four walls.", ar: " الأربعة." },
 };

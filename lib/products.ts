@@ -66,18 +66,30 @@ const ROWS: Row[] = [
     "Taupe velvet", "#cbbfae", "Curved two-seater",
     "A single sculptural curve in soft taupe velvet — a crescent two-seater that turns a corner into a conversation. Quietly grand, endlessly photogenic.",
     "New", ["vray", "2110305"]],
+  ["fahrenheit-sofa", "Fahrenheit", "Sofas", ["living", "guest"], 173, 66, 72,
+    "Tufted velvet", "#c9b39a", "Three-seat sofa",
+    "The Fahrenheit three-seater — a deep button-tufted back, softly rolled arms and turned hardwood legs, finished with a row of scatter cushions. The centrepiece of the majlis.",
+    "Bestseller", []],
+  ["fahrenheit-loveseat", "Fahrenheit Duo", "Sofas", ["living", "guest"], 126, 66, 68,
+    "Tufted velvet", "#cdb89e", "Two-seat sofa",
+    "The two-seat companion to the Fahrenheit — the same tufted comfort and carved feet, scaled for a reading corner or the foot of a larger room.",
+    "", []],
+
+  // ── Seating ──
+  ["fahrenheit-armchair", "Fahrenheit Wing", "Seating", ["living", "guest"], 66, 66, 72,
+    "Tufted velvet", "#c7b39b", "Wingback armchair",
+    "A tufted wingback with a high, enveloping back and turned front legs — the armchair the whole Fahrenheit collection is drawn around. A corner of your own.",
+    "New", []],
 
   // ── Tables ──
-  ["fahrenheit-dining-table", "Fahrenheit", "Tables", ["dining"], 240, 110, 78,
-    "Solid walnut", "#8a6a44", "Dining table & chairs",
-    "The Fahrenheit dining table — a long walnut top on a sculpted base, with its matching chairs. Built to host from the first coffee to the last course.",
-    "New", ["surface"]],
-
-  // ── Storage ──
-  ["fahrenheit-set", "Fahrenheit Cabinet", "Storage", ["living", "dining"], 219, 62, 209,
-    "Oak veneer", "#b7a184", "Tall display cabinet",
-    "A floor-to-ceiling oak cabinet from the Fahrenheit collection — open display bays and closed storage in one clean, architectural wall.",
-    "", ["surface"]],
+  ["fahrenheit-dining-table", "Fahrenheit Table", "Tables", ["dining"], 240, 110, 78,
+    "Walnut & upholstery", "#8a6a44", "Dining table & chairs",
+    "The Fahrenheit dining table — a long top on a sculpted base, dressed with a full run of tufted chairs. Built to host from the first coffee to the last course.",
+    "Bestseller", []],
+  ["fahrenheit-side-table", "Fahrenheit Guéridon", "Tables", ["living", "guest"], 44, 44, 36,
+    "Carved hardwood", "#9c7b4e", "Carved side table",
+    "A small carved side table from the Fahrenheit collection — a scrolled apron and fluted legs, a resting place for a lamp or a cup beside any seat.",
+    "", []],
 
   // ── Bedroom ──
   ["bed", "Layl", "Bedroom", ["bedroom"], 180, 210, 118,
@@ -167,11 +179,16 @@ const AR_COPY: Record<string, LocalizedCopy> = {
   "corner-sofa": { tagline: "كنبة زاوية معيارية", description: "كنبة زاوية كريمة صُنعت للمجلس — بمساندَ مستديرة طريّة، ومقاعدَ عميقةٍ مخيطةٍ بالقنوات، ووقفةٍ منخفضةٍ ثابتة من المخمل الكريمي الدافئ. حولها تجتمع الغرفة." },
   "curve-sofa-2seat": { tagline: "كنبة منحنية ثنائية", description: "انحناءةٌ واحدةٌ كالنحت من المخمل الرمادي البُنّي الناعم — كنبةٌ هلاليةٌ لشخصين تحوّل الزاوية إلى حديث. فخمةٌ بهدوء، وأخّاذةٌ من كل زاوية." },
 
-  // ── Tables ──
-  "fahrenheit-dining-table": { tagline: "طاولة طعام وكراسي", description: "طاولة طعام فهرنهايت — سطحٌ طويل من خشب الجوز على قاعدةٍ منحوتة، مع كراسيها المتطابقة. صُنعت لتستضيف من فنجان القهوة الأول إلى آخر الأطباق." },
+  // ── Sofas (مجموعة فهرنهايت) ──
+  "fahrenheit-sofa": { tagline: "كنبة ثلاثية", description: "كنبة فهرنهايت الثلاثية — ظهرٌ عميق مكبوس بالأزرار، ومساندُ مدوّرةٌ ناعمة، وأرجلٌ خشبيةٌ مخروطة، تُزيّنها صفٌّ من الوسائد. قلب المجلس." },
+  "fahrenheit-loveseat": { tagline: "كنبة ثنائية", description: "رفيقة فهرنهايت لشخصين — الراحة المكبوسة نفسها والأرجل المنحوتة، بمقاسٍ يناسب ركن القراءة أو طرف الغرفة الأكبر." },
 
-  // ── Storage ──
-  "fahrenheit-set": { tagline: "خزانة عرض عالية", description: "خزانةٌ من قشرة البلوط تمتدّ من الأرض إلى السقف من مجموعة فهرنهايت — أرففُ عرضٍ مفتوحة وتخزينٌ مغلق في جدارٍ واحدٍ نظيفٍ معماري." },
+  // ── Seating ──
+  "fahrenheit-armchair": { tagline: "كرسي بظهر جناحي", description: "كرسيٌّ مكبوس بظهرٍ عالٍ يحتضنك وأرجلٍ أماميةٍ مخروطة — الكرسي الذي بُنيت حوله مجموعة فهرنهايت كاملة. ركنٌ خاصٌّ بك." },
+
+  // ── Tables ──
+  "fahrenheit-dining-table": { tagline: "طاولة طعام وكراسي", description: "طاولة طعام فهرنهايت — سطحٌ طويل على قاعدةٍ منحوتة، مع مجموعةٍ كاملةٍ من الكراسي المكبوسة. صُنعت لتستضيف من فنجان القهوة الأول إلى آخر الأطباق." },
+  "fahrenheit-side-table": { tagline: "طاولة جانبية منحوتة", description: "طاولةٌ جانبيةٌ صغيرة منحوتة من مجموعة فهرنهايت — إطارٌ مزخرف وأرجلٌ محزّزة، مكانٌ لأباجورةٍ أو فنجانٍ بجانب أيّ مقعد." },
 
   // ── Bedroom ──
   bed: { tagline: "سرير منجّد", description: "سرير منخفض منجّد بظهرٍ عريضٍ طريٍّ تتّكئ عليه، يُكسى بكتّانٍ عاجيٍّ ناصع. نهاية اليوم الهادئة." },

@@ -201,14 +201,14 @@ export default function Collections() {
             </Rise>
           </div>
           <RevealLines
-            lines={en ? ["Six worlds,", "one address."] : ["ستة عوالم،", "عنوان واحد."]}
+            lines={en ? ["Every world,", "one address."] : ["كل العوالم،", "عنوان واحد."]}
             className="display rooms__title"
             delay={0.06}
           />
           <Rise delay={0.12} as="p" className="rooms__sub">
             {en
-              ? "Step through six rooms of Evora — then everything that finishes the home."
-              : "تنقّل بين ست غرف من إيفورا — ثم كل ما يكمّل البيت."}
+              ? "Step through the rooms of Evora — then everything that finishes the home."
+              : "تنقّل بين غرف إيفورا — ثم كل ما يكمّل البيت."}
           </Rise>
         </div>
 

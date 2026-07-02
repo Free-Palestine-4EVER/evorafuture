@@ -4,8 +4,15 @@ import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Rise } from "@/components/motion";
+import { products as catalog, posterFor, productCopy } from "@/lib/products";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+const BADGE_AR: Record<string, string> = {
+  New: "جديد",
+  Bestseller: "الأكثر مبيعًا",
+  Limited: "إصدار محدود",
+};
 
 type Bi = { en: string; ar: string };
 
@@ -108,26 +115,6 @@ const rooms: Room[] = [
       { en: "Wall Lights", ar: "إضاءة جدارية" },
     ],
   },
-];
-
-// The full product taxonomy from the original site — the line-art icons.
-const taxonomy: { icon: string; label: Bi }[] = [
-  { icon: "sofa",        label: { en: "Sofa", ar: "كنبة" } },
-  { icon: "armchair",    label: { en: "Armchair", ar: "كرسي" } },
-  { icon: "coffee_table",label: { en: "Coffee Table", ar: "طاولة قهوة" } },
-  { icon: "fireplace",   label: { en: "Fireplace", ar: "مدفأة" } },
-  { icon: "bed",         label: { en: "Bed", ar: "سرير" } },
-  { icon: "wardrobe",    label: { en: "Wardrobe", ar: "خزانة" } },
-  { icon: "dressing",    label: { en: "Dressing Table", ar: "تسريحة" } },
-  { icon: "shelf",       label: { en: "Shelf", ar: "رف" } },
-  { icon: "chandelier",  label: { en: "Chandelier", ar: "ثريا" } },
-  { icon: "ceiling_fan", label: { en: "Ceiling Fan", ar: "مروحة سقف" } },
-  { icon: "floor_lamp",  label: { en: "Floor Lamp", ar: "قائم إضاءة" } },
-  { icon: "table-lamp",  label: { en: "Table Lamp", ar: "أباجورة" } },
-  { icon: "ottoman",     label: { en: "Ottoman", ar: "بوف" } },
-  { icon: "cushion",     label: { en: "Cushion", ar: "وسادة" } },
-  { icon: "vase-flower", label: { en: "Vase", ar: "مزهرية" } },
-  { icon: "windown",     label: { en: "Curtains", ar: "ستائر" } },
 ];
 
 /* ── The actual catalogue carried over from evorafuturehome.com/Products.
@@ -244,25 +231,37 @@ export default function Rooms() {
         </ul>
       </div>
 
-      {/* The full product taxonomy — every type Evora makes */}
+      {/* Every piece we make — the real catalogue, shown as product tiles */}
       <div className="container rm__tax">
         <Rise as="span" className="rm__taxlabel">
           {ar ? "كل ما يحتاجه كل ركن" : "Everything for every corner"}
         </Rise>
-        <div className="rm__icons">
-          {taxonomy.map((t, i) => (
-            <motion.span
-              key={t.icon}
-              className="rm__ico"
-              initial={reduce ? false : { opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "0px 0px -8% 0px" }}
-              transition={{ duration: 0.5, ease: EASE, delay: (i % 8) * 0.04 }}
-            >
-              <img src={`/evora-legacy/icons/${t.icon}.png`} alt="" className="rm__icoimg" loading="lazy" />
-              <span className="rm__icolabel">{t.label[lang]}</span>
-            </motion.span>
-          ))}
+        <div className="rm__cat">
+          {catalog.map((p, i) => {
+            const copy = productCopy(p, lang);
+            return (
+              <motion.a
+                key={p.id}
+                href={`/showroom?p=${p.id}`}
+                className="rm__cat-item"
+                data-cursor="hover"
+                aria-label={p.name}
+                initial={reduce ? false : { opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "0px 0px -8% 0px" }}
+                transition={{ duration: 0.55, ease: EASE, delay: (i % 4) * 0.05 }}
+              >
+                <div className="rm__cat-imgwrap">
+                  <img src={posterFor(p)} alt={p.name} className="rm__cat-img" loading="lazy" />
+                  {p.badge ? (
+                    <span className="rm__cat-badge">{ar ? BADGE_AR[p.badge] : p.badge}</span>
+                  ) : null}
+                </div>
+                <span className="rm__cat-name">{p.name}</span>
+                <span className="rm__cat-note">{copy.tagline}</span>
+              </motion.a>
+            );
+          })}
         </div>
       </div>
 
@@ -391,12 +390,21 @@ export default function Rooms() {
         .rm__taxlabel { display: block; text-align: center; font-family: var(--f-sans);
           font-size: 0.72rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
           color: var(--brass-2); margin-bottom: clamp(1.6rem,3vw,2.4rem); }
-        .rm__icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: clamp(0.8rem,1.8vw,1.6rem); }
-        .rm__ico { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; text-align: center; }
-        .rm__icoimg { width: clamp(34px, 4vw, 48px); height: clamp(34px,4vw,48px); object-fit: contain;
-          opacity: 0.72; transition: opacity .3s var(--ease), transform .3s var(--ease); }
-        .rm__ico:hover .rm__icoimg { opacity: 1; transform: translateY(-3px); }
-        .rm__icolabel { font-family: var(--f-sans); font-size: 0.72rem; letter-spacing: 0.02em; color: var(--ink-faint); }
+        .rm__cat { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 2.2vw, 1.8rem); }
+        .rm__cat-item { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
+        .rm__cat-imgwrap { position: relative; overflow: hidden; border-radius: 4px; aspect-ratio: 4 / 3;
+          background: var(--surface, #efece6); border: 1px solid var(--line); isolation: isolate; }
+        .rm__cat-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+          transition: transform 1s var(--ease); }
+        .rm__cat-item:hover .rm__cat-img, .rm__cat-item:focus-visible .rm__cat-img { transform: scale(1.05); }
+        .rm__cat-badge { position: absolute; z-index: 2; inset-block-start: 0.55rem; inset-inline-start: 0.55rem;
+          font-family: var(--f-sans); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+          color: var(--ink); background: rgba(255,255,255,0.86); backdrop-filter: blur(6px);
+          border: 1px solid rgba(255,255,255,0.6); padding: 0.3em 0.62em; border-radius: 999px; }
+        .rm__cat-name { margin-top: 0.7rem; font-family: var(--f-display), Georgia, serif; font-weight: 360;
+          font-size: clamp(1.05rem, 1.7vw, 1.32rem); line-height: 1.12; letter-spacing: -0.01em; color: var(--ink); }
+        .rm__cat-note { margin-top: 0.15rem; font-family: var(--f-sans); font-size: 0.8rem;
+          letter-spacing: 0.01em; color: var(--ink-faint); }
 
         /* ---- real catalogue (600 / 700 Heaven) ---- */
         .rm__shop { margin-top: clamp(3rem, 6vw, 5rem); padding-top: clamp(2rem,4vw,3rem); border-top: 1px solid var(--line); }
@@ -438,7 +446,7 @@ export default function Rooms() {
           .rm__grid { grid-template-columns: 1fr; }
           .rm__stage { aspect-ratio: 4 / 3; }
           .rm__list { border-top: none; }
-          .rm__icons { grid-template-columns: repeat(4, 1fr); row-gap: 1.6rem; }
+          .rm__cat { grid-template-columns: repeat(3, 1fr); row-gap: 1.6rem; }
           /* no hover on touch — keep the "Enter room" cue + the active arrow visible,
              and guarantee a ≥44px tap target per room. */
           .rm__enter { opacity: 1; transform: none; }
@@ -448,7 +456,7 @@ export default function Rooms() {
           html[dir="rtl"] .rm__item.is-active .rm__iarrow { transform: scaleX(-1); }
         }
         @media (max-width: 460px) {
-          .rm__icons { grid-template-columns: repeat(3, 1fr); }
+          .rm__cat { grid-template-columns: repeat(2, 1fr); }
           .rm__pieces { max-width: 80%; }
           /* tighten the stage caption so the room name never collides with the pieces */
           .rm__stagename { font-size: clamp(1.35rem, 7vw, 1.8rem); }

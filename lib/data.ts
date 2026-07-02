@@ -61,16 +61,16 @@ export type Category = {
 };
 
 export const categories: Category[] = [
-  { id: "sofas",     name: { en: "Sofas & Couches",     ar: "كنب وأرائك" },        count: { en: "28 pieces", ar: "٢٨ قطعة" }, img: "/evora/p08.jpg" },
-  { id: "bedrooms",  name: { en: "Beds & Bedrooms",     ar: "أسرّة وغرف نوم" },     count: { en: "42 pieces", ar: "٤٢ قطعة" }, img: "/evora/c-bedrooms.jpg" },
-  { id: "dining",    name: { en: "Dining Tables",       ar: "طاولات طعام" },        count: { en: "36 pieces", ar: "٣٦ قطعة" }, img: "/evora/p03.jpg" },
-  { id: "seating",   name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" },       count: { en: "24 pieces", ar: "٢٤ قطعة" }, img: "/evora/ig-chesterfield.jpg" },
-  { id: "tables",    name: { en: "Coffee & Side Tables",ar: "طاولات قهوة وجانبية" }, count: { en: "30 pieces", ar: "٣٠ قطعة" }, img: "/evora/p11.jpg" },
-  { id: "storage",   name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" },       count: { en: "Built-in", ar: "حسب القياس" }, img: "/evora/p02.jpg" },
-  { id: "lighting",  name: { en: "Lighting",            ar: "إضاءة" },              count: { en: "45+ pieces", ar: "+٤٥ قطعة" }, img: "/evora/p10.jpg" },
+  { id: "sofas",     name: { en: "Sofas & Couches",     ar: "كنب وأرائك" },        count: { en: "The living room", ar: "غرفة المعيشة" }, img: "/evora/p08.jpg" },
+  { id: "bedrooms",  name: { en: "Beds & Bedrooms",     ar: "أسرّة وغرف نوم" },     count: { en: "The calm centre", ar: "قلب الهدوء" }, img: "/evora/c-bedrooms.jpg" },
+  { id: "dining",    name: { en: "Dining Tables",       ar: "طاولات طعام" },        count: { en: "Gather & host", ar: "للعزائم واللقاء" }, img: "/evora/p03.jpg" },
+  { id: "seating",   name: { en: "Armchairs & Seating", ar: "كراسي ومقاعد" },       count: { en: "Sculpted seating", ar: "مقاعد منحوتة" }, img: "/evora/ig-chesterfield.jpg" },
+  { id: "tables",    name: { en: "Coffee & Side Tables",ar: "طاولات قهوة وجانبية" }, count: { en: "The centre table", ar: "طاولة الوسط" }, img: "/evora/p11.jpg" },
+  { id: "storage",   name: { en: "Wardrobes & Storage", ar: "خزائن وتخزين" },       count: { en: "Made to measure", ar: "حسب القياس" }, img: "/evora/p02.jpg" },
+  { id: "lighting",  name: { en: "Lighting",            ar: "إضاءة" },              count: { en: "Pendants & sconces", ar: "ثريّات ومعلّقات" }, img: "/evora/p10.jpg" },
   { id: "outdoor",   name: { en: "Outdoor & Garden",    ar: "حدائق وخارجي" },       count: { en: "Seasonal", ar: "موسمي" }, img: "/evora/p05.jpg" },
-  { id: "rugs",      name: { en: "Rugs & Textiles",     ar: "سجاد ومنسوجات" },      count: { en: "60+ pieces", ar: "+٦٠ قطعة" }, img: "/evora/p09.jpg" },
-  { id: "decor",     name: { en: "Décor & Accessories", ar: "ديكور وإكسسوارات" },   count: { en: "90+ pieces", ar: "+٩٠ قطعة" }, img: "/evora/p04.jpg" },
+  { id: "rugs",      name: { en: "Rugs & Textiles",     ar: "سجاد ومنسوجات" },      count: { en: "Hand-knotted", ar: "معقود باليد" }, img: "/evora/p09.jpg" },
+  { id: "decor",     name: { en: "Décor & Accessories", ar: "ديكور وإكسسوارات" },   count: { en: "Objects & vessels", ar: "تُحف وأوانٍ" }, img: "/evora/p04.jpg" },
 ];
 
 export type Hotspot = {
