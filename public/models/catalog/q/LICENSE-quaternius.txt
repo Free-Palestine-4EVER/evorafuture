@@ -1,0 +1,2 @@
+Ultimate House Interior Pack by Quaternius (quaternius.com) — CC0 / public domain.
+Models converted OBJ->GLB and measured via Blender; dimensions are model bbox / 2 (pack is 2x real scale).

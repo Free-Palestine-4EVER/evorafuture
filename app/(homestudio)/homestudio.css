@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Evora Home Studio — warm-dark studio chrome; bronze-gold brand + coral actions.
+   Palette drawn from evorafuturehome.com (Poppins · coral #ff5151) and the
+   metallic ƎVORΛ logo (bronze-gold). Scoped to the /evora3dstudio route group. */
+@theme {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-paper: #131010;   /* app background, warm espresso near-black */
+  --color-panel: #1c1817;   /* panels / cards */
+  --color-raised: #292322;  /* inputs, raised buttons */
+  --color-ink: #f0ebe4;     /* primary text, warm off-white */
+  --color-muted: #9c948b;   /* secondary text */
+  --color-faint: #6a6259;   /* tertiary / placeholders */
+  --color-line: #322c29;    /* hairline borders */
+
+  /* primary ACTION accent — Evora site coral */
+  --color-clay: #ff5151;    /* buttons, active steps, highlights */
+  --color-clay-ink: #ffffff;/* text on coral */
+  --color-clay-50: #3a201e; /* coral tint for active/hover surfaces */
+
+  /* brand accent — the metallic bronze-gold from the ƎVORΛ logo */
+  --color-gold: #c19a5b;
+  --color-gold-ink: #1a130b;
+
+  --color-canvas: #17140f;  /* 3D viewport */
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* faint grain for atmosphere */
+.paper-grain {
+  background-image: radial-gradient(rgba(240, 235, 228, 0.018) 0.5px, transparent 0.5px);
+  background-size: 5px 5px;
+}
+
+/* metallic bronze-gold wordmark (echoes the real ƎVORΛ logo) */
+.wordmark-gold {
+  background: linear-gradient(176deg, #e9cf9a 0%, #c19a5b 46%, #8c6a38 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
