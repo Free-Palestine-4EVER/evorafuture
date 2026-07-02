@@ -236,7 +236,7 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<voi
 export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
   await rtdb().ref(`leads/${id}`).update({ sentToPuffer: on, updatedAt: Date.now() });
   touched();
-  if (on) notifyStaff("2D plan queued for Puffer", "A design request is ready to import in /pufferweb");
+  if (on) notifyStaff("2D plan queued for Puffer", "A design request is ready to import in /evora3dstudio");
 }
 
 // ---- realtime -------------------------------------------------------------

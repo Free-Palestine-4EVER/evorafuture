@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // Studio route was renamed /pufferweb → /evora3dstudio; keep old links working.
+  async redirects() {
+    return [
+      { source: "/pufferweb", destination: "/evora3dstudio", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

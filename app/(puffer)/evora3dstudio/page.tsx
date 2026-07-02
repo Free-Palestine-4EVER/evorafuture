@@ -6,7 +6,7 @@ import PufferImport from "@/components/puffer/PufferImport";
 import PufferWorkspace from "@/components/puffer/PufferWorkspace";
 import Monogram from "@/components/brand/Monogram";
 
-/* Evora Future Studio — the staff tool, in-app at /pufferweb. Example build:
+/* Evora Future Studio — the staff tool, in-app at /evora3dstudio. Example build:
  * design a room in 3D from a 2D plan and save it to a client. (Export/file/scan
  * tools and anything needing an API key are intentionally omitted here.) */
 export default function PufferPage() {

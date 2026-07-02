@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Loader from "@/components/brand/Loader";
 import "./puffer.css";
 
-/* Root layout for Evora Future Studio, hosted in-app at /pufferweb. Its own
+/* Root layout for Evora Future Studio, hosted in-app at /evora3dstudio. Its own
  * midnight-atelier, Tailwind shell — independent of the marketing/portal chrome.
  *
  * PWA-installable on iPad / iPhone (manifest + apple-web-app meta): the studio

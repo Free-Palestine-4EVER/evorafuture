@@ -220,7 +220,7 @@ export default function StudioPresentation() {
             <a href="/visit" className="btn btn-brass">
               {t("studio_cta")} <span className="arrow">→</span>
             </a>
-            <a href="/pufferweb" className="studio-quiet">
+            <a href="/evora3dstudio" className="studio-quiet">
               {openStudio} <span className="arrow">→</span>
             </a>
           </Rise>
@@ -401,7 +401,7 @@ export default function StudioPresentation() {
 
             <div className="studio-close__staff">
               <span>{en ? "Evora team" : "فريق إيفورا"}</span>
-              <a href="/pufferweb" className="studio-quiet">
+              <a href="/evora3dstudio" className="studio-quiet">
                 {openStudio} <span className="arrow">→</span>
               </a>
             </div>
