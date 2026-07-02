@@ -30,7 +30,7 @@ type Product = { id: string; name: Bi; tag: Bi; model: string; href: string };
 const PRODUCTS: Product[] = [
   { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, model: "/models/featured/hd-coffee-table.glb", href: "/shop/tables" },
   { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, model: "/models/featured/src-chair.glb", href: "/shop/seating" },
-  { id: "bed", name: { en: "Aspen Oak Bed", ar: "سرير أسبن البلوط" }, tag: { en: "King · linen headboard", ar: "كينغ · لوح كتاني" }, model: "/models/furni/bed.glb", href: "/shop/bedroom" },
+  { id: "bed", name: { en: "Layl Bed", ar: "سرير ليل" }, tag: { en: "King · ivory linen headboard", ar: "كينغ · لوح كتّان عاجي" }, model: "/models/furni/bed.glb", href: "/shop/bedroom" },
 ];
 
 /* shared model — optionally recolours every material (only the sofa uses tint) */

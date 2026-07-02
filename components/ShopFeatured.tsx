@@ -33,11 +33,11 @@ function FeaturedCard({ product, onOpen }: { product: Product; onOpen: () => voi
     (el: ViewerEl) => {
       const mv = el as unknown as MVElement;
       viewerRef.current = mv;
-      targetIdx.current = pickUpholsteryIndices(mv, anchorHex);
+      targetIdx.current = pickUpholsteryIndices(mv, anchorHex, product.swatchHints);
       const c = product.colorways[color];
       applyFinish(mv, c.name, c.hex, targetIdx.current);
     },
-    [anchorHex, color, product.colorways]
+    [anchorHex, color, product.colorways, product.swatchHints]
   );
 
   const pick = (i: number) => {

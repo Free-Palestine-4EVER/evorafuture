@@ -46,11 +46,11 @@ export default function ProductDialog({ product, onClose }: Props) {
       setViewer(el);
       setArReady(Boolean(el.canActivateAR));
       const mv = el as unknown as MVElement;
-      targetIdx.current = pickUpholsteryIndices(mv, anchorHex);
+      targetIdx.current = pickUpholsteryIndices(mv, anchorHex, product.swatchHints);
       const c = product.colorways[color];
       applyFinish(mv, c.name, c.hex, targetIdx.current);
     },
-    [anchorHex, color, product.colorways]
+    [anchorHex, color, product.colorways, product.swatchHints]
   );
 
   const pickColor = (i: number) => {

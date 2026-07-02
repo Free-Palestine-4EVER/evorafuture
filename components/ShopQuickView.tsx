@@ -97,11 +97,11 @@ export default function ShopQuickView({
     (el: ViewerEl) => {
       const mv = el as unknown as MVElement;
       viewerRef.current = mv;
-      targetIdx.current = pickUpholsteryIndices(mv, anchorHex);
+      targetIdx.current = pickUpholsteryIndices(mv, anchorHex, current.swatchHints);
       const c = current.colorways[color];
       applyFinish(mv, c.name, c.hex, targetIdx.current);
     },
-    [anchorHex, color, current.colorways]
+    [anchorHex, color, current.colorways, current.swatchHints]
   );
 
   const pickColor = (i: number) => {
