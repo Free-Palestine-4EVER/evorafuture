@@ -122,7 +122,7 @@ export default function DesignRequest() {
               </div>
             ) : (
               <form onSubmit={submit} style={{ display: "grid", gap: "0.9rem" }} noValidate>
-                <input className="ev-dr-field" style={field} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />
+                <input className="ev-dr-field" style={field} type="text" autoComplete="name" autoCapitalize="words" placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />
                 <div>
                   <input
                     className={`ev-dr-field${showPhoneErr ? " is-invalid" : ""}`}

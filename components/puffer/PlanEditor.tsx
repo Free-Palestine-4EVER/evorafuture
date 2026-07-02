@@ -10,6 +10,7 @@ import { detectSlots } from "@/lib/puffer/detectSlots";
 import { loadPlanFile } from "@/lib/puffer/loadPlanFile";
 import { scanToProject } from "@/lib/puffer/importScan";
 import { Point, Rect } from "@/lib/puffer/types";
+import { NumberField } from "./NumberField";
 
 // thin vertical separator between toolbar groups
 function Divider() {
@@ -217,12 +218,13 @@ export default function PlanEditor() {
     img.src = planImage;
   }, [planImage, imgW, imgH]);
 
-  // snap a plan-pixel point to the darkest pixel within a small radius (a wall line)
+  // snap a plan-pixel point to the darkest pixel within a small radius (a wall line).
+  // Radius is a touch larger so a fingertip on iPad still lands on the wall.
   function snap(p: Point): Point {
     const L = luma.current;
     if (!L) return p;
     const cx = Math.round(p.x * L.scale), cy = Math.round(p.y * L.scale);
-    const R = Math.max(3, Math.round(Math.max(L.w, L.h) * 0.012));
+    const R = Math.max(4, Math.round(Math.max(L.w, L.h) * 0.02));
     let best = 200, bx = cx, by = cy; // only snap to genuinely dark pixels
     for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
       const x = cx + dx, y = cy + dy;
@@ -231,6 +233,23 @@ export default function PlanEditor() {
       if (v < best) { best = v; bx = x; by = y; }
     }
     return best < 150 ? { x: bx / L.scale, y: by / L.scale } : p;
+  }
+
+  // Calibration snap = wall-line snap, then axis-lock: if the line to the other
+  // end is within ~7° of horizontal/vertical, snap it perfectly straight. Walls
+  // people calibrate against are almost always dead horizontal or vertical, so
+  // this removes the fiddliness of landing a finger exactly on a corner.
+  function snapCalib(idx: number, raw: Point): Point {
+    const s = snap(raw);
+    const other = calibPoints[idx === 0 ? 1 : 0];
+    if (!other) return s;
+    const dx = s.x - other.x, dy = s.y - other.y;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Math.hypot(dx, dy) < 1) return s;
+    const AXIS = Math.tan((7 * Math.PI) / 180); // ~7° tolerance
+    if (ay / (ax || 1e-6) < AXIS) return { x: s.x, y: other.y }; // near-horizontal → lock Y
+    if (ax / (ay || 1e-6) < AXIS) return { x: other.x, y: s.y }; // near-vertical → lock X
+    return s;
   }
   // live move/resize of a placed slot
   const [edit, setEdit] = useState<
@@ -273,7 +292,7 @@ export default function PlanEditor() {
     setPopover(null);
     const p = toPx(e);
     if (mode === "calibrate") {
-      if (calibPoints.length < 2) addCalibPoint(snap(p)); // handles manage their own drag
+      if (calibPoints.length < 2) addCalibPoint(snapCalib(calibPoints.length, p)); // handles manage their own drag
     } else if (mode === "draw" || mode === "wall") {
       (e.target as Element).setPointerCapture?.(e.pointerId);
       setDrag({ start: p, cur: p });
@@ -284,7 +303,7 @@ export default function PlanEditor() {
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (calibDrag !== null) { updateCalibPoint(calibDrag, snap(toPx(e))); return; }
+    if (calibDrag !== null) { updateCalibPoint(calibDrag, snapCalib(calibDrag, toPx(e))); return; }
     if (edit) {
       cancelPress();
       const P = toPx(e);
@@ -426,16 +445,22 @@ export default function PlanEditor() {
       {planImage && mode === "calibrate" && (
         <div className="flex items-center gap-2 border-b border-neutral-800 bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
           {calibPoints.length < 2 ? (
-            <span>Click the two ends of a wall you know the length of — then drag each handle (a zoom magnifier appears) to land exactly on the corners. It snaps to the wall lines.</span>
+            <span>Tap the two ends of a wall you know the length of — then drag each handle (a magnifier appears) to fine-tune. It snaps onto the wall lines and locks the line straight.</span>
           ) : (
             <>
               <span>That line is {calibDistPx.toFixed(0)} px. Real length:</span>
-              <input
-                type="number"
+              <NumberField
                 value={calibLen}
-                onChange={(e) => setCalibLen(e.target.value)}
-                placeholder="mm"
-                className="w-24 rounded bg-neutral-800 px-2 py-1 text-white"
+                onChange={setCalibLen}
+                onSubmit={(v) => {
+                  const n = parseFloat(v);
+                  if (n > 0) { setScaleFromCalib(n); setCalibLen(""); }
+                }}
+                placeholder="length"
+                suffix="mm"
+                submitLabel="Set scale"
+                ariaLabel="Real wall length in millimetres"
+                className="min-w-[6rem] rounded bg-neutral-800 px-3 py-1.5 text-left text-white tabular-nums"
               />
               <button
                 className="rounded bg-amber-600 px-2 py-1 font-medium text-white hover:bg-amber-500"

@@ -63,7 +63,7 @@ export default function ProjectForm({
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
-          <label style={label}>{tp("assign_phone", lang)}<input style={field} value={p.ownerPhone || ""} onChange={(e) => setPhone(e.target.value)} placeholder="07_ _______" required /></label>
+          <label style={label}>{tp("assign_phone", lang)}<input style={field} type="tel" inputMode="tel" autoComplete="tel" value={p.ownerPhone || ""} onChange={(e) => setPhone(e.target.value)} placeholder="07_ _______" required /></label>
           <label style={label}>{tp("client_name", lang)}<input style={field} value={p.ownerName || ""} onChange={(e) => set("ownerName", e.target.value)} /></label>
         </div>
         <p style={{ fontSize: "0.74rem", color: "var(--ink-faint)", margin: "0.45rem 0 0", lineHeight: 1.5 }}>

@@ -117,14 +117,15 @@ export default function LoginForm({
             {reg && (
               <motion.div variants={item} className="lf-field-wrap">
                 <label style={label}>{tp("full_name", lang)}</label>
-                <input className="lf-field" value={name} onChange={(e) => setName(e.target.value)} required />
+                <input className="lf-field" value={name} onChange={(e) => setName(e.target.value)}
+                type="text" autoComplete="name" autoCapitalize="words" required />
               </motion.div>
             )}
 
             <motion.div variants={item} className="lf-field-wrap">
               <label style={label}>{admin ? tp("admin_id_label", lang) : tp("phone", lang)}</label>
               <input className="lf-field" value={identifier} onChange={(e) => setIdentifier(e.target.value)}
-                type="text" inputMode={admin ? "text" : "tel"} autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                type="text" inputMode={admin ? "email" : "tel"} autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 autoComplete="username" placeholder={admin ? "bakri@evorafuture.com" : "07_ _______"} required />
             </motion.div>
 

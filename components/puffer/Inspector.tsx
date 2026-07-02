@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useStudio } from "@/lib/puffer/store";
 import { CATALOG, resolveProduct } from "@/lib/puffer/catalog";
 import { Product, WallHeight } from "@/lib/puffer/types";
+import { NumberField } from "./NumberField";
 import { SurfaceMat } from "@/lib/puffer/textures";
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -98,21 +99,28 @@ function DimInput({ label, value, onCommit }: {
 }) {
   const [txt, setTxt] = useState(value != null ? String(value) : "");
   useEffect(() => { setTxt(value != null ? String(value) : ""); }, [value]);
+  const commit = (s: string) => {
+    setTxt(s);
+    const v = parseFloat(s);
+    if (onCommit && v > 0) onCommit(Math.round(v));
+  };
   return (
     <label className="flex items-center gap-1 rounded bg-neutral-800 px-2 py-2">
       <span className="text-xs text-neutral-500">{label}</span>
-      <input
-        type="number"
-        value={txt}
-        disabled={!onCommit}
-        onChange={(e) => {
-          setTxt(e.target.value);
-          const v = parseFloat(e.target.value);
-          if (onCommit && v > 0) onCommit(Math.round(v));
-        }}
-        style={{ fontSize: "16px" }}
-        className="w-20 bg-transparent text-right font-mono text-neutral-100 outline-none disabled:opacity-50"
-      />
+      {onCommit ? (
+        <NumberField
+          value={txt}
+          onChange={commit}
+          placeholder="—"
+          suffix="mm"
+          submitLabel="Set"
+          decimal={false}
+          ariaLabel={`${label} in millimetres`}
+          className="w-24 rounded bg-neutral-900/50 px-2 py-1 text-right font-mono text-neutral-100"
+        />
+      ) : (
+        <span className="w-20 text-right font-mono text-neutral-500 opacity-50">{txt || "—"}</span>
+      )}
     </label>
   );
 }
