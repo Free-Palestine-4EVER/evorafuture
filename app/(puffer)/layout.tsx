@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Loader from "@/components/brand/Loader";
 import "./puffer.css";
 
 /* Root layout for Evora Future Studio, hosted in-app at /evora3dstudio. Its own
@@ -47,7 +46,6 @@ export default function PufferLayout({ children }: { children: React.ReactNode }
         className="min-h-full flex flex-col overscroll-none"
         style={{ background: "var(--ink)", color: "var(--paper)" }}
       >
-        <Loader />
         {children}
       </body>
     </html>
