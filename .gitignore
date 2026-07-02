@@ -46,3 +46,6 @@ next-env.d.ts
 /service-account.json
 /.evora-uploads/
 .evora-plan/
+
+# runtime user uploads (not source)
+/public/uploads/
