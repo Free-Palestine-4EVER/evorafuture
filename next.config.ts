@@ -26,6 +26,20 @@ const nextConfig: NextConfig = {
       "node_modules/@react-three/**",
     ],
   },
+  // The DWG/CAD WASM lib (@mlightcad/libredwg-web) references node built-ins
+  // (node:module) that must not be bundled into the browser build. Turbopack
+  // handles this; the webpack builder (used on the low-RAM self-host box) needs
+  // these stubbed to empty in the client bundle.
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        module: false, fs: false, path: false, crypto: false, os: false,
+      };
+    }
+    return config;
+  },
   // Studio route was renamed /pufferweb → /evora3dstudio; keep old links working.
   async redirects() {
     return [
