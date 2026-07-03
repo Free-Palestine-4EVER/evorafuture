@@ -30,15 +30,19 @@ const nextConfig: NextConfig = {
   // (node:module) that must not be bundled into the browser build. Turbopack
   // handles this; the webpack builder (used on the low-RAM self-host box) needs
   // these stubbed to empty in the client bundle.
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve = config.resolve || {};
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
         module: false, fs: false, path: false, crypto: false, os: false,
-        "node:module": false, "node:fs": false, "node:path": false,
-        "node:crypto": false, "node:os": false,
       };
+      // `fallback` only catches bare specifiers (e.g. "module"), not "node:"
+      // URI-scheme imports (e.g. "node:module") — webpack 5 resolves those
+      // through a separate scheme handler that fallback can't intercept.
+      // IgnorePlugin drops the import entirely (stubbed to an empty module).
+      config.plugins = config.plugins || [];
+      config.plugins.push(new webpack.IgnorePlugin({ resourceRegExp: /^node:/ }));
     }
     return config;
   },
