@@ -36,6 +36,8 @@ const nextConfig: NextConfig = {
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
         module: false, fs: false, path: false, crypto: false, os: false,
+        "node:module": false, "node:fs": false, "node:path": false,
+        "node:crypto": false, "node:os": false,
       };
     }
     return config;
