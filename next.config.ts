@@ -8,6 +8,24 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // The /api/portal function only touches the local DB + file storage. Keep the
+  // heavy client-only / script-only libraries (3D, media, Firebase client, canvas,
+  // pdf) OUT of its server trace so it stays well under Vercel's 250MB function
+  // limit. These are never imported by any API route at runtime.
+  outputFileTracingExcludes: {
+    "/api/**": [
+      "node_modules/three/**",
+      "node_modules/three-stdlib/**",
+      "node_modules/@google/model-viewer/**",
+      "node_modules/stats-gl/**",
+      "node_modules/hls.js/**",
+      "node_modules/@firebase/**",
+      "node_modules/firebase/**",
+      "node_modules/@napi-rs/**",
+      "node_modules/pdfjs-dist/**",
+      "node_modules/@react-three/**",
+    ],
+  },
   // Studio route was renamed /pufferweb → /evora3dstudio; keep old links working.
   async redirects() {
     return [
