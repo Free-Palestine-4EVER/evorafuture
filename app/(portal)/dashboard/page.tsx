@@ -44,8 +44,13 @@ export default function DashboardPage() {
   const [active, setActive] = useState<Project | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState("");
+  const [loadErr, setLoadErr] = useState(false);
 
-  const load = useCallback(async () => { if (user) setProjects(await listProjectsForUser(user.uid)); }, [user]);
+  const load = useCallback(async () => {
+    if (!user) return;
+    try { setProjects(await listProjectsForUser(user.uid)); setLoadErr(false); }
+    catch { setLoadErr(true); }
+  }, [user]);
   useEffect(() => { if (user) load(); }, [user, load]);
   useEffect(() => { if (!user) return; return subscribe(() => load()); }, [user, load]);
 
@@ -108,7 +113,7 @@ export default function DashboardPage() {
             <button onClick={() => setActive(latest)} style={{ ...card, width: "100%", textAlign: "start", display: "flex", gap: "1.2rem", padding: "1rem", marginBottom: "2rem", cursor: "pointer", alignItems: "center", overflow: "hidden" }}>
               <div style={{ width: 120, height: 90, borderRadius: 12, background: "#f3f0ea", overflow: "hidden", flexShrink: 0 }}>{latest.thumbnailUrl && <img src={latest.thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--clay)" }}>{t("Latest update", "آخر تحديث")}</p>
+                <p style={{ margin: 0, fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--clay-text)" }}>{t("Latest update", "آخر تحديث")}</p>
                 <h3 className="display" style={{ margin: "0.2rem 0 0.5rem", fontSize: "1.4rem", color: "var(--ink)" }}>{latest.title}</h3>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", maxWidth: 360 }}>
                   <div style={{ flex: 1, height: 5, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}><div style={{ width: `${Math.round(((ci(latest) + 1) / JOURNEY.length) * 100)}%`, height: "100%", background: "var(--clay)" }} /></div>
@@ -120,6 +125,12 @@ export default function DashboardPage() {
           )}
 
           {scanStatus && <p style={{ color: "var(--clay)", fontWeight: 600, marginBottom: "1.2rem" }}>{scanStatus}</p>}
+          {loadErr && !projects && (
+            <div role="alert" style={{ maxWidth: 460, display: "grid", gap: "0.9rem", justifyItems: "start" }}>
+              <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>{tp("load_failed", lang)}</p>
+              <button onClick={load} style={{ padding: "0.6rem 1.3rem", borderRadius: 999, border: "1px solid var(--line)", background: "var(--ink)", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}>{tp("retry", lang)}</button>
+            </div>
+          )}
           {projects && list.length === 0 && <p style={{ color: "var(--ink-faint)", maxWidth: 460, lineHeight: 1.6 }}>{tp("no_projects", lang)}</p>}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.4rem" }}>
@@ -142,7 +153,7 @@ export default function DashboardPage() {
                       <span>{lang === "ar" ? JOURNEY[ci(p)].ar : JOURNEY[ci(p)].en}</span><span>{ci(p) + 1}/{JOURNEY.length}</span>
                     </div>
                     <div style={{ height: 4, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: "var(--clay)" }} /></div>
-                    <p style={{ fontSize: "0.8rem", color: "var(--clay)", margin: "0.8rem 0 0", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>{tp("view_3d", lang)} <Arrow rtl={dir === "rtl"} size={15} /></p>
+                    <p style={{ fontSize: "0.8rem", color: "var(--clay-text)", margin: "0.8rem 0 0", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>{tp("view_3d", lang)} <Arrow rtl={dir === "rtl"} size={15} /></p>
                   </div>
                 </button>
               );

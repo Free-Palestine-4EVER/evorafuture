@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
+import { useDialogClose } from "@/components/portal/useDialogClose";
 import { usePortalAuth } from "@/lib/portal/auth";
 import { createClient, deleteProject, listAllProjects, listClients, listLeads, saveProject, sendLeadToPuffer, setLeadStatus, subscribe } from "@/lib/portal/store";
 import { type Lead, type LeadStatus, type PortalUser, type Project } from "@/lib/portal/types";
@@ -70,6 +71,9 @@ export default function AdminPage() {
   const [viewClient, setViewClient] = useState<PortalUser | null>(null);
   const [prefillOwner, setPrefillOwner] = useState<PortalUser | null>(null);
   const [viewPlan, setViewPlan] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [convertLead, setConvertLead] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setProjects(await listAllProjects());
@@ -82,8 +86,18 @@ export default function AdminPage() {
   if (loading) return <Splash />;
   if (!user || user.role !== "admin") return <LoginForm variant="admin" />;
 
-  async function onSave(p: Project) { await saveProject(p); setEditing(null); setAdding(false); load(); }
-  async function onDelete(id: string) { await deleteProject(id); load(); }
+  async function onSave(p: Project) {
+    try {
+      await saveProject(p);
+      // Only convert a lead once its project actually exists (not on form open).
+      if (convertLead) { try { await setLeadStatus(convertLead, "converted"); } catch { /* non-fatal */ } setConvertLead(null); }
+      setEditing(null); setAdding(false); setPrefillOwner(null); load();
+    } catch { setBanner(tp("save_failed", lang)); throw new Error("save_failed"); }
+  }
+  async function onDelete(id: string) {
+    setConfirmDel(null);
+    try { await deleteProject(id); load(); } catch { setBanner(tp("delete_failed", lang)); }
+  }
   const newLeads = leads.filter((l) => l.status === "new").length;
   const inProd = projects.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length;
   const ci = (p: Project) => stageIndex(p.stage || "blueprint");
@@ -108,6 +122,13 @@ export default function AdminPage() {
     <PortalShell nav={nav} active={section} onNavigate={setSection} title={titles[section][0]} subtitle={titles[section][1]} actions={actions} accentName={user.name}>
       <StudioLockup label={tp("team_lockup", lang)} />
       <NotifyPrompt />
+
+      {banner && (
+        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "0.8rem 1.1rem", marginBottom: "1.2rem", borderRadius: 12, background: "rgba(178,116,87,0.12)", border: "1px solid rgba(178,116,87,0.35)", color: "#7A4A32", fontSize: "0.9rem" }}>
+          <span>{banner}</span>
+          <button onClick={() => setBanner(null)} aria-label={tp("cancel", lang)} style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: "1rem", lineHeight: 1 }}>✕</button>
+        </div>
+      )}
 
       {section === "overview" && (
         <div style={{ display: "grid", gap: "1.6rem" }}>
@@ -153,7 +174,7 @@ export default function AdminPage() {
                   <span style={{ width: 36, height: 36, borderRadius: 8, background: "#f3f0ea", overflow: "hidden", flexShrink: 0 }}>{p.thumbnailUrl && <img src={p.thumbnailUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
-                    <span style={{ display: "block", fontSize: "0.72rem", color: "var(--clay)" }}>{lang === "ar" ? JOURNEY[ci(p)].ar : JOURNEY[ci(p)].en}</span>
+                    <span style={{ display: "block", fontSize: "0.72rem", color: "var(--clay-text)" }}>{lang === "ar" ? JOURNEY[ci(p)].ar : JOURNEY[ci(p)].en}</span>
                   </span>
                   <span style={{ fontSize: "0.68rem", color: "var(--ink-faint)", flexShrink: 0 }}>{timeAgo(p.updatedAt, lang === "ar")}</span>
                 </button>
@@ -196,9 +217,21 @@ export default function AdminPage() {
                       <span style={{ fontSize: "0.66rem", color: "var(--ink-faint)" }}>{ci(p) + 1}/{JOURNEY.length}</span>
                     </div>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      <button onClick={() => setManaging(p)} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>{tp("manage", lang)}</button>
-                      <button onClick={() => setEditing(p)} style={miniBtn}>{tp("edit", lang)}</button>
-                      <button onClick={() => onDelete(p.id)} style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
+                      {confirmDel === p.id ? (
+                        <>
+                          <button autoFocus onClick={() => onDelete(p.id)}
+                            style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}
+                            title={tp("confirm_del_project", lang)}>{tp("yes_delete", lang)}</button>
+                          <button onClick={() => setConfirmDel(null)} style={miniBtn}>{tp("cancel", lang)}</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => setManaging(p)} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>{tp("manage", lang)}</button>
+                          <button onClick={() => setEditing(p)} style={miniBtn}>{tp("edit", lang)}</button>
+                          <button onClick={() => setConfirmDel(p.id)} aria-label={`${tp("del", lang)} ${p.title}`}
+                            style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -236,14 +269,14 @@ export default function AdminPage() {
                   <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
                   <span style={{ fontSize: "0.62rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{LEAD_STATUS[l.status]?.[lang] ?? l.status}</span>
                 </div>
-                <a href={`tel:${l.phone}`} style={{ color: "var(--clay)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
+                <a href={`tel:${l.phone}`} style={{ color: "var(--clay-text)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
                 {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
                 {l.planUrl && !l.planUrl.endsWith(".pdf") && (
                   <button onClick={() => setViewPlan(l.planUrl!)} title={t("Open plan", "افتح المخطط")} style={{ display: "inline-block", marginTop: "0.5rem", padding: 0, border: "none", background: "transparent", cursor: "zoom-in" }}>
                     <img src={l.planUrl} alt="plan" style={{ maxHeight: 90, borderRadius: 8, border: "1px solid var(--line)" }} />
                   </button>
                 )}
-                {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay)", display: "inline-block", marginTop: "0.4rem" }}>{t("View plan (PDF) →", "عرض المخطط →")}</a>}
+                {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay-text)", display: "inline-block", marginTop: "0.4rem" }}>{t("View plan (PDF) →", "عرض المخطط →")}</a>}
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                 {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
@@ -255,7 +288,7 @@ export default function AdminPage() {
                     {l.sentToPuffer ? `✓ ${t("In the Studio", "في الاستوديو")}` : `↗ ${t("Send to Studio", "أرسل إلى الاستوديو")}`}
                   </button>
                 )}
-                <button onClick={async () => { await setLeadStatus(l.id, "converted"); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
+                <button onClick={() => { setConvertLead(l.id); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
               </div>
             </div>
           ))}
@@ -264,8 +297,8 @@ export default function AdminPage() {
 
       {(adding || editing) && (
         <ProjectForm initial={editing} clients={clients} prefillOwner={prefillOwner}
-          onCancel={() => { setAdding(false); setEditing(null); setPrefillOwner(null); }}
-          onSave={(p) => { onSave(p); setPrefillOwner(null); }} />
+          onCancel={() => { setAdding(false); setEditing(null); setPrefillOwner(null); setConvertLead(null); }}
+          onSave={onSave} />
       )}
       {viewClient && (
         <ClientDetail client={viewClient} projects={projects} onClose={() => setViewClient(null)}
@@ -296,6 +329,7 @@ function Splash() {
 }
 
 function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  useDialogClose(onClose);
   const { lang, dir } = useT();
   const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [pw, setPw] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
@@ -309,8 +343,8 @@ function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => voi
         <div style={{ height: "0.9rem" }} />
         <label style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)" }}>{tp("phone", lang)}<input style={field} value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" required /></label>
         <div style={{ height: "0.9rem" }} />
-        <label style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)" }}>{tp("password", lang)}<input style={field} value={pw} onChange={(e) => setPw(e.target.value)} type="text" minLength={6} required /></label>
-        {err && <p style={{ color: "var(--clay)", fontSize: "0.85rem", marginTop: "0.9rem" }}>{err}</p>}
+        <label style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)" }}>{tp("password", lang)}<input style={field} value={pw} onChange={(e) => setPw(e.target.value)} type="password" autoComplete="new-password" minLength={6} required /></label>
+        {err && <p role="alert" style={{ color: "var(--clay-text)", fontSize: "0.85rem", marginTop: "0.9rem" }}>{err}</p>}
         <div style={{ display: "flex", gap: "0.7rem", marginTop: "1.5rem" }}>
           <button type="submit" disabled={busy} style={{ flex: 1, padding: "0.85rem", borderRadius: 10, border: "none", background: "var(--ink)", color: "#fff", fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>{tp("save", lang)}</button>
           <button type="button" onClick={onClose} style={{ padding: "0.85rem 1.4rem", borderRadius: 10, border: "1px solid var(--line)", background: "transparent", color: "var(--ink)", cursor: "pointer" }}>{tp("cancel", lang)}</button>

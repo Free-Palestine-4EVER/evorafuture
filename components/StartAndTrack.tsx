@@ -158,6 +158,10 @@ export default function StartAndTrack() {
       <style>{`
         .st { position: relative; isolation: isolate; background: var(--ink); color: var(--paper);
           padding-block: clamp(4.5rem, 10vw, 9rem); overflow: hidden; }
+        /* Ease the hand-off from the airy white section above into the dark band
+           instead of a hard white→near-black cut. */
+        .st::before { content: ""; position: absolute; inset-inline: 0; top: 0; height: clamp(80px, 12vh, 160px);
+          background: linear-gradient(to bottom, var(--paper) 0%, transparent 100%); opacity: 0.06; z-index: -1; pointer-events: none; }
         .st__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
         .st__aurora { position: absolute; border-radius: 50%; filter: blur(95px); }
         .st__aurora--a { width: 46vw; height: 46vw; top: -14%; inset-inline-start: -8%;
@@ -244,7 +248,7 @@ export default function StartAndTrack() {
           font-size: 0.56rem; color: #fff; background: transparent; border: 1.5px solid rgba(251,247,240,0.22);
           transition: background .45s var(--ease), border-color .45s var(--ease); }
         .st__j-line { width: 1.5px; flex: 1; min-height: 13px; margin-top: 2px; background: rgba(251,247,240,0.14); transition: background .45s var(--ease); }
-        .st__j-label { font-family: var(--f-sans); font-size: 0.9rem; color: rgba(251,247,240,0.45); padding-top: 1px;
+        .st__j-label { font-family: var(--f-sans); font-size: 0.9rem; color: rgba(251,247,240,0.64); padding-top: 1px;
           display: flex; align-items: center; gap: 0.5rem; transition: color .45s var(--ease); }
         .st__j.is-lit .st__j-dot { background: var(--clay); border-color: var(--clay); }
         .st__j.is-lit .st__j-line { background: var(--clay); }

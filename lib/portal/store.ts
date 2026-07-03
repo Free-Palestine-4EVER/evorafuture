@@ -10,18 +10,24 @@ type Mode = "sync" | "mock";
 let _mode: Mode | null = null;
 const SESSION_KEY = "evora_sync_session";
 
+// The portal backend base. Empty = same-origin (when the app itself serves the
+// API, e.g. the self-hosted server). On Vercel, set NEXT_PUBLIC_PORTAL_API to the
+// backend server URL (e.g. https://api.evorafuturehome.com) so all data +
+// scan-storage calls hit the persistent server instead of Vercel's ephemeral
+// filesystem. This server is the Firebase replacement.
+const API_BASE = (process.env.NEXT_PUBLIC_PORTAL_API || "").replace(/\/+$/, "");
+const api = (p: string) => `${API_BASE}/api/portal/${p}`;
+
 async function mode(): Promise<Mode> {
   if (_mode) return _mode;
   try {
-    const r = await fetch("/api/portal/health", { cache: "no-store" });
+    const r = await fetch(api("health"), { cache: "no-store" });
     _mode = r.ok ? "sync" : "mock";
   } catch { _mode = "mock"; }
   return _mode;
 }
 
 export const isLive = true;
-
-const api = (p: string) => `/api/portal/${p}`;
 const post = (p: string, body: unknown) =>
   fetch(api(p), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const getJSON = (p: string) => fetch(api(p), { cache: "no-store" }).then((r) => r.json());

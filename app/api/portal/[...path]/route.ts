@@ -17,6 +17,7 @@ import { NextRequest } from "next/server";
 import { randomBytes } from "crypto";
 import * as db from "@/lib/portal/serverdb";
 import { uploadToStorage } from "@/lib/portal/admin";
+import { scanDataToGLB } from "@/lib/portal/roomglb";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,16 @@ const CORS = {
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...CORS } });
+
+// The absolute origin the *client* actually connected to (Host header), so local
+// upload URLs are reachable from the phone. `req.nextUrl.origin` would give the
+// server bind address (e.g. 0.0.0.0), which is not routable.
+const clientOrigin = (req: NextRequest): string => {
+  const host = req.headers.get("host");
+  if (!host) return req.nextUrl.origin;
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(":", "") || "http";
+  return `${proto}://${host}`;
+};
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
@@ -90,13 +101,28 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     const ext = String(body.ext || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
     const name = `uploads/${randomBytes(8).toString("hex")}.${ext}`;
     try {
-      const url = await uploadToStorage(name, Buffer.from(String(body.dataBase64 || ""), "base64"), MIME[ext] || "application/octet-stream");
+      const url = await uploadToStorage(name, Buffer.from(String(body.dataBase64 || ""), "base64"), MIME[ext] || "application/octet-stream", clientOrigin(req));
       return json({ url });
     } catch (e) {
       return json({ error: "upload_failed", detail: (e as Error).message }, 500);
     }
   }
-  if (head === "projects") return json(await db.upsertProject(body));
+  if (head === "projects") {
+    // A LiDAR scan uploads a .usdz (great for iOS AR) but that can't render
+    // inline in a browser. When we have room geometry but no web model yet,
+    // build a .glb from the scan so the 3D tab shows a spinnable room anywhere.
+    if (body && typeof body.scanData === "string" && !body.model3dUrl) {
+      try {
+        const scan = JSON.parse(body.scanData);
+        if (scan && Array.isArray(scan.walls) && scan.walls.length) {
+          const glb = scanDataToGLB(scan);
+          const name = `uploads/${randomBytes(8).toString("hex")}.glb`;
+          body.model3dUrl = await uploadToStorage(name, glb, MIME.glb, clientOrigin(req));
+        }
+      } catch { /* non-fatal — falls back to usdz / AR-only */ }
+    }
+    return json(await db.upsertProject(body));
+  }
   if (head === "approve") { await db.approve(String(body.id)); return json({ ok: true }); }
   if (head === "stage") { await db.setStage(String(body.id), String(body.stage)); return json({ ok: true }); }
   if (head === "update") {

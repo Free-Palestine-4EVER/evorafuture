@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import { STATUS_LABEL, type PortalUser, type Project } from "@/lib/portal/types";
+import { useDialogClose } from "@/components/portal/useDialogClose";
 
 const norm = (s: string) => (s || "").replace(/[^\d]/g, "");
 
@@ -26,6 +27,7 @@ export default function ClientDetail({
   onManage: (p: Project) => void;
   onAddProject: (c: PortalUser) => void;
 }) {
+  useDialogClose(onClose);
   const { lang, dir } = useT();
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
   const [copied, setCopied] = useState(false);
@@ -55,7 +57,7 @@ export default function ClientDetail({
               <p style={{ margin: "0.15rem 0 0", color: "var(--ink-faint)", fontSize: "0.85rem" }}>{client.phone}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ width: 38, height: 38, borderRadius: 999, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", color: "var(--ink)", flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label={tp("close", lang)} style={{ width: 38, height: 38, borderRadius: 999, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", color: "var(--ink)", flexShrink: 0 }}>✕</button>
         </header>
 
         {/* contact + actions */}

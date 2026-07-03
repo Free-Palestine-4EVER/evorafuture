@@ -445,8 +445,8 @@ const css = `
 
   .cfg__panel { position: absolute; z-index: 4;
     left: clamp(1.4rem, 5vw, 5rem); bottom: clamp(1.6rem, 6vh, 4rem);
-    background: rgba(18,14,11,0.55); backdrop-filter: blur(14px) saturate(1.1);
-    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    background: rgba(18,14,11,0.78); backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
     border: 1px solid rgba(251,247,240,0.14); border-radius: 18px;
     padding: clamp(1rem, 2vw, 1.6rem); width: min(92vw, 460px);
     box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
