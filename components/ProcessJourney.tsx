@@ -78,7 +78,11 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
         <div className="pj-sticky">
           <motion.div
             className="pj-panel"
-            animate={{ left: panelRight ? "42%" : "0%" }}
+            // Transform (compositor-only) instead of animating `left` (layout every
+            // frame). Panel is 58% wide; sliding flush-left→flush-right = 42% of the
+            // container = ~72.4% of the panel's own width. Sign flips under RTL so the
+            // panel mirrors with the text column instead of colliding with it.
+            animate={{ x: panelRight ? (ar ? "-72.41%" : "72.41%") : "0%" }}
             transition={reduced ? { duration: 0 } : SPRING}
           >
             <TransformStage step={active} ar={ar} />
@@ -196,7 +200,7 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           height: 100vh; width: 100%;
           display: flex; align-items: center;
         }
-        .pj-panel { position: absolute; width: 58%; }
+        .pj-panel { position: absolute; inset-inline-start: 0; width: 58%; }
         .pj-offset { margin-top: -100vh; }
         .pj-step {
           position: relative; z-index: 1;

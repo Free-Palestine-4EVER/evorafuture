@@ -3,10 +3,26 @@
 // shared across every device and Puffer. Never import from a client component.
 
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
-import { getDatabase, type Database } from "firebase-admin/database";
+import { getDatabase } from "firebase-admin/database";
 import { getStorage } from "firebase-admin/storage";
 import { readFileSync, mkdirSync, writeFileSync } from "fs";
 import path from "path";
+import { localDb } from "./localdb";
+
+// When EVORA_LOCAL_DB=1 the whole backend runs off a local JSON file (localdb.ts)
+// and never touches Firebase — self-hosted on this Mac now, on the studio's PC
+// later. Storage is independently local via EVORA_LOCAL_STORAGE.
+const LOCAL_DB = process.env.EVORA_LOCAL_DB === "1";
+
+// Structural type covering the tiny RTDB slice serverdb.ts uses. The Firebase
+// Database is assignable to this, and so is our localDb.
+type RefLike = {
+  get(): Promise<{ val(): unknown }>;
+  set(v: unknown): Promise<unknown>;
+  update(v: Record<string, unknown>): Promise<unknown>;
+  remove(): Promise<unknown>;
+};
+type DbLike = { ref(path: string): RefLike };
 
 const DB_URL = process.env.FIREBASE_DB_URL || "https://evorafuture-bdb21-default-rtdb.firebaseio.com";
 export const STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "evorafuture-bdb21.firebasestorage.app";
@@ -27,22 +43,26 @@ function ensure(): App {
   return app;
 }
 
-export function rtdb(): Database {
-  return getDatabase(ensure());
+export function rtdb(): DbLike {
+  if (LOCAL_DB) return localDb as unknown as DbLike;
+  return getDatabase(ensure()) as unknown as DbLike;
 }
 
 // Upload bytes to Firebase Storage (serverless-safe, unlike local disk) and
 // return a public URL. Used for Puffer's GLB + 2D plans + journey photos.
-export async function uploadToStorage(name: string, buf: Buffer, contentType: string): Promise<string> {
+export async function uploadToStorage(name: string, buf: Buffer, contentType: string, publicBase?: string): Promise<string> {
   // Local-first mode: when EVORA_LOCAL_STORAGE=1, write the bytes into the app's
   // public/ dir and return a URL served by this same server. Bypasses Firebase
-  // Storage entirely (used when the cloud billing account is disabled).
+  // Storage entirely. `publicBase` (the incoming request origin) makes the URL
+  // absolute so the phone app can fetch it, and keeps the whole thing portable
+  // to any machine/IP with no config — falls back to EVORA_PUBLIC_BASE, then to
+  // a same-origin relative URL for the web portal.
   if (process.env.EVORA_LOCAL_STORAGE === "1") {
     const rel = path.join("uploads", name.replace(/^uploads\//, ""));
     const abs = path.join(process.cwd(), "public", rel);
     mkdirSync(path.dirname(abs), { recursive: true });
     writeFileSync(abs, buf);
-    const base = (process.env.EVORA_PUBLIC_BASE || "").replace(/\/+$/, "");
+    const base = (publicBase || process.env.EVORA_PUBLIC_BASE || "").replace(/\/+$/, "");
     return `${base}/${rel}`;
   }
   const file = getStorage(ensure()).bucket().file(name);

@@ -46,6 +46,8 @@ next-env.d.ts
 /service-account.json
 /.evora-uploads/
 .evora-plan/
+# self-hosted local DB + its backups (contains client data + password hashes)
+/data/
 
 # runtime user uploads (not source)
 /public/uploads/

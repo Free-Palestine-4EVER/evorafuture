@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { newId } from "@/lib/portal/store";
+import { useDialogClose } from "@/components/portal/useDialogClose";
 import { STATUS_LABEL, type PortalUser, type Project, type ProjectStatus } from "@/lib/portal/types";
 
 const STATUSES: ProjectStatus[] = ["draft", "approved", "in_production", "delivered"];
@@ -15,8 +16,10 @@ export default function ProjectForm({
   clients: PortalUser[];
   prefillOwner?: PortalUser | null;
   onCancel: () => void;
-  onSave: (p: Project) => void;
+  onSave: (p: Project) => void | Promise<void>;
 }) {
+  useDialogClose(onCancel);
+  const [busy, setBusy] = useState(false);
   const { lang, dir } = useT();
   const [p, setP] = useState<Project>(
     initial ?? {
@@ -39,7 +42,7 @@ export default function ProjectForm({
 
   return (
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(22,21,15,0.5)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: "1rem" }}>
-      <form dir={dir} role="dialog" aria-modal="true" aria-label={initial ? tp("edit", lang) : tp("add_project", lang)} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); onSave(p); }}
+      <form dir={dir} role="dialog" aria-modal="true" aria-label={initial ? tp("edit", lang) : tp("add_project", lang)} onClick={(e) => e.stopPropagation()} onSubmit={async (e) => { e.preventDefault(); if (busy) return; setBusy(true); try { await onSave(p); } catch { /* parent surfaces the error; keep form open to retry */ } finally { setBusy(false); } }}
         style={{ width: "min(560px,100%)", maxHeight: "92dvh", overflow: "auto", background: "var(--paper)", borderRadius: 16, padding: "1.8rem", boxShadow: "0 40px 120px rgba(0,0,0,0.3)" }}>
         <h2 className="display" style={{ fontSize: "1.6rem", color: "var(--ink)", margin: "0 0 1.4rem" }}>
           {initial ? tp("edit", lang) : tp("add_project", lang)}
@@ -94,7 +97,7 @@ export default function ProjectForm({
         <label style={label}>{tp("notes", lang)}<textarea style={{ ...field, minHeight: 80, resize: "vertical" }} value={p.notes || ""} onChange={(e) => set("notes", e.target.value)} /></label>
 
         <div style={{ display: "flex", gap: "0.7rem", marginTop: "1.6rem" }}>
-          <button type="submit" style={{ flex: 1, padding: "0.85rem", borderRadius: 10, border: "none", background: "var(--ink)", color: "#fff", fontWeight: 600, cursor: "pointer" }}>{tp("save", lang)}</button>
+          <button type="submit" disabled={busy} style={{ flex: 1, padding: "0.85rem", borderRadius: 10, border: "none", background: "var(--ink)", color: "#fff", fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>{busy ? tp("saving", lang) : tp("save", lang)}</button>
           <button type="button" onClick={onCancel} style={{ padding: "0.85rem 1.4rem", borderRadius: 10, border: "1px solid var(--line)", background: "transparent", color: "var(--ink)", cursor: "pointer" }}>{tp("cancel", lang)}</button>
         </div>
       </form>

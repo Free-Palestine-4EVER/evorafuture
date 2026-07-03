@@ -21,7 +21,11 @@ const cfg = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || (projectId ? `https://${projectId}-default-rtdb.firebaseio.com` : undefined),
 };
 
-export const realtimeConfigured = Boolean(cfg.apiKey && cfg.databaseURL);
+// EVORA_LOCAL forces the self-hosted path: no direct client→Firebase connection,
+// realtime rides the server's SSE /api/portal/events stream instead (see
+// store.ts subscribe fallback). Keeps browsers off Firebase entirely.
+const LOCAL = process.env.NEXT_PUBLIC_EVORA_LOCAL === "1";
+export const realtimeConfigured = !LOCAL && Boolean(cfg.apiKey && cfg.databaseURL);
 
 function db() {
   if (!realtimeConfigured) return null;

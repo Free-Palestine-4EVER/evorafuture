@@ -158,7 +158,7 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
             </li>
           </ul>
 
-          <button onClick={toggle} aria-label={lang === "en" ? "التبديل إلى العربية" : "Switch to English"}
+          <button onClick={toggle} aria-label={lang === "en" ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
             style={{
               fontFamily: lang === "en" ? "var(--f-ar)" : "var(--font-sans)",
               fontSize: "0.82rem", fontWeight: 600, letterSpacing: lang === "en" ? "0" : "0.06em",

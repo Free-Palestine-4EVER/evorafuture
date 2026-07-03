@@ -123,7 +123,7 @@ export default function ShopHero3D() {
           </Rise>
         </div>
         <Rise delay={0.16} className="sh3__viewall-wrap">
-          <a href="/shop" className="sh3__viewall" data-cursor="hover">{en ? "View all products" : "كل المنتجات"}<span className="sh3__va-arrow" aria-hidden>→</span></a>
+          <a href="/shop/sofas" className="sh3__viewall" data-cursor="hover">{en ? "View all sofas" : "كل الكنب"}<span className="sh3__va-arrow" aria-hidden>→</span></a>
         </Rise>
       </div>
 
@@ -148,7 +148,7 @@ export default function ShopHero3D() {
           </div>
           <div className="sh3__pcta">
             <a href="/shop/sofas" className="sh3__btn" data-cursor="hover">{en ? "Shop this sofa" : "تسوّق هذه الكنبة"}<span aria-hidden>↗</span></a>
-            <a href="/shop/sofas" className="sh3__link" data-cursor="hover">{en ? "Try it in your home (AR)" : "جرّبها في بيتك"}</a>
+            <a href="/shop/sofas" className="sh3__link" data-cursor="hover">{en ? "Try it in your home" : "جرّبها في بيتك"}</a>
           </div>
         </div>
       </div>

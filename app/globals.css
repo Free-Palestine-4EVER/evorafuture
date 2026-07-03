@@ -18,7 +18,8 @@
   --ever-soft:  #8C9A78;
   --brass:       #8A6A3C;   /* antique brass — on-light accent/label, AA on white & bone */
   --brass-2:     #C5A06A;   /* lighter brass — on-dark accent (hero, photo bands, panels) */
-  --clay:        #B27457;
+  --clay:        #B27457;   /* terracotta — fills, large text, on-dark. ~3.3:1 on white: NOT for small text */
+  --clay-text:   #945338;   /* darker clay for small body text on light — AA (~5:1 on white) */
   --line:        rgba(22,21,15,0.12);
   --line-soft:   rgba(22,21,15,0.06);
 

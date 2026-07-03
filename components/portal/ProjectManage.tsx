@@ -7,6 +7,7 @@ import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import { addUpdate, approveProject, deleteUpdate, saveProject, setStage, uploadFile } from "@/lib/portal/store";
 import { STATUS_LABEL, type Project, type ProjectStatus } from "@/lib/portal/types";
 import LiveScanner from "@/components/portal/LiveScanner";
+import { useDialogClose } from "@/components/portal/useDialogClose";
 import { scanToProject } from "@/lib/puffer/importScan";
 import { buildRoomGlbBlob } from "@/lib/puffer/liveScan";
 import type { ScanFile } from "@/lib/puffer/importScan";
@@ -23,6 +24,7 @@ function dataUrlToFile(dataUrl: string, name: string): File {
 const STATUSES: ProjectStatus[] = ["draft", "approved", "in_production", "delivered"];
 
 export default function ProjectManage({ project, onClose, by }: { project: Project; onClose: () => void; by?: string }) {
+  useDialogClose(onClose);
   const { lang, dir } = useT();
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
 
@@ -49,6 +51,9 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
   const modelRef = useRef<HTMLInputElement>(null);
   const usdzRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approved, setApproved] = useState(!!project.approvedByClient);
+  const [confirmDelUpd, setConfirmDelUpd] = useState<string | null>(null);
 
   // live scanner
   const [scanning, setScanning] = useState(false);
@@ -131,9 +136,9 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
           <div>
             <p style={{ fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: 0 }}>{project.ownerName || project.ownerPhone}</p>
             <h2 className="display" style={{ fontSize: "1.7rem", color: "var(--ink)", margin: "0.2rem 0 0" }}>{title || project.title}</h2>
-            <p style={{ fontSize: "0.78rem", color: "var(--clay)", margin: "0.3rem 0 0", fontWeight: 600 }}>{cur + 1}/{JOURNEY.length} · {lang === "ar" ? JOURNEY[cur].ar : JOURNEY[cur].en}</p>
+            <p style={{ fontSize: "0.78rem", color: "var(--clay-text)", margin: "0.3rem 0 0", fontWeight: 600 }}>{cur + 1}/{JOURNEY.length} · {lang === "ar" ? JOURNEY[cur].ar : JOURNEY[cur].en}</p>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ width: 38, height: 38, borderRadius: 999, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", color: "var(--ink)", fontSize: "1rem", flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label={tp("close", lang)} style={{ width: 38, height: 38, borderRadius: 999, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", color: "var(--ink)", fontSize: "1rem", flexShrink: 0 }}>✕</button>
         </header>
 
         {/* DETAILS */}
@@ -215,8 +220,10 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
             );
           })}
         </div>
-        <button onClick={() => approveProject(project.id)} style={{ marginTop: "0.8rem", padding: "0.55rem 1.1rem", borderRadius: 999, border: "1px solid var(--clay)", background: project.approvedByClient ? "var(--clay)" : "transparent", color: project.approvedByClient ? "#fff" : "var(--clay)", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer" }}>
-          {project.approvedByClient ? `✓ ${t("Approved", "تمت الموافقة")}` : t("Mark approved", "وضع علامة موافقة")}
+        <button disabled={approving || approved}
+          onClick={async () => { setApproving(true); try { await approveProject(project.id); setApproved(true); } finally { setApproving(false); } }}
+          style={{ marginTop: "0.8rem", padding: "0.55rem 1.1rem", borderRadius: 999, border: "1px solid var(--clay)", background: approved ? "var(--clay)" : "transparent", color: approved ? "#fff" : "var(--clay)", fontSize: "0.82rem", fontWeight: 600, cursor: approved ? "default" : "pointer", opacity: approving ? 0.6 : 1 }}>
+          {approved ? `✓ ${t("Approved", "تمت الموافقة")}` : approving ? t("Approving…", "جارٍ…") : t("Mark approved", "وضع علامة موافقة")}
         </button>
 
         {/* POST UPDATE */}
@@ -241,7 +248,14 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
                   {u.text && <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: "0.86rem" }}>{u.text}</p>}
                   <p style={{ margin: "0.15rem 0 0", color: "var(--ink-faint)", fontSize: "0.68rem" }}>{new Date(u.at).toLocaleString()}</p>
                 </div>
-                <button onClick={() => deleteUpdate(project.id, u.id)} aria-label="Delete" style={{ background: "transparent", border: "none", color: "var(--ink-faint)", cursor: "pointer", fontSize: "0.9rem", flexShrink: 0 }}>✕</button>
+                {confirmDelUpd === u.id ? (
+                  <span style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => { setConfirmDelUpd(null); deleteUpdate(project.id, u.id); }} style={{ background: "var(--clay)", border: "none", color: "#fff", cursor: "pointer", fontSize: "0.72rem", fontWeight: 600, borderRadius: 999, padding: "0.25rem 0.6rem" }}>{tp("yes_delete", lang)}</button>
+                    <button onClick={() => setConfirmDelUpd(null)} aria-label={tp("cancel", lang)} style={{ background: "transparent", border: "1px solid var(--line)", color: "var(--ink-faint)", cursor: "pointer", fontSize: "0.72rem", borderRadius: 999, padding: "0.25rem 0.6rem" }}>{tp("cancel", lang)}</button>
+                  </span>
+                ) : (
+                  <button onClick={() => setConfirmDelUpd(u.id)} aria-label={tp("confirm_del_update", lang)} title={tp("confirm_del_update", lang)} style={{ background: "transparent", border: "none", color: "var(--ink-faint)", cursor: "pointer", fontSize: "0.9rem", flexShrink: 0 }}>✕</button>
+                )}
               </div>
             ))}
           </>
@@ -249,7 +263,7 @@ export default function ProjectManage({ project, onClose, by }: { project: Proje
 
         {/* SHARE LINK */}
         <div style={{ marginTop: "1.8rem", padding: "0.9rem 1rem", borderRadius: 12, background: "rgba(178,116,87,0.07)", border: "1px solid rgba(178,116,87,0.2)" }}>
-          <p style={{ fontSize: "0.66rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--clay)", margin: "0 0 0.4rem" }}>{tp("share_link", lang)}</p>
+          <p style={{ fontSize: "0.66rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--clay-text)", margin: "0 0 0.4rem" }}>{tp("share_link", lang)}</p>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <input readOnly value={signupLink} style={{ flex: 1, background: "transparent", border: "none", color: "var(--ink-soft)", fontSize: "0.74rem", outline: "none" }} />
             <button onClick={() => { navigator.clipboard?.writeText(signupLink); setCopied(true); setTimeout(() => setCopied(false), 1200); }}

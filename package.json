@@ -6,6 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "serve:local": "next dev -H 0.0.0.0 -p 3000",
+    "serve:local:prod": "next build && next start -H 0.0.0.0 -p 3000",
+    "db:backup": "node scripts/backup-db.mjs",
     "build:offline": "EVORA_DIST=.next-offline next build",
     "start:offline": "EVORA_DIST=.next-offline next start -p 3100"
   },
