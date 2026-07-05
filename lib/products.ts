@@ -140,6 +140,16 @@ function buildColorways(material: string, hex: string): Colorway[] {
   return [{ name: "As shown", hex }, ...alts];
 }
 
+// Pieces that also ship a USDZ (public/models/furni/<id>.usdz) for iOS AR
+// Quick Look — the Meshy-retextured Fahrenheit collection.
+const HAS_USDZ = new Set([
+  "fahrenheit-sofa",
+  "fahrenheit-loveseat",
+  "fahrenheit-armchair",
+  "fahrenheit-dining-table",
+  "fahrenheit-side-table",
+]);
+
 export const products: Product[] = ROWS.map(
   ([id, name, category, rooms, w, d, h, material, hex, tagline, description, badge, swatchHints]) => ({
     id,
@@ -152,6 +162,7 @@ export const products: Product[] = ROWS.map(
     colorways: buildColorways(material, hex),
     description,
     model: `/models/furni/${id}.glb`,
+    ...(HAS_USDZ.has(id) ? { iosModel: `/models/furni/${id}.usdz` } : {}),
     arPlacement: "floor",
     ...(badge ? { badge: badge as Product["badge"] } : {}),
     ...(swatchHints && swatchHints.length ? { swatchHints } : {}),
