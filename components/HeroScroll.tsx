@@ -6,205 +6,208 @@ import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
 import { preload } from "@/lib/preload";
 
-// How many leading frames the branded Loader waits to buffer before it lifts
-// the curtain — enough that the first stretch of the scroll-scrub is butter,
-// while the remaining frames stream in lazily behind the revealed page.
-const CRITICAL_FRAMES = 64;
+/* ============================================================
+   EVORA — scroll-scrubbed hero (rebuilt)
 
-const MOBILE_QUERY = "(max-width: 768px)";
-
-// frame count + scroll length per hero film. Film "c" is the new full-quality
-// walk-through: every native frame of the source clip (1920x1080 WebP), given a
-// long scrub so the motion stays buttery on scroll.
-const FRAME_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
-const SCROLL_VH: Record<HeroVariant, number> = { a: 500, b: 500, c: 600 };
-const pad = (n: number) => String(n).padStart(4, "0");
+   One <canvas> that advances a frame stack purely on scroll — no
+   autoplay, no <video> seeking (which stutters on iOS). Desktop
+   scrubs the landscape film; phones scrub a light 9:16 portrait
+   stack. The SAME DOM is server- and client-rendered — the device
+   is resolved *inside* the effect (matchMedia) and the section
+   height is set by CSS media query — so there is no hydration
+   branch that could leave a phone stuck on the desktop hero.
+   ============================================================ */
 
 export type HeroVariant = "a" | "b" | "c";
+
+const MOBILE_QUERY = "(max-width: 768px)";
+const pad = (n: number) => String(n).padStart(4, "0");
+
+// Desktop landscape films. "c" is the full-quality walk-through (WebP);
+// "a"/"b" are the earlier JPG films.
+const DESKTOP_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
+const DESKTOP_EXT: Record<HeroVariant, "webp" | "jpg"> = { a: "jpg", b: "jpg", c: "webp" };
+
+// Phones scrub a light portrait stack extracted from the two 9:16 clips
+// (kitchen film → showroom film). Kept deliberately light (100 frames @540px,
+// ~3 MB) so it loads + decodes inside iOS's per-tab image budget.
+const MOBILE_TOTAL = 100;
+
+// How many leading frames the branded Loader waits on before it lifts.
+const DESKTOP_CRITICAL = 64;
+const MOBILE_CRITICAL = 14;
+
+type Stack = {
+  total: number;
+  critical: number;
+  src: (i: number) => string;
+};
+
+function desktopStack(variant: HeroVariant): Stack {
+  const ext = DESKTOP_EXT[variant];
+  return {
+    total: DESKTOP_TOTAL[variant],
+    critical: DESKTOP_CRITICAL,
+    src: (i) => `/evora/hero-frames-${variant}/frame_${pad(i)}.${ext}`,
+  };
+}
+const MOBILE_STACK: Stack = {
+  total: MOBILE_TOTAL,
+  critical: MOBILE_CRITICAL,
+  src: (i) => `/evora/hero-frames-mobile/frame_${pad(i)}.webp`,
+};
+
+const isMobileNow = () =>
+  typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
 
 export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant }) {
   const { t, lang } = useT();
   const reduce = useReducedMotion();
   const ease = [0.22, 1, 0.36, 1] as const;
-  const TOTAL = FRAME_TOTAL[variant];
-  const scrollVh = SCROLL_VH[variant];
-  // film "c" frames are WebP (cleaner + lighter for smooth 60fps scrub); a/b are jpg
-  const ext = variant === "c" ? "webp" : "jpg";
-  const frameSrc = (i: number) => `/evora/hero-frames-${variant}/frame_${pad(i)}.${ext}`;
 
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
-  const targetFrame = useRef(1);
-  const currentFrame = useRef(1);
-  const ticking = useRef(false);
   const copyRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
-
   const [ready, setReady] = useState(false);
-  // On phones the heavy frame-scrub canvas (up to 361 preloaded WebPs) is
-  // replaced by a single full-bleed portrait video — far lighter + still
-  // cinematic. Decided client-side to avoid a hydration mismatch.
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia(MOBILE_QUERY);
-    const sync = () => setIsMobile(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
-    // Never preload the frame stack on phones — the mobile video hero owns it.
-    if (typeof window !== "undefined" && window.matchMedia?.(MOBILE_QUERY).matches) return;
+    if (reduce) return; // reduced motion renders a static poster, no scrub
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const section = sectionRef.current;
+    if (!canvas || !section) return;
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
     let mounted = true;
+    let rafId = 0;
+    let images: HTMLImageElement[] = [];
+    let stack: Stack = isMobileNow() ? MOBILE_STACK : desktopStack(variant);
+    let stackIsMobile = stack === MOBILE_STACK;
+    let currentFrame = 1;
+    let lastDrawn = -1;
+    let firstDrawn = false;
 
     const sizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     const draw = (i: number) => {
-      const img = imagesRef.current[i];
+      const img = images[i];
       if (!img || !img.complete || !img.naturalWidth) return;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const ir = img.width / img.height;
+      const ir = img.naturalWidth / img.naturalHeight;
       const vr = vw / vh;
       let w: number, h: number, x: number, y: number;
       if (ir > vr) {
-        h = vh;
-        w = vh * ir;
-        x = (vw - w) / 2;
-        y = 0;
+        h = vh; w = vh * ir; x = (vw - w) / 2; y = 0;
       } else {
-        w = vw;
-        h = vw / ir;
-        x = 0;
-        y = (vh - h) / 2;
+        w = vw; h = vw / ir; x = 0; y = (vh - h) / 2;
       }
-      ctx.clearRect(0, 0, vw, vh);
       ctx.drawImage(img, x, y, w, h);
     };
 
-    // Tell the branded Loader how many leading frames it should buffer before
-    // it reveals the page (capped at the film's length for short films).
-    const critical = Math.min(CRITICAL_FRAMES, TOTAL);
-    preload.add(critical);
-
-    // preload every frame — but only the leading `critical` set gates the
-    // Loader. The hero never auto-plays: it holds on frame 1 and advances
-    // solely with the scroll. Each frame is drawn as it's scrolled to.
-    let loaded = 0;
-    for (let i = 1; i <= TOTAL; i++) {
-      const im = new Image();
-      im.decoding = "async";
-      const settle = () => {
-        loaded++;
-        if (i <= critical) preload.done();
-        if (i === 1 && mounted) {
-          sizeCanvas();
-          draw(1);
-          setReady(true);
-        }
-      };
-      im.onload = settle;
-      im.onerror = settle;
-      im.src = frameSrc(i);
-      imagesRef.current[i] = im;
-    }
-
-    const render = () => {
-      currentFrame.current += (targetFrame.current - currentFrame.current) * 0.18;
-      let idx = Math.round(currentFrame.current);
-      if (idx < 1) idx = 1;
-      if (idx > TOTAL) idx = TOTAL;
-      draw(idx);
-      if (Math.abs(targetFrame.current - currentFrame.current) > 0.25) {
-        requestAnimationFrame(render);
-      } else {
-        currentFrame.current = targetFrame.current;
-        draw(Math.round(currentFrame.current));
-        ticking.current = false;
+    // (re)load the frame stack for the current device. Called on mount and
+    // whenever a resize crosses the mobile breakpoint (e.g. phone rotate).
+    const loadStack = () => {
+      images.forEach((im) => { im.onload = null; im.onerror = null; im.src = ""; });
+      images = [];
+      lastDrawn = -1;
+      const s = stack;
+      preload.add(Math.min(s.critical, s.total));
+      for (let i = 1; i <= s.total; i++) {
+        const im = new Image();
+        im.decoding = "async";
+        const settle = () => {
+          if (i <= s.critical) preload.done();
+          if (!firstDrawn && i === 1 && mounted) {
+            firstDrawn = true;
+            sizeCanvas();
+            draw(1);
+            setReady(true);
+          }
+        };
+        im.onload = settle;
+        im.onerror = settle;
+        im.src = s.src(i);
+        images[i] = im;
       }
     };
 
-    const onScroll = () => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const scrollable = el.offsetHeight - window.innerHeight;
-      const progress = Math.min(Math.max(-rect.top / scrollable, 0), 1);
-      targetFrame.current = 1 + progress * (TOTAL - 1);
+    // One always-on rAF loop that reads scrub position from layout every frame.
+    // Input-agnostic (wheel, touch, Lenis momentum) and never gated by scroll
+    // events or IntersectionObserver — both misreport under Lenis on phones.
+    const tick = () => {
+      if (!mounted) return;
+      const rect = section.getBoundingClientRect();
+      const scrollable = section.offsetHeight - window.innerHeight;
+      const progress = scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
+      const target = 1 + progress * (stack.total - 1);
 
       // fade the copy out over the first 16% of the scrub
       const fade = Math.min(progress / 0.16, 1);
       if (copyRef.current) {
         copyRef.current.style.opacity = (1 - fade).toFixed(3);
-        copyRef.current.style.transform = `translateY(${-fade * 38}px)`;
+        copyRef.current.style.transform = `translateY(${-fade * 34}px)`;
       }
       if (hintRef.current) {
         hintRef.current.style.opacity = (1 - Math.min(progress / 0.07, 1)).toFixed(3);
       }
 
-      if (!ticking.current) {
-        requestAnimationFrame(render);
-        ticking.current = true;
-      }
+      // ease toward the target frame, redraw only when the index changes
+      currentFrame += (target - currentFrame) * 0.2;
+      if (Math.abs(target - currentFrame) < 0.25) currentFrame = target;
+      let idx = Math.round(currentFrame);
+      if (idx < 1) idx = 1;
+      if (idx > stack.total) idx = stack.total;
+      if (idx !== lastDrawn) { draw(idx); lastDrawn = idx; }
+      rafId = requestAnimationFrame(tick);
     };
 
     const onResize = () => {
+      const nowMobile = isMobileNow();
+      if (nowMobile !== stackIsMobile) {
+        // crossed the breakpoint — swap to the right stack
+        stack = nowMobile ? MOBILE_STACK : desktopStack(variant);
+        stackIsMobile = nowMobile;
+        currentFrame = 1;
+        loadStack();
+      }
       sizeCanvas();
-      draw(Math.round(currentFrame.current));
+      lastDrawn = -1;
+      draw(Math.round(currentFrame));
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    sizeCanvas();
+    loadStack();
     window.addEventListener("resize", onResize);
-    onScroll();
+    window.addEventListener("orientationchange", onResize);
+    rafId = requestAnimationFrame(tick);
 
     return () => {
       mounted = false;
-      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      images.forEach((im) => { im.onload = null; im.onerror = null; });
+      images = [];
     };
-  }, [TOTAL, variant]);
+    // variant is the only real input; device is handled live inside the effect.
+  }, [variant, reduce]);
 
   // ----- reduced motion: a calm static hero, no scrub -----
   if (reduce) {
     return (
       <section id="top" className="hs hs--static">
-        <img src={frameSrc(1)} alt="" className="hs__poster" />
-        <div className="hero__scrim" />
-        <HeroCopy t={t} lang={lang} ease={ease} staticMode />
-        <style>{heroCss}</style>
-      </section>
-    );
-  }
-
-  // ----- phones: a still, full-bleed portrait hero (no autoplay video) with the
-  //        copy overlaid. 100svh so browser chrome never crops it. A single
-  //        poster is the lightest, smoothest first paint on a phone. -----
-  if (isMobile) {
-    return (
-      <section id="top" className={`hs hs--static hs--${variant} hs--mob`}>
-        <MobileHeroMedia
-          reduce={!!reduce}
-          label={lang === "en" ? "Evora showroom in Khalda, Amman" : "معرض إيفورا في خلدا، عمّان"}
-        />
+        <img src={desktopStack(variant).src(1)} alt="" className="hs__poster hs__poster--d" />
+        <img src={MOBILE_STACK.src(1)} alt="" className="hs__poster hs__poster--m" />
         <div className="hs__scrim" />
-        <div className="hs__left" />
-        <div className="hero__top" />
         <HeroCopy t={t} lang={lang} ease={ease} staticMode />
         <style>{heroCss}</style>
       </section>
@@ -212,15 +215,23 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   }
 
   return (
-    <section id="top" ref={sectionRef} className={`hs hs--${variant}`} style={{ height: `${scrollVh}vh` }}>
+    <section id="top" ref={sectionRef} className={`hs hs--${variant}`}>
       <div className="hs__sticky">
         <canvas
           ref={canvasRef}
-          className="hs__canvas"
+          className={`hs__canvas${ready ? " is-ready" : ""}`}
           role="img"
-          aria-label={lang === "en" ? "A scroll-driven walk through Evora showroom in Khalda, Amman" : "جولة بالتمرير داخل معرض إيفورا في خلدا، عمّان"}
+          aria-label={
+            lang === "en"
+              ? "A scroll-driven walk through Evora showroom in Khalda, Amman"
+              : "جولة بالتمرير داخل معرض إيفورا في خلدا، عمّان"
+          }
         />
-        {!ready && <img src={frameSrc(1)} alt="" className="hs__poster" aria-hidden />}
+        {/* posters sit behind the canvas until frame 1 draws; CSS picks which
+            aspect shows per breakpoint (no JS branch → no hydration mismatch) */}
+        <img src={desktopStack(variant).src(1)} alt="" aria-hidden className="hs__poster hs__poster--d" />
+        <img src={MOBILE_STACK.src(1)} alt="" aria-hidden className="hs__poster hs__poster--m" />
+
         <div className="hs__scrim" />
         <div className="hs__left" />
         <div className="hero__top" />
@@ -248,52 +259,6 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
       <style>{heroCss}</style>
     </section>
-  );
-}
-
-/* ---------- mobile hero media ----------
- * A guaranteed full-bleed poster JPG (which gates the Loader and paints
- * instantly) with an OPTIONAL portrait 9:16 video fading in on top once it can
- * play. If /evora/hero-mobile.mp4 isn't supplied yet, the video simply 404s and
- * stays hidden — the JPG remains, nothing breaks. Drop the file in to activate.
- */
-function MobileHeroMedia({ reduce, label }: { reduce: boolean; label: string }) {
-  const [videoOk, setVideoOk] = useState(false);
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        className="hs__video"
-        src="/evora/hero-mobile.jpg"
-        alt=""
-        aria-label={label}
-        onLoad={() => preload.done()}
-        ref={(el) => {
-          if (el && !el.dataset.counted) {
-            el.dataset.counted = "1";
-            preload.add(1);
-            if (el.complete) preload.done();
-          }
-        }}
-      />
-      {!reduce && (
-        <video
-          className="hs__video hs__video--mp4"
-          poster="/evora/hero-mobile.jpg"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-          style={{ opacity: videoOk ? 1 : 0, transition: "opacity .7s ease" }}
-          onCanPlay={() => setVideoOk(true)}
-          onError={() => setVideoOk(false)}
-        >
-          <source src="/evora/hero-mobile.mp4" type="video/mp4" />
-        </video>
-      )}
-    </>
   );
 }
 
@@ -354,32 +319,42 @@ function HeroCopy({
 }
 
 const heroCss = `
-  .hs { position: relative; background: #0d0b09; }
+  /* section height drives the scrub length — set by CSS per breakpoint so the
+     phone gets the portrait scrub length without any JS/hydration branch */
+  .hs { position: relative; background: #0d0b09; height: 600vh; }
+  @media (max-width: 768px) { .hs { height: 420svh; } }
   .hs--static { height: 100svh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
-  .hs__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; }
-  .hs__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
-  .hs__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
 
-  .hs__scrim, .hero__scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; background:
+  .hs__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
+  .hs__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; opacity: 0; transition: opacity .35s ease; }
+  .hs__canvas.is-ready { opacity: 1; }
+  .hs__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+  /* CSS decides which poster aspect is shown — both are in the DOM for SSR safety */
+  .hs__poster--m { display: none; }
+  @media (max-width: 768px) {
+    .hs__poster--d { display: none; }
+    .hs__poster--m { display: block; }
+  }
+
+  .hs__scrim, .hero__scrim { position: absolute; inset: 0; z-index: 2; pointer-events: none; background:
       linear-gradient(105deg, rgba(13,11,9,0.92) 0%, rgba(13,11,9,0.62) 32%, rgba(13,11,9,0.18) 64%, rgba(13,11,9,0.05) 100%),
       radial-gradient(120% 80% at 50% 120%, rgba(8,6,4,0.6), transparent 60%); }
-  .hero__top { position: absolute; inset-inline: 0; top: 0; height: 200px; z-index: 1; pointer-events: none; background: linear-gradient(rgba(8,6,4,0.6), transparent); }
+  .hero__top { position: absolute; inset-inline: 0; top: 0; height: 200px; z-index: 2; pointer-events: none; background: linear-gradient(rgba(8,6,4,0.6), transparent); }
 
-  /* film "c": keep the clean bright footage — much lighter scrim, readability
-     carried by a localized gradient behind the copy + stronger text shadows */
+  /* film "c": keep the clean bright footage — lighter scrim, readability carried
+     by a localized gradient behind the copy + stronger text shadows */
   .hs--c .hs__scrim { background:
       linear-gradient(100deg, rgba(13,11,9,0.44) 0%, rgba(13,11,9,0.20) 24%, rgba(13,11,9,0.03) 48%, rgba(13,11,9,0) 66%),
       linear-gradient(0deg, rgba(8,6,4,0.26) 0%, rgba(8,6,4,0) 26%); }
   .hs--c .hero__top { height: 130px; background: linear-gradient(rgba(8,6,4,0.28), transparent); }
-  /* a little extra black overlay on the left edge */
-  .hs__left { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  .hs__left { position: absolute; inset: 0; z-index: 2; pointer-events: none;
     background: linear-gradient(90deg, rgba(8,6,4,0.6) 0%, rgba(8,6,4,0.3) 14%, rgba(8,6,4,0) 34%); }
   .hs--c .hero__title { text-shadow: 0 2px 22px rgba(8,6,4,0.7), 0 1px 4px rgba(8,6,4,0.45); }
   .hs--c .hero__sub { text-shadow: 0 1px 16px rgba(8,6,4,0.7), 0 1px 3px rgba(8,6,4,0.5); }
   .hs--c .hero__meta { color: rgba(251,247,240,0.85); text-shadow: 0 1px 8px rgba(8,6,4,0.6); }
 
-  .hs__copy { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; will-change: transform, opacity; }
-  .hs--static .hero__content { position: relative; z-index: 2; }
+  .hs__copy { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; will-change: transform, opacity; }
+  .hs--static .hero__content { position: relative; z-index: 3; }
   .hero__content, .hs__content { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); padding-block: clamp(8rem, 14vh, 11rem) clamp(3rem, 8vh, 5rem); }
   .hero__title { color: var(--paper); font-size: clamp(3rem, 8vw, 7rem); margin: 1.5rem 0 0; font-weight: 360; max-width: 16ch; text-shadow: 0 2px 30px rgba(8,6,4,0.4); }
   .hero__sub { color: rgba(251,247,240,0.86); font-size: clamp(1rem, 1.3vw, 1.25rem); line-height: 1.6; max-width: 42ch; margin: 1.8rem 0 0; font-weight: 300; text-shadow: 0 1px 20px rgba(8,6,4,0.45); }
@@ -391,16 +366,12 @@ const heroCss = `
   .hero__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.85rem; margin-top: 2.6rem; color: rgba(251,247,240,0.72); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; }
   .hero__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--brass-2); }
 
-  .hs__tag { position: absolute; bottom: 1.7rem; inset-inline-end: clamp(1.25rem, 5vw, 6rem); z-index: 3; display: inline-flex; align-items: center; gap: 0.7rem; background: rgba(251,247,240,0.92); backdrop-filter: blur(8px); color: var(--ink); padding: 0.6rem 1rem 0.6rem 0.7rem; border-radius: 100px; font-size: 0.84rem; font-family: var(--font-display); }
+  .hs__tag { position: absolute; bottom: 1.7rem; inset-inline-end: clamp(1.25rem, 5vw, 6rem); z-index: 4; display: inline-flex; align-items: center; gap: 0.7rem; background: rgba(251,247,240,0.92); backdrop-filter: blur(8px); color: var(--ink); padding: 0.6rem 1rem 0.6rem 0.7rem; border-radius: 100px; font-size: 0.84rem; font-family: var(--font-display); }
   .hs__tag-k { background: #0d0b09; color: var(--paper); font-family: var(--font-sans); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.3em 0.7em; border-radius: 100px; }
-  .hero__scroll { position: absolute; bottom: 1.8rem; inset-inline-start: clamp(1.25rem, 5vw, 6rem); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(251,247,240,0.9); }
+  .hero__scroll { position: absolute; bottom: 1.8rem; inset-inline-start: clamp(1.25rem, 5vw, 6rem); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(251,247,240,0.9); }
   .hero__scroll span:first-child { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; writing-mode: vertical-rl; }
   html[dir="rtl"] .hero__scroll span:first-child { letter-spacing: 0.1em; }
   .hero__scroll-line { width: 1px; height: 40px; background: linear-gradient(rgba(251,247,240,0.85), transparent); animation: bob 2.4s ease-in-out infinite; }
-
-  .hs__video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
-  .hs__video--mp4 { z-index: 0; } /* sits above the poster img (same layer, later in DOM) */
-  .hs--mob { height: 100svh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
 
   @media (max-width: 860px) {
     .hs__content { padding-block: clamp(7rem, 18vh, 9rem) clamp(4rem, 12vh, 6rem); }
@@ -415,15 +386,12 @@ const heroCss = `
 
   @media (max-width: 640px) {
     /* white copy must stay legible over any footage on a small bright phone */
-    .hs__scrim { background:
-      linear-gradient(180deg, rgba(8,6,4,0.46) 0%, rgba(8,6,4,0.12) 30%, rgba(8,6,4,0.32) 60%, rgba(8,6,4,0.84) 100%); }
-    .hs--c .hs__scrim { background:
-      linear-gradient(180deg, rgba(8,6,4,0.42) 0%, rgba(8,6,4,0.10) 30%, rgba(8,6,4,0.32) 60%, rgba(8,6,4,0.82) 100%); }
+    .hs__scrim, .hs--c .hs__scrim { background:
+      linear-gradient(180deg, rgba(8,6,4,0.44) 0%, rgba(8,6,4,0.10) 30%, rgba(8,6,4,0.32) 60%, rgba(8,6,4,0.82) 100%); }
     .hs__left { background: none; }
     .hs__content { padding-block: clamp(6rem, 15vh, 8rem) clamp(3.5rem, 11vh, 5.5rem); }
     .hero__title { font-size: clamp(2.6rem, 12vw, 3.8rem); max-width: 12ch; }
     .hero__sub { font-size: clamp(0.98rem, 4.2vw, 1.1rem); max-width: 34ch; }
-    /* CTAs: stacked, full-width, comfy ≥48px touch targets */
     .hero__cta { flex-direction: column; align-items: stretch; gap: 0.7rem; width: 100%; max-width: 22rem; }
     .hero__cta .btn { width: 100%; min-height: 48px; justify-content: center; }
     .hero__meta { font-size: 0.62rem; gap: 0.5rem; }
