@@ -28,10 +28,10 @@ const pad = (n: number) => String(n).padStart(4, "0");
 const DESKTOP_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
 const DESKTOP_EXT: Record<HeroVariant, "webp" | "jpg"> = { a: "jpg", b: "jpg", c: "webp" };
 
-// Phones scrub a light portrait stack extracted from the two 9:16 clips
-// (kitchen film → showroom film). Kept deliberately light (100 frames @540px,
-// ~3 MB) so it loads + decodes inside iOS's per-tab image budget.
-const MOBILE_TOTAL = 100;
+// Phones scrub a portrait stack extracted from the 9:16 showroom film at the
+// clip's full 24fps (250 frames @native 720px) — same frame-per-scroll density
+// as the desktop film, so the scrub is just as smooth. Crisp on 2–3× phones.
+const MOBILE_TOTAL = 250;
 
 // How many leading frames the branded Loader waits on before it lifts. Keep
 // this small — it gates the FIRST PAINT of the whole site on these frames

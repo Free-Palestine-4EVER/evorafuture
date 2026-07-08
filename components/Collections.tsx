@@ -367,10 +367,16 @@ export default function Collections() {
         @media (max-width: 640px) {
           /* worlds go full-bleed on phones for cinematic impact */
           .rooms__worlds { padding-inline: 0; gap: 2px; margin-inline: 0; }
+          /* the room clips are landscape 16:9 — match the frame to that aspect so
+             the video shows as a full rectangle (like desktop) instead of being
+             cropped into a tall near-square box */
           .world__frame {
-            height: clamp(440px, 78svh, 640px);
+            aspect-ratio: 16 / 9;
+            height: auto;
             border-radius: 0;
           }
+          /* keep the overlaid caption compact in the shorter card */
+          .world__blurb { display: none; }
           /* stronger, readable scrim under the caption on small screens */
           .world__scrim {
             background:

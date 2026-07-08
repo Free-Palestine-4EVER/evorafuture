@@ -92,6 +92,13 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
         {/* Steps share the sticky panel's space, pulled up over it */}
         <div className="pj-offset" />
 
+        {/* Mobile: one sticky stage that morphs through all four stages as the
+            step texts scroll past it — the phone version of the desktop panel
+            (which is hidden < 860px). Driven by the same `active` scroll state. */}
+        <div className="pj-mstick" aria-hidden>
+          <TransformStage step={active} ar={ar} />
+        </div>
+
         {processSteps.map((step, i) => {
           const textRight = i % 2 === 0; // panel left → text right, and vice-versa
           return (
@@ -252,13 +259,28 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           color: var(--ever, #2f5d4a);
         }
         .pj-step-media-mobile { display: none; margin-top: 1.6rem; }
+        .pj-mstick { display: none; }
 
         @media (max-width: 860px) {
           .pj-sticky, .pj-offset { display: none; }
-          .pj-step { min-height: auto; padding-block: 2.4rem; justify-content: stretch !important; }
-          .pj-step-text { width: 100%; opacity: 1; }
+          /* the transforming stage pins near the top while the step texts
+             scroll beneath it, so it visibly morphs 2D → 3D → photoreal */
+          .pj-mstick {
+            display: block;
+            position: sticky; top: 6vh; z-index: 3;
+            margin: 0 auto clamp(1.4rem, 4vw, 2rem);
+            pointer-events: none;
+          }
+          .pj-step {
+            min-height: 66vh; padding-block: 1.2rem;
+            justify-content: stretch !important;
+            position: relative; z-index: 1;
+          }
+          /* keep the active step lit, dim the rest — reads which stage you're on */
+          .pj-step-text { width: 100%; opacity: 0.32; transition: opacity .45s ease; }
+          .pj-step-text.is-active { opacity: 1; }
           .pj-step-ghost { font-size: clamp(6rem, 22vw, 9rem); }
-          .pj-step-media-mobile { display: block; }
+          .pj-step-media-mobile { display: none; }
         }
       `}</style>
     </section>

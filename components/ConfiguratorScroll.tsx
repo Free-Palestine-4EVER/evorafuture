@@ -6,7 +6,7 @@ import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
 import { openStartProject } from "@/lib/startProject";
 import { WHATSAPP } from "@/lib/brand";
-import { SURFACES, CONFIG_BASE, CONFIG_MOBILE_VIDEO, type SurfaceVariant } from "@/lib/configurator";
+import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -49,10 +49,14 @@ const T = {
 };
 
 // 169 native frames of the kitchen fly-through, ending pinned on the island.
-const TOTAL = 169;
-const SCROLL_VH = 420; // scrub length; the last ~22% reveals the configurator
+const DESKTOP_TOTAL = 169;
+const DESKTOP_SCROLL_VH = 420; // scrub length; the last ~22% reveals the configurator
+// phones scrub a portrait frame stack (/evora/config-frames-mobile) — same
+// scroll-scrub interaction as desktop, correctly framed for the phone, full
+// 24fps stack (169 frames @native 720px) — crisp + as smooth as desktop
+const MOBILE_TOTAL = 169;
+const MOBILE_SCROLL_VH = 300;
 const pad = (n: number) => String(n).padStart(4, "0");
-const frameSrc = (i: number) => `/evora/config-frames/frame_${pad(i)}.webp`;
 
 export default function ConfiguratorScroll() {
   const { t, lang } = useT();
@@ -66,12 +70,19 @@ export default function ConfiguratorScroll() {
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const targetFrame = useRef(1);
   const currentFrame = useRef(1);
-  const ticking = useRef(false);
 
   const [ready, setReady] = useState(false);
   const [revealed, setRevealed] = useState(false); // configurator UI visible/interactive
-  const [isMobile, setIsMobile] = useState(false);  // ≤768px → video beat + bottom sheet
-  const [videoFailed, setVideoFailed] = useState(false); // kitchen-mobile.mp4 not provided yet
+  const [isMobile, setIsMobile] = useState(false);  // ≤768px → portrait frame scrub + bottom sheet
+
+  // frame stack + scrub length for the active device (phones scrub the portrait
+  // mobile kitchen frames; desktop scrubs the landscape fly-through)
+  const TOTAL = isMobile ? MOBILE_TOTAL : DESKTOP_TOTAL;
+  const scrollVh = isMobile ? MOBILE_SCROLL_VH : DESKTOP_SCROLL_VH;
+  const frameSrc = (i: number) =>
+    isMobile
+      ? `/evora/config-frames-mobile/frame_${pad(i)}.webp`
+      : `/evora/config-frames/frame_${pad(i)}.webp`;
 
   // ---- phone vs. desktop: drives the whole mobile beat (video + bottom sheet) ----
   useEffect(() => {
@@ -82,20 +93,25 @@ export default function ConfiguratorScroll() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // on mobile (or reduced motion) the panel is always present; desktop reveals on scroll
-  const panelOpen = revealed || reduce || isMobile;
+  // the panel reveals near the end of the scrub (phone & desktop); reduced motion
+  // shows it immediately
+  const panelOpen = revealed || reduce;
 
   // ---- selected surface + any user-uploaded variants ----
   const [variants, setVariants] = useState<SurfaceVariant[]>(SURFACES);
   const [activeId, setActiveId] = useState<string>(SURFACES[0].id);
   const active = variants.find((v) => v.id === activeId) ?? variants[0];
 
-  // ---------- frame scrubbing (desktop only) ----------
+  // ---------- frame scrubbing (phone + desktop) ----------
   useEffect(() => {
-    if (reduce || isMobile) return; // mobile plays a portrait video, no 169-frame preload
+    if (reduce) return; // reduced motion shows a still poster, no scrub
+    // wait until isMobile state matches reality so TOTAL/frameSrc are correct
+    const mob = typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(max-width: 768px)").matches : false;
+    if (mob !== isMobile) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
     let mounted = true;
 
@@ -122,60 +138,55 @@ export default function ConfiguratorScroll() {
       ctx.drawImage(img, x, y, w, h);
     };
 
-    const render = () => {
-      ticking.current = false;
-      const cur = currentFrame.current;
-      const tgt = targetFrame.current;
-      const next = cur + (tgt - cur) * 0.18;
-      currentFrame.current = Math.abs(tgt - next) < 0.4 ? tgt : next;
-      draw(Math.round(currentFrame.current));
-      if (Math.round(currentFrame.current) !== tgt) requestTick();
-    };
-    const requestTick = () => {
-      if (!ticking.current) { ticking.current = true; requestAnimationFrame(render); }
-    };
-
-    // Lazy-gate the 169-frame preload: the page paints the single poster webp
-    // first, and the heavy frame set only starts loading once the visitor
-    // scrolls (or the main thread goes idle) — never on the initial render.
+    // Preload the frame set once (lazily — after first paint, never blocking it).
     let started = false;
     const startPreload = () => {
       if (started || !mounted) return;
       started = true;
-      let loaded = 0;
       for (let i = 1; i <= TOTAL; i++) {
         const img = new Image();
         img.src = frameSrc(i);
-        img.onload = () => {
-          loaded++;
-          if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
-          if (loaded === TOTAL && mounted) onScroll();
-        };
+        img.onload = () => { if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); } };
         imagesRef.current[i] = img;
       }
     };
 
-    const onScroll = () => {
-      startPreload(); // first scroll kicks off the frame fetch
+    // One always-on rAF loop reading the scrub position straight from layout every
+    // frame (à la LILITH). NEVER reacts to `scroll` events and is NOT gated by
+    // IntersectionObserver — under Lenis smooth-scroll both misreport on phones and
+    // froze the scrub on frame 1. Polling getBoundingClientRect() is input-agnostic.
+    let rafId = 0;
+    let revealedNow = false;
+    let lastDrawn = -1;
+
+    const tick = () => {
+      if (!mounted) return;
       const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const scrollable = el.offsetHeight - window.innerHeight;
-      const p = Math.min(1, Math.max(0, -rect.top / scrollable)); // 0..1
-      // frames play across the first 78% of the scroll; last 22% holds the
-      // final frame and brings up the configurator.
-      const frameP = Math.min(1, p / 0.78);
-      targetFrame.current = Math.min(TOTAL, Math.max(1, Math.round(frameP * (TOTAL - 1)) + 1));
-      setRevealed(p > 0.8);
-      requestTick();
+      if (el) {
+        startPreload();
+        const rect = el.getBoundingClientRect();
+        const scrollable = el.offsetHeight - window.innerHeight;
+        const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+        // frames play across the first 78% of the scroll; last 22% holds the
+        // final frame and brings up the configurator.
+        const frameP = Math.min(1, p / 0.78);
+        targetFrame.current = Math.min(TOTAL, Math.max(1, Math.round(frameP * (TOTAL - 1)) + 1));
+        const rev = p > 0.8;
+        if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
+
+        const cur = currentFrame.current, tgt = targetFrame.current;
+        const next = cur + (tgt - cur) * 0.18;
+        currentFrame.current = Math.abs(tgt - next) < 0.4 ? tgt : next;
+        const idx = Math.round(currentFrame.current);
+        if (idx !== lastDrawn) { draw(idx); lastDrawn = idx; }
+      }
+      rafId = requestAnimationFrame(tick);
     };
 
-    const onResize = () => { sizeCanvas(); draw(Math.round(currentFrame.current)); };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () => { sizeCanvas(); lastDrawn = -1; draw(Math.round(currentFrame.current)); };
     window.addEventListener("resize", onResize);
 
-    // idle fallback so the frames are ready even if the visitor lingers before
-    // scrolling — but still after the first paint, never blocking it.
+    // idle fallback so frames are ready even if the visitor lingers off-screen
     const ric = (window as Window & {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
       cancelIdleCallback?: (id: number) => void;
@@ -184,10 +195,11 @@ export default function ConfiguratorScroll() {
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     if (ric.requestIdleCallback) idleId = ric.requestIdleCallback(startPreload, { timeout: 2500 });
     else idleTimer = setTimeout(startPreload, 1400);
+    rafId = requestAnimationFrame(tick);
 
     return () => {
       mounted = false;
-      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
       if (idleId !== undefined && ric.cancelIdleCallback) ric.cancelIdleCallback(idleId);
       if (idleTimer !== undefined) clearTimeout(idleTimer);
@@ -210,6 +222,13 @@ export default function ConfiguratorScroll() {
   };
 
   const isBase = active?.image === CONFIG_BASE || active?.id === SURFACES[0].id;
+  // On phones the swap uses a portrait 9:16 render of each stone
+  // (surface-<id>-mobile.webp) so it fills the vertical frame instead of a
+  // cropped landscape. Falls back to the landscape image via onError.
+  const variantSrc =
+    isMobile && active && /^\/evora\/configurator\/surface-[a-z0-9-]+\.webp$/.test(active.image)
+      ? active.image.replace(/\.webp$/, "-mobile.webp")
+      : active?.image;
 
   const steps = [
     { n: tl("s1_n"), title: tl("s1_t"), body: tl("s1_b") },
@@ -223,57 +242,45 @@ export default function ConfiguratorScroll() {
       id="configurator"
       ref={sectionRef}
       className={`cfg ${isMobile ? "cfg--mobile" : ""}`}
-      style={{ height: reduce || isMobile ? "100svh" : `${SCROLL_VH}vh` }}
+      style={{ height: reduce ? "100svh" : `${scrollVh}${isMobile ? "dvh" : "vh"}` }}
     >
       <div className="cfg__sticky">
-        {/* DESKTOP: scrubbed 169-frame canvas */}
-        {!reduce && !isMobile && (
+        {/* scrubbed frame canvas — portrait stack on phones, landscape on desktop
+            (LILITH pattern: always-on rAF poll, opaque canvas, light frames) */}
+        {!reduce && (
           <canvas ref={canvasRef} className="cfg__canvas" role="img"
             aria-label={t("cfg_aria")} />
         )}
-        {!reduce && !isMobile && !ready && (
+        {!reduce && !ready && (
           <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />
         )}
 
-        {/* MOBILE: light portrait video, with base.webp as poster + 404 fallback */}
-        {isMobile && (
-          <>
-            <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />
-            {!reduce && !videoFailed && (
-              <video
-                className="cfg__video"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster={CONFIG_BASE}
-                onError={() => setVideoFailed(true)}
-                aria-label={t("cfg_aria")}
-              >
-                <source src={CONFIG_MOBILE_VIDEO} type="video/mp4" />
-              </video>
-            )}
-          </>
-        )}
-
-        {/* reduced-motion desktop: still poster */}
-        {reduce && !isMobile && <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />}
+        {/* reduced-motion: still poster */}
+        {reduce && <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />}
 
         {/* the selected variant image, layered over the final frame */}
         <AnimatePresence mode="popLayout">
           {panelOpen && !isBase && active && (
             <motion.img
               key={active.id}
-              src={active.image}
+              src={variantSrc}
               alt=""
               className="cfg__variant"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5, ease }}
-              // if a variant file isn't uploaded yet, silently fall back to base
-              onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.opacity = "0"; }}
+              // if the portrait -mobile render is missing, fall back to the
+              // landscape image; if that's missing too, fade out to the base
+              onError={(ev) => {
+                const el = ev.currentTarget as HTMLImageElement;
+                if (active && el.src.includes("-mobile.webp") && !el.dataset.fellback) {
+                  el.dataset.fellback = "1";
+                  el.src = active.image;
+                } else {
+                  el.style.opacity = "0";
+                }
+              }}
             />
           )}
         </AnimatePresence>
@@ -281,7 +288,7 @@ export default function ConfiguratorScroll() {
         <div className="cfg__scrim" />
 
         {/* heading sits over the footage until the configurator reveals */}
-        <motion.div className="cfg__intro" animate={{ opacity: revealed || isMobile ? 0 : 1 }} transition={{ duration: 0.4 }}>
+        <motion.div className="cfg__intro" animate={{ opacity: revealed ? 0 : 1 }} transition={{ duration: 0.4 }}>
           <span className="eyebrow" style={{ color: "var(--brass-2)" }}>
             {t("cfg_eyebrow")}
           </span>
@@ -427,7 +434,7 @@ export default function ConfiguratorScroll() {
 
 const css = `
   .cfg { position: relative; background: #0d0b09; }
-  .cfg__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+  .cfg__sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; }
   .cfg__canvas, .cfg__poster, .cfg__variant {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; display: block; z-index: 0;
@@ -490,7 +497,7 @@ const css = `
   [dir="rtl"] .cfg__intro, [dir="rtl"] .cfg__panel { left: auto; right: clamp(1.4rem, 5vw, 5rem); }
 
   /* ── MOBILE (≤768px): full-bleed video beat + bottom-sheet panel ──────── */
-  .cfg--mobile .cfg__sticky { height: 100svh; }
+  .cfg--mobile .cfg__sticky { height: 100dvh; }
   .cfg--mobile .cfg__intro { display: none; } /* the panel carries the explanation */
 
   .cfg--mobile .cfg__panel,
@@ -499,14 +506,22 @@ const css = `
     width: 100%; max-width: none;
     border-radius: 20px 20px 0 0;
     border-width: 1px 0 0 0;
-    background: rgba(14,11,9,0.86);
+    background: rgba(14,11,9,0.8);
     box-shadow: 0 -18px 50px rgba(0,0,0,0.5);
-    padding: 1.1rem 1.2rem;
-    padding-top: 1.1rem;
-    padding-bottom: calc(1.1rem + env(safe-area-inset-bottom));
-    padding-left: max(1.2rem, env(safe-area-inset-left));
-    padding-right: max(1.2rem, env(safe-area-inset-right));
+    padding: 0.6rem 1.15rem;
+    padding-top: 0.6rem;
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom));
+    padding-left: max(1.15rem, env(safe-area-inset-left));
+    padding-right: max(1.15rem, env(safe-area-inset-right));
   }
+  /* keep the bottom sheet as small as possible so the kitchen fills the screen:
+     drop the instruction, eyebrow and note lines; compact header + swatches */
+  .cfg--mobile .cfg__instruct,
+  .cfg--mobile .cfg__panel-eyebrow,
+  .cfg--mobile .cfg__note { display: none; }
+  .cfg--mobile .cfg__panel-head { flex-direction: row; align-items: baseline; gap: 0.5rem; margin-bottom: 0.4rem; }
+  .cfg--mobile .cfg__active-kicker { font-size: 0.58rem; }
+  .cfg--mobile .cfg__active-name { font-size: clamp(1rem, 4.4vw, 1.25rem); }
 
   /* swatch row scrolls horizontally instead of wrapping; chips ≥44px */
   .cfg--mobile .cfg__swatches {
@@ -515,11 +530,11 @@ const css = `
     scroll-snap-type: x proximity;
   }
   .cfg--mobile .cfg__swatches::-webkit-scrollbar { display: none; }
-  .cfg--mobile .cfg__swatch { width: 54px; height: 54px; scroll-snap-align: start; }
+  .cfg--mobile .cfg__swatch { width: 42px; height: 42px; scroll-snap-align: start; }
 
   /* full-width, finger-friendly CTAs */
-  .cfg--mobile .cfg__cta { gap: 0.85rem; margin-top: 1rem; }
-  .cfg--mobile .cfg__cta-1 { width: 100%; justify-content: center; min-height: 48px; }
+  .cfg--mobile .cfg__cta { gap: 0.6rem; margin-top: 0.55rem; }
+  .cfg--mobile .cfg__cta-1 { width: 100%; justify-content: center; min-height: 44px; }
   .cfg--mobile .cfg__cta-wa { min-height: 44px; display: inline-flex; align-items: center; }
 
   /* ── closing "how it's made" beat ───────────────────────────────── */
