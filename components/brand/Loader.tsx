@@ -2,12 +2,10 @@
 
 /* ============================================================
    EVORA — shared branded loader
-   A fixed full-screen --ink field that plays the brass
-   "EVORA · FUTURE HOME" light-sweep film (portrait or landscape
-   source picked by orientation), then lifts like a curtain into
-   the page. Shows once per session. prefers-reduced-motion shows
-   the poster still and fades only. Dwell is capped so it never
-   blocks the user.
+   A fixed full-screen pure-black field with the EVORA monogram
+   (outline, centred) and a slim Figma-style progress bar beneath
+   it, then lifts like a curtain into the page. Shows once per
+   session. Dwell is capped so it never blocks the user.
 
    Mounted by the site / Studio / portal layouts.
    ============================================================ */
@@ -33,12 +31,10 @@ export default function Loader() {
   const { lang } = useT();
   // SSR renders the overlay visible so the page never flashes before it.
   const [phase, setPhase] = useState<"show" | "lift" | "gone">("show");
-  const [portrait, setPortrait] = useState(false);
-  const [armed, setArmed] = useState(false); // client knows orientation -> mount media
+  const [armed, setArmed] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 real asset-load progress (eased)
   const startRef = useRef(0);
   const liftedRef = useRef(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const reduce =
     typeof window !== "undefined" &&
@@ -61,7 +57,6 @@ export default function Loader() {
     } catch {
       /* ignore */
     }
-    setPortrait(window.innerHeight > window.innerWidth);
     setArmed(true);
     startRef.current = performance.now();
   }, []);
@@ -133,15 +128,8 @@ export default function Loader() {
     };
   }, [armed, reduce]);
 
-  // Try to start playback (autoplay can be blocked; the cap still lifts us).
-  useEffect(() => {
-    if (!armed || reduce) return;
-    videoRef.current?.play().catch(() => {});
-  }, [armed, reduce]);
-
   if (phase === "gone") return null;
 
-  const base = portrait ? "/evora/loader/evora-loader-9x16" : "/evora/loader/evora-loader-16x9";
   const lifting = phase === "lift";
 
   return (
@@ -153,8 +141,13 @@ export default function Loader() {
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        background: "var(--ink, #16150F)",
+        background: "#000",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 22,
         pointerEvents: lifting ? "none" : "auto",
         transform: lifting ? "translateY(-101%)" : "translateY(0)",
         opacity: lifting ? 0 : 1,
@@ -162,66 +155,44 @@ export default function Loader() {
         willChange: "transform, opacity",
       }}
     >
-      {armed && !reduce ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster={`${base}.jpg`}
+      {/* EVORA monogram — outline mark, centred, static (no motion needed) */}
+      <svg
+        width="52"
+        height="52"
+        viewBox="0 0 100 100"
+        fill="none"
+        aria-hidden="true"
+        style={{ color: "#fff", opacity: 0.92 }}
+      >
+        <g fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="square" strokeLinejoin="miter">
+          <path d="M30 22 L30 78" />
+          <path d="M30 22 L70 22" />
+          <path d="M30 50 L64 50" />
+          <path d="M30 78 L70 78" />
+        </g>
+      </svg>
+
+      {/* real asset-load progress — a slim centred bar, Figma-style */}
+      <div
+        aria-hidden
+        style={{
+          width: 130,
+          height: 2,
+          borderRadius: 2,
+          background: "rgba(255,255,255,0.14)",
+          overflow: "hidden",
+        }}
+      >
+        <div
           style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
             height: "100%",
-            objectFit: "cover",
-          }}
-        >
-          <source src={`${base}.mp4`} type="video/mp4" />
-        </video>
-      ) : (
-        // Reduced-motion / pre-arm: the poster still on the ink field.
-        <img
-          src={`${base}.jpg`}
-          alt=""
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+            width: `${Math.round((reduce ? 1 : progress) * 100)}%`,
+            background: "#fff",
+            transition: "width 140ms linear",
+            willChange: "width",
           }}
         />
-      )}
-
-      {/* real asset-load progress — a slim brass seam across the foot of the curtain */}
-      {!reduce && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 2,
-            background: "rgba(197,160,106,0.16)",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${Math.round(progress * 100)}%`,
-              background: "var(--brass-2, #C5A06A)",
-              boxShadow: "0 0 14px rgba(197,160,106,0.65)",
-              transition: "width 140ms linear",
-              willChange: "width",
-            }}
-          />
-        </div>
-      )}
+      </div>
     </div>
   );
 }
