@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Rise } from "@/components/motion";
@@ -149,6 +149,48 @@ export default function Rooms() {
   const [active, setActive] = useState(0);
   const room = rooms[active];
 
+  // ---- scroll-driven active room (desktop): whichever row crosses the
+  // viewport's centre band becomes active, so the sticky image swaps as you
+  // scroll — no hover required. Hover still works too (nice on desktop when
+  // not actively scrolling); both just set the same `active` index. ----
+  const listRef = useRef<HTMLUListElement>(null);
+  const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const [bar, setBar] = useState({ top: 0, height: 0 });
+
+  useEffect(() => {
+    if (reduce) return;
+    const mq = window.matchMedia("(max-width: 860px)");
+    if (mq.matches) return; // mobile uses its own stacked cards below
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const i = Number((e.target as HTMLElement).dataset.i);
+          if (!Number.isNaN(i)) setActive(i);
+        });
+      },
+      { rootMargin: "-45% 0px -45% 0px", threshold: 0 },
+    );
+    rowRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, [reduce]);
+
+  // slide the accent bar to the active row's measured position
+  useEffect(() => {
+    const measure = () => {
+      const list = listRef.current;
+      const row = rowRefs.current[active];
+      if (!list || !row) return;
+      const lr = list.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      setBar({ top: rr.top - lr.top, height: rr.height });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [active]);
+
   return (
     <section id="rooms" dir={dir} className="rm" lang={lang}>
       <div className="container rm__head">
@@ -170,8 +212,10 @@ export default function Rooms() {
         </Rise>
       </div>
 
-      <div className="container rm__grid">
-        {/* Image stage — crossfades as you move through the rooms */}
+      {/* Desktop: sticky image pinned left, scroll-driven room list right —
+          the image swaps as each row crosses the centre of the viewport, no
+          hover required (hover still works as an instant preview too). */}
+      <div className="container rm__scrollarea">
         <a className="rm__stage" href={room.href} aria-label={room.name[lang]}>
           <AnimatePresence initial={false} mode="popLayout">
             <motion.img
@@ -202,33 +246,72 @@ export default function Rooms() {
           <span className="rm__enter">{ar ? "ادخل الغرفة" : "Enter room"} →</span>
         </a>
 
-        {/* Vertical room index */}
-        <ul className="rm__list">
+        <ul className="rm__list" ref={listRef}>
+          <motion.span
+            className="rm__listbar"
+            animate={{ top: bar.top, height: bar.height }}
+            initial={false}
+            transition={{ duration: 0.45, ease: EASE }}
+            aria-hidden
+          />
           {rooms.map((r, i) => (
-            <li key={r.id}>
+            <li
+              key={r.id}
+              ref={(el) => { rowRefs.current[i] = el; }}
+              data-i={i}
+              className="rm__row"
+            >
               <a
                 href={r.href}
                 className={`rm__item${i === active ? " is-active" : ""}`}
                 aria-current={i === active ? "true" : undefined}
                 onMouseEnter={() => setActive(i)}
                 onFocus={() => setActive(i)}
-                onClick={(e) => {
-                  // Touch (no hover): first tap previews the room in the stage,
-                  // a second tap on the already-active room enters it. On desktop
-                  // hover has already set `active`, so the click navigates as before.
-                  if (i !== active) {
-                    e.preventDefault();
-                    setActive(i);
-                  }
-                }}
               >
                 <span className="rm__inum">{r.num}</span>
-                <span className="rm__iname">{r.name[lang]}</span>
+                <span className="rm__itext">
+                  <span className="rm__iname">{r.name[lang]}</span>
+                  <span className="rm__inote">{r.note[lang]}</span>
+                </span>
                 <span className="rm__iarrow" aria-hidden>→</span>
               </a>
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Mobile: stacked full-bleed room cards — each carries its own image,
+          no sticky/scroll-linking (keeps small-screen scroll simple + smooth). */}
+      <div className="container rm__mobile">
+        {rooms.map((r, i) => (
+          <motion.a
+            key={r.id}
+            href={r.href}
+            className="rm__mcard"
+            initial={reduce ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+            transition={{ duration: 0.6, ease: EASE, delay: reduce ? 0 : (i % 3) * 0.05 }}
+          >
+            <div className="rm__mimgwrap">
+              <img src={r.img} alt={r.name[lang]} className="rm__mimg" loading="lazy" />
+              <div className="rm__mveil" aria-hidden />
+              <div className="rm__mpieces" aria-hidden>
+                {r.pieces.slice(0, 3).map((p) => (
+                  <span key={p.en} className="rm__piece">{p[lang]}</span>
+                ))}
+              </div>
+            </div>
+            <div className="rm__mmeta">
+              <span className="rm__inum">{r.num}</span>
+              <span className="rm__itext">
+                <span className="rm__iname">{r.name[lang]}</span>
+                <span className="rm__inote">{r.note[lang]}</span>
+              </span>
+              <span className="rm__iarrow" aria-hidden>→</span>
+            </div>
+          </motion.a>
+        ))}
       </div>
 
       {/* Every piece we make — the real catalogue, shown as product tiles */}
@@ -332,14 +415,17 @@ export default function Rooms() {
         .rm__lede { max-width: 52ch; margin: 1.3rem 0 0; font-family: var(--f-sans);
           color: var(--ink-soft); font-size: clamp(1rem,1.3vw,1.14rem); line-height: 1.7; text-wrap: pretty; }
 
-        /* ---- stage + list ---- */
-        .rm__grid {
+        /* ---- stage + list: sticky image pinned left, scroll-driven rows
+           on the right (the grid cell auto-stretches to the list's taller
+           height, which is what lets the sticky stage release at the end) ---- */
+        .rm__scrollarea {
           display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-          gap: clamp(1.5rem, 4vw, 3.5rem); align-items: stretch;
+          gap: clamp(1.5rem, 4vw, 3.5rem);
           margin-top: clamp(2.5rem, 5vw, 4rem);
         }
         .rm__stage {
-          position: relative; display: block; overflow: hidden;
+          position: sticky; top: clamp(84px, 10vh, 112px); align-self: start;
+          display: block; overflow: hidden;
           border-radius: 4px; aspect-ratio: 16 / 11; background: var(--ink);
           text-decoration: none; isolation: isolate;
         }
@@ -367,23 +453,47 @@ export default function Rooms() {
         .rm__stage:hover .rm__enter, .rm__stage:focus-visible .rm__enter { opacity: 1; transform: none; }
         .rm__stage:hover .rm__img { transform: scale(1.03); transition: transform 1.2s var(--ease); }
 
-        .rm__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
-          justify-content: center; border-top: 1px solid var(--line); }
-        .rm__item { display: flex; align-items: center; gap: 1rem; padding: clamp(0.85rem,1.8vw,1.25rem) 0.2rem;
+        .rm__list { position: relative; list-style: none; margin: 0; padding: 0;
+          border-top: 1px solid var(--line); }
+        .rm__listbar { position: absolute; inset-inline-start: 0; width: 2px;
+          background: var(--ever, #2f5d4a); }
+        .rm__row { min-height: 58vh; display: flex; align-items: center; }
+        .rm__item { display: flex; align-items: center; gap: 1rem; width: 100%;
+          padding: clamp(0.85rem,1.8vw,1.25rem) 0 clamp(0.85rem,1.8vw,1.25rem) 1.1rem;
           border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink);
           transition: color .35s var(--ease), padding-inline-start .35s var(--ease); }
-        .rm__item:hover, .rm__item.is-active { padding-inline-start: 0.7rem; }
+        .rm__row:last-child .rm__item { border-bottom: none; }
+        .rm__item:hover, .rm__item.is-active { padding-inline-start: 1.6rem; }
         .rm__inum { font-family: var(--f-sans); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.1em;
-          color: var(--brass-2); min-width: 2ch; }
-        .rm__iname { flex: 1; font-family: var(--f-display), Georgia, serif; font-weight: 360;
-          font-size: clamp(1.25rem,2.2vw,1.75rem); line-height: 1.1; letter-spacing: -0.01em;
+          color: var(--brass-2); min-width: 2ch; align-self: flex-start; margin-top: 0.4em; }
+        .rm__itext { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+        .rm__iname { font-family: var(--f-display), Georgia, serif; font-weight: 360;
+          font-size: clamp(1.6rem,3.4vw,2.6rem); line-height: 1.05; letter-spacing: -0.01em;
           color: var(--ink-soft); transition: color .35s var(--ease); }
+        .rm__inote { font-family: var(--f-sans); font-size: 0.86rem; color: var(--ink-faint);
+          opacity: 0; transform: translateY(-4px); transition: opacity .35s var(--ease), transform .35s var(--ease); }
         .rm__item:hover .rm__iname, .rm__item.is-active .rm__iname { color: var(--ever, #2f5d4a); }
-        .rm__iarrow { font-size: 1rem; color: var(--brass); opacity: 0; transform: translateX(-6px);
-          transition: opacity .35s var(--ease), transform .35s var(--ease); }
+        .rm__item:hover .rm__inote, .rm__item.is-active .rm__inote { opacity: 1; transform: none; }
+        .rm__iarrow { font-size: 1.1rem; color: var(--brass); opacity: 0; transform: translateX(-6px);
+          transition: opacity .35s var(--ease), transform .35s var(--ease); align-self: flex-start; margin-top: 0.3em; }
         html[dir="rtl"] .rm__iarrow { transform: scaleX(-1) translateX(-6px); }
         .rm__item:hover .rm__iarrow, .rm__item.is-active .rm__iarrow { opacity: 1; transform: none; }
         html[dir="rtl"] .rm__item:hover .rm__iarrow, html[dir="rtl"] .rm__item.is-active .rm__iarrow { transform: scaleX(-1); }
+
+        /* ---- mobile stacked cards (own image per room, no sticky/scroll-link) ---- */
+        .rm__mobile { display: none; }
+        .rm__mcard { display: block; text-decoration: none; color: var(--ink); }
+        .rm__mimgwrap { position: relative; overflow: hidden; border-radius: 4px;
+          aspect-ratio: 4 / 3.1; background: var(--ink); isolation: isolate; }
+        .rm__mimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .rm__mveil { position: absolute; inset: 0; z-index: 1;
+          background: linear-gradient(to top, rgba(20,18,15,0.5) 0%, transparent 55%); }
+        .rm__mpieces { position: absolute; z-index: 2; inset-block-start: 0.85rem; inset-inline-start: 0.85rem;
+          display: flex; flex-wrap: wrap; gap: 0.35rem; max-width: 80%; }
+        .rm__mmeta { display: flex; align-items: flex-start; gap: 0.9rem; padding: 1rem 0.2rem 0; }
+        .rm__mmeta .rm__iname { font-size: clamp(1.3rem, 5.5vw, 1.6rem); color: var(--ink); }
+        .rm__mmeta .rm__inote { opacity: 1; transform: none; }
+        .rm__mmeta .rm__iarrow { opacity: 1; transform: none; color: var(--ink-faint); }
 
         /* ---- taxonomy strip ---- */
         .rm__tax { margin-top: clamp(3rem, 6vw, 5rem); padding-top: clamp(2rem,4vw,3rem); border-top: 1px solid var(--line); }
@@ -443,24 +553,15 @@ export default function Rooms() {
         }
 
         @media (max-width: 860px) {
-          .rm__grid { grid-template-columns: 1fr; }
-          .rm__stage { aspect-ratio: 4 / 3; }
-          .rm__list { border-top: none; }
+          /* the sticky scroll-linked gallery only really works with room to
+             breathe beside a pinned image — below this width, swap to the
+             stacked mobile cards (each with its own image) instead. */
+          .rm__scrollarea { display: none; }
+          .rm__mobile { display: flex; flex-direction: column; gap: 1.6rem; margin-top: clamp(2rem, 5vw, 3rem); }
           .rm__cat { grid-template-columns: repeat(3, 1fr); row-gap: 1.6rem; }
-          /* no hover on touch — keep the "Enter room" cue + the active arrow visible,
-             and guarantee a ≥44px tap target per room. */
-          .rm__enter { opacity: 1; transform: none; }
-          html[dir="rtl"] .rm__enter { transform: none; }
-          .rm__item { min-height: 48px; }
-          .rm__item.is-active .rm__iarrow { opacity: 1; transform: none; }
-          html[dir="rtl"] .rm__item.is-active .rm__iarrow { transform: scaleX(-1); }
         }
         @media (max-width: 460px) {
           .rm__cat { grid-template-columns: repeat(2, 1fr); }
-          .rm__pieces { max-width: 80%; }
-          /* tighten the stage caption so the room name never collides with the pieces */
-          .rm__stagename { font-size: clamp(1.35rem, 7vw, 1.8rem); }
-          .rm__stage { aspect-ratio: 3 / 4; }
         }
       `}</style>
     </section>
