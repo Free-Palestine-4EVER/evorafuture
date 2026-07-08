@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useEffect, useCallback } from "react";
+import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, useGLTF, Center, Bounds } from "@react-three/drei";
 import * as THREE from "three";
@@ -23,14 +23,6 @@ const SWATCHES: { name: Bi; hex: string }[] = [
   { name: { en: "Royal Blue", ar: "أزرق ملكي" }, hex: "#2f4d8a" },
   { name: { en: "Clay", ar: "طيني" }, hex: "#a8624a" },
   { name: { en: "Charcoal", ar: "فحمي" }, hex: "#33312e" },
-];
-
-/* ── the top 3 shop pieces — real 3D models ── */
-type Product = { id: string; name: Bi; tag: Bi; model: string; href: string };
-const PRODUCTS: Product[] = [
-  { id: "coffee", name: { en: "Helios Coffee Table", ar: "طاولة هيليوس" }, tag: { en: "Patagonia stone · walnut", ar: "حجر باتاغونيا · جوز" }, model: "/models/featured/hd-coffee-table.glb", href: "/shop/tables" },
-  { id: "chair", name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" }, tag: { en: "Cream velvet · brass legs", ar: "مخمل كريمي · أرجل نحاسية" }, model: "/models/featured/src-chair.glb", href: "/shop/seating" },
-  { id: "bed", name: { en: "Layl Bed", ar: "سرير ليل" }, tag: { en: "King · ivory linen headboard", ar: "كينغ · لوح كتّان عاجي" }, model: "/models/furni/bed.glb", href: "/shop/bedroom" },
 ];
 
 /* shared model — optionally recolours every material (only the sofa uses tint) */
@@ -82,35 +74,33 @@ function SofaStage({ color, onReady }: { color: string; onReady: () => void }) {
   );
 }
 
-/* small always-on mini-viewer for the 3 pieces — slow autorotate, no controls */
-function Mini({ url }: { url: string }) {
-  return (
-    <Canvas dpr={[1, 1.5]} shadows camera={{ position: [2.6, 1.4, 3.6], fov: 34 }}>
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[4, 7, 4]} intensity={1.1} castShadow shadow-mapSize-width={512} shadow-mapSize-height={512} />
-      <directionalLight position={[-5, 3, -3]} intensity={0.4} />
-      <Suspense fallback={null}>
-        <Model url={url} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ContactShadows position={[0, -1.15, 0]} opacity={0.38} scale={9} blur={2.6} far={4} resolution={256} color="#2a2622" />
-      </Suspense>
-      <OrbitControls makeDefault autoRotate autoRotateSpeed={1.1} enablePan={false} enableZoom={false} enableRotate={false} minPolarAngle={Math.PI / 3.4} maxPolarAngle={Math.PI / 2} />
-    </Canvas>
-  );
-}
-
 export default function ShopHero3D() {
   const { lang } = useT();
   const en = lang === "en";
-  const reduce = useReducedMotion();
   const [color, setColor] = useState(SWATCHES[0].hex);
   const [ready, setReady] = useState(false);
   const onReady = useCallback(() => setReady(true), []);
   const swName = SWATCHES.find((s) => s.hex === color) ?? SWATCHES[0];
 
+  // Mount the sofa's WebGL canvas ONLY while this section is on (or near) screen.
+  // It auto-rotates with shadows and would otherwise render every frame from page
+  // load, starving the hero/kitchen frame-scrub on real phones (the scrub freezes
+  // on frame 1). The section's DOM keeps its fixed sizes, so there's no layout jump.
+  const sectionRef = useRef<HTMLElement>(null);
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setLive(true); io.disconnect(); } },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <section id="shop-hero" className="sh3" lang={lang}>
+    <section id="shop-hero" className="sh3" lang={lang} ref={sectionRef}>
       <div className="container sh3__head">
         <div className="sh3__headl">
           <div className="sh3__kick">
@@ -130,8 +120,8 @@ export default function ShopHero3D() {
       {/* hero — colour-changing sofa */}
       <div className="container sh3__hero">
         <div className="sh3__viewer">
-          <SofaStage color={color} onReady={onReady} />
-          {!ready && <span className="sh3__loader">{en ? "Loading 3D…" : "جارٍ التحميل…"}</span>}
+          {live && <SofaStage color={color} onReady={onReady} />}
+          {(!ready || !live) && <span className="sh3__loader">{en ? "Loading 3D…" : "جارٍ التحميل…"}</span>}
           <span className="sh3__badge">{en ? "Live 3D" : "ثلاثي الأبعاد"}</span>
         </div>
         <div className="sh3__panel">
@@ -151,30 +141,6 @@ export default function ShopHero3D() {
             <a href="/shop/sofas" className="sh3__link" data-cursor="hover">{en ? "Try it in your home" : "جرّبها في بيتك"}</a>
           </div>
         </div>
-      </div>
-
-      {/* the 3 top pieces — all live 3D */}
-      <div className="container sh3__more">
-        {PRODUCTS.map((p, i) => (
-          <motion.a key={p.id} href={p.href} className="sh3__card" data-cursor="hover"
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "0px 0px -10% 0px" }} transition={{ duration: 0.7, ease: EASE, delay: reduce ? 0 : 0.08 * i }}>
-            <div className="sh3__cardstage">
-              <Mini url={p.model} />
-              <span className="sh3__card3d">{en ? "3D" : "ثلاثي"}</span>
-            </div>
-            <div className="sh3__cardmeta">
-              <div>
-                <span className="sh3__cardtag">{p.tag[lang]}</span>
-                <span className="sh3__cardname display">{p.name[lang]}</span>
-              </div>
-              <div className="sh3__cardbottom">
-                <span className="sh3__cardview">{en ? "View piece" : "عرض القطعة"}</span>
-                <span className="sh3__cardarrow" aria-hidden>↗</span>
-              </div>
-            </div>
-          </motion.a>
-        ))}
       </div>
 
       <div className="container sh3__foot">
@@ -223,24 +189,6 @@ export default function ShopHero3D() {
         .sh3__link { font-size: 0.84rem; color: var(--ink); border-bottom: 1px solid var(--brass); padding-bottom: 3px; transition: color .3s var(--ease); }
         .sh3__link:hover { color: var(--brass); }
 
-        /* 3 live-3D cards */
-        .sh3__more { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(14px, 1.8vw, 26px); margin-top: clamp(2.4rem, 5vw, 4rem); }
-        .sh3__card { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; background: var(--paper-2); border: 1px solid rgba(16,15,13,0.08); transition: border-color .4s var(--ease), box-shadow .4s var(--ease), transform .4s var(--ease); }
-        .sh3__card:hover { border-color: rgba(138,106,60,0.4); box-shadow: 0 24px 60px -40px rgba(16,15,13,0.42); transform: translateY(-3px); }
-        .sh3__cardstage { position: relative; aspect-ratio: 4 / 3.2; background: radial-gradient(120% 95% at 50% 14%, #fbf8f2, #ece5d9 80%); }
-        .sh3__cardstage canvas { display: block; touch-action: pan-y; }
-        .sh3__card3d { position: absolute; top: 0.7rem; inset-inline-start: 0.7rem; background: rgba(255,255,255,0.85); color: var(--brass); font-size: 0.56rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.4em 0.7em; border-radius: 100px; backdrop-filter: blur(4px); }
-        .sh3__cardmeta { display: flex; flex-direction: column; gap: 0.8rem; justify-content: space-between; padding: 1.1rem 1.2rem 1.2rem; flex: 1; }
-        .sh3__cardtag { display: block; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.35rem; }
-        html[dir="rtl"] .sh3__cardtag { letter-spacing: 0.04em; }
-        .sh3__cardname { font-size: clamp(1.1rem, 1.5vw, 1.35rem); color: var(--ink); line-height: 1.1; }
-        .sh3__cardbottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-        .sh3__cardview { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
-        .sh3__cardarrow { color: var(--ink-faint); font-size: 1.1rem; transition: transform .5s var(--ease), color .3s var(--ease); }
-        html[dir="rtl"] .sh3__cardarrow { transform: scaleX(-1); }
-        .sh3__card:hover .sh3__cardarrow { color: var(--brass); transform: translate(3px, -3px); }
-        html[dir="rtl"] .sh3__card:hover .sh3__cardarrow { transform: translate(-3px, -3px) scaleX(-1); }
-
         .sh3__foot { display: flex; justify-content: center; margin-top: clamp(2rem, 4vw, 3.2rem); }
         .sh3__viewallbtn { display: inline-flex; align-items: center; gap: 0.6rem; padding: 1rem 2.2rem; border: 1px solid var(--ink); border-radius: 100px; color: var(--ink); font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; transition: gap .4s var(--ease), background .3s var(--ease), color .3s var(--ease); }
         .sh3__viewallbtn:hover { gap: 1rem; background: var(--ink); color: var(--paper); }
@@ -249,12 +197,10 @@ export default function ShopHero3D() {
         @media (max-width: 900px) {
           .sh3__head { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
           .sh3__hero { grid-template-columns: 1fr; }
-          .sh3__more { grid-template-columns: 1fr; }
         }
         @media (max-width: 640px) {
-          /* size the 3D stages for a phone viewport + give the swatches a ≥44px tap target */
+          /* size the sofa stage for a phone viewport + give the swatches a ≥44px tap target */
           .sh3__viewer { aspect-ratio: 1 / 1; }
-          .sh3__cardstage { aspect-ratio: 1 / 1; }
           .sh3__sw { --size: 46px; }
           .sh3__swatches { gap: 14px; }
           .sh3__pcta { gap: 1rem 1.4rem; }
@@ -266,4 +212,3 @@ export default function ShopHero3D() {
 }
 
 useGLTF.preload(SOFA.model);
-PRODUCTS.forEach((p) => useGLTF.preload(p.model));
