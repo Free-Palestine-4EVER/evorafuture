@@ -33,9 +33,14 @@ const DESKTOP_EXT: Record<HeroVariant, "webp" | "jpg"> = { a: "jpg", b: "jpg", c
 // ~3 MB) so it loads + decodes inside iOS's per-tab image budget.
 const MOBILE_TOTAL = 100;
 
-// How many leading frames the branded Loader waits on before it lifts.
-const DESKTOP_CRITICAL = 64;
-const MOBILE_CRITICAL = 14;
+// How many leading frames the branded Loader waits on before it lifts. Keep
+// this small — it gates the FIRST PAINT of the whole site on these frames
+// finishing download over the network (64 frames was ~9MB on a cold CDN edge,
+// which made the loader sit for the full HARD_CAP and look like the site was
+// broken). The scrub only reaches later frames after real scroll distance, so
+// a handful of frames is enough for a smooth start; the rest stream in lazily.
+const DESKTOP_CRITICAL = 8;
+const MOBILE_CRITICAL = 6;
 
 type Stack = {
   total: number;

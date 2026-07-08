@@ -18,7 +18,7 @@ import { preload } from "@/lib/preload";
 
 const SESSION_KEY = "evora_loader_seen";
 const MIN_DWELL = 900; // hold the brand beat at least this long
-const HARD_CAP = 9000; // …and never block the user longer than this, even mid-download
+const HARD_CAP = 4000; // …and never block the user longer than this, even mid-download
 const GRACE_MS = 700; // wait this long for a hero to register critical assets
 const LIFT_MS = 640; // curtain-lift duration
 
