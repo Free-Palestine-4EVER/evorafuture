@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   // heavy client-only / script-only libraries (3D, media, Firebase client, canvas,
   // pdf) OUT of its server trace so it stays well under Vercel's 250MB function
   // limit. These are never imported by any API route at runtime.
+  //
+  // lib/portal/localdb.ts reads its JSON file via a non-literal path
+  // (`process.env.EVORA_DB_FILE || path.join(...)`), which @vercel/nft can't
+  // statically resolve — its fallback is to conservatively trace the WHOLE
+  // project into this function's bundle (public/models + public/evora alone
+  // are 600MB+), which is what was tipping every deploy over Vercel's limit.
+  // Explicitly excluding the non-runtime asset/media/vendor dirs fixes that.
   outputFileTracingExcludes: {
     "/api/**": [
       "node_modules/three/**",
@@ -24,6 +31,12 @@ const nextConfig: NextConfig = {
       "node_modules/@napi-rs/**",
       "node_modules/pdfjs-dist/**",
       "node_modules/@react-three/**",
+      "public/**",
+      "3d-assets/**",
+      "backups/**",
+      ".evora-uploads/**",
+      ".next-prod/**",
+      ".git/**",
     ],
   },
   // The DWG/CAD WASM lib (@mlightcad/libredwg-web) references node built-ins
