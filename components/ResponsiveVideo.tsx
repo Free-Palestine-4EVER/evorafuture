@@ -46,6 +46,11 @@ export default function ResponsiveVideo({
   // mismatch); the effect upgrades to the -mobile source on phones.
   const [activeSrc, setActiveSrc] = useState(src);
   const fellBack = useRef(false);
+  // The <video> gets NO src until it nears the viewport. Six of these mount
+  // on the homepage (~28MB of MP4s) — with autoplay they all streamed from
+  // hydration, fighting the loader-gated hero frames on every cold visit.
+  const [near, setNear] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fellBack.current = false;
@@ -56,6 +61,32 @@ export default function ResponsiveVideo({
     const isMobile = window.matchMedia(MOBILE_QUERY).matches;
     setActiveSrc(isMobile ? toMobileSrc(src) : src);
   }, [src]);
+
+  // fetch + play only within ~800px of the viewport; pause when far off-screen
+  useEffect(() => {
+    if (reduce) return;
+    const el = videoRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setNear(true);
+          el.play().catch(() => {});
+        } else {
+          el.pause();
+        }
+      },
+      { rootMargin: "800px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reduce]);
+
+  // the src attaches on the render after `near` flips — start playback then
+  useEffect(() => {
+    if (!near || reduce) return;
+    videoRef.current?.play().catch(() => {});
+  }, [near, activeSrc, reduce]);
 
   const handleError = () => {
     // The -mobile file isn't there yet → fall back to the desktop file once.
@@ -97,16 +128,17 @@ export default function ResponsiveVideo({
   return (
     <video
       {...videoProps}
+      ref={videoRef}
       className={className}
       style={fill}
-      src={activeSrc}
+      src={near ? activeSrc : undefined}
       poster={poster}
       onError={handleError}
-      autoPlay
+      autoPlay={near}
       muted
       loop
       playsInline
-      preload="metadata"
+      preload={near ? "auto" : "none"}
     />
   );
 }

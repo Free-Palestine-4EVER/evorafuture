@@ -45,12 +45,15 @@ function WalkInside() {
   const currentFrame = useRef(1);
   const ticking = useRef(false);
   const [ready, setReady] = useState(false);
-  const [frameExt, setFrameExt] = useState<FrameExt>(SAFE_FRAME_EXT);
+  // null until the avif/webp probe lands — loading before then re-runs the
+  // effect on the ext flip and downloads the whole orbit in BOTH formats
+  const [frameExt, setFrameExt] = useState<FrameExt | null>(null);
 
   useEffect(() => { resolveFrameExt().then(setFrameExt); }, []);
 
   useEffect(() => {
     if (reduce) return;
+    if (!frameExt) return; // wait for the format probe
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -103,17 +106,33 @@ function WalkInside() {
       requestTick();
     };
 
+    // stream the orbit through a small window instead of 169 requests at once
     let loaded = 0;
-    for (let i = 1; i <= ORBIT_TOTAL; i++) {
-      const img = new Image();
-      img.src = orbitSrc(i, frameExt);
-      img.onload = () => {
-        loaded++;
-        if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
-        if (loaded === ORBIT_TOTAL && mounted) onScroll();
-      };
-      imagesRef.current[i] = img;
-    }
+    const WINDOW = 10;
+    let next = 1;
+    let inFlight = 0;
+    const pump = () => {
+      if (!mounted) return;
+      while (inFlight < WINDOW && next <= ORBIT_TOTAL) {
+        const i = next++;
+        inFlight++;
+        const img = new Image();
+        img.decoding = "async";
+        img.fetchPriority = "low";
+        const done = () => {
+          inFlight--;
+          loaded++;
+          if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
+          if (loaded === ORBIT_TOTAL && mounted) onScroll();
+          pump();
+        };
+        img.onload = done;
+        img.onerror = done;
+        img.src = orbitSrc(i, frameExt);
+        imagesRef.current[i] = img;
+      }
+    };
+    pump();
 
     const onResize = () => { sizeCanvas(); draw(Math.round(currentFrame.current)); };
     window.addEventListener("scroll", onScroll, { passive: true });

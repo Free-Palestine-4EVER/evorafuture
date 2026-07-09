@@ -125,29 +125,93 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
     // (re)load the frame stack for the current device. Called on mount and
     // whenever a resize crosses the mobile breakpoint (e.g. phone rotate).
+    //
+    // TWO-PHASE: the critical frames (the only thing the Loader waits on,
+    // ~300KB) fetch alone at high priority; the remaining ~14MB stream in
+    // AFTERWARDS through a small concurrency window, in scrub order. Firing
+    // all 361 at once made the tail starve the gating 8 over one HTTP/2
+    // connection — the loader then sat its full HARD_CAP on cold cache.
+    let loadGen = 0;
     const loadStack = () => {
       images.forEach((im) => { im.onload = null; im.onerror = null; im.src = ""; });
       images = [];
       lastDrawn = -1;
-      const s = stack;
-      preload.add(Math.min(s.critical, s.total));
-      for (let i = 1; i <= s.total; i++) {
-        const im = new Image();
-        im.decoding = "async";
-        const settle = () => {
-          if (i <= s.critical) preload.done();
-          if (!firstDrawn && i === 1 && mounted) {
-            firstDrawn = true;
-            sizeCanvas();
-            draw(1);
-            setReady(true);
+      loadGen++; // invalidates any in-flight streamer from a previous stack
+      const gen = loadGen;
+      // frame COUNTS are ext-independent — register with the Loader
+      // SYNCHRONOUSLY, before the avif/webp probe's async hop, so the Loader
+      // can never hit its "no hero registered" fallback and lift early.
+      const critical = Math.min(stack.critical, stack.total);
+      let releasedCount = 0;
+      const release = () => {
+        if (releasedCount < critical) { releasedCount++; preload.done(); }
+      };
+      preload.add(critical);
+
+      resolveFrameExt().then((ext) => {
+        if (!mounted || gen !== loadGen) {
+          // stack swapped (rotate) or unmounted before fetching began — drain
+          // this generation's registered slots so the Loader never stalls
+          while (releasedCount < critical) release();
+          return;
+        }
+        frameExt = ext;
+        stack = buildStack();
+        stackIsMobile = isMobileNow();
+        const s = stack;
+
+        // phase 2 — stream the rest, max WINDOW in flight, ascending (scroll
+        // reaches later frames only after real distance, so order = need)
+        const WINDOW = 10;
+        let next = critical + 1;
+        let inFlight = 0;
+        let streaming = false;
+        const pump = () => {
+          if (gen !== loadGen || !mounted) return;
+          while (inFlight < WINDOW && next <= s.total) {
+            const i = next++;
+            inFlight++;
+            const im = new Image();
+            im.decoding = "async";
+            im.fetchPriority = "low";
+            const done = () => { inFlight--; pump(); };
+            im.onload = done;
+            im.onerror = done;
+            im.src = s.src(i);
+            images[i] = im;
           }
         };
-        im.onload = settle;
-        im.onerror = settle;
-        im.src = s.src(i);
-        images[i] = im;
-      }
+        const startStream = () => {
+          if (streaming || gen !== loadGen || !mounted) return;
+          streaming = true;
+          pump();
+        };
+
+        // phase 1 — the loader-gating critical set, alone on the wire
+        let settled = 0;
+        for (let i = 1; i <= critical; i++) {
+          const im = new Image();
+          im.decoding = "async";
+          im.fetchPriority = "high";
+          const settle = () => {
+            release();
+            if (!firstDrawn && i === 1 && mounted) {
+              firstDrawn = true;
+              sizeCanvas();
+              draw(1);
+              setReady(true);
+            }
+            settled++;
+            if (settled >= critical) startStream();
+          };
+          im.onload = settle;
+          im.onerror = settle;
+          im.src = s.src(i);
+          images[i] = im;
+        }
+        // safety: one stalled critical frame must not block streaming forever
+        window.setTimeout(startStream, 4000);
+      });
     };
 
     // One always-on rAF loop that reads scrub position from layout every frame.
@@ -195,16 +259,9 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     };
 
     sizeCanvas();
-    // Resolve avif-vs-webp first (a near-instant data-URI decode, no network),
-    // then load the stack once in the format this browser can actually decode —
-    // so avif browsers never fetch the webp frames and vice-versa.
-    resolveFrameExt().then((ext) => {
-      if (!mounted) return;
-      frameExt = ext;
-      stack = buildStack();
-      stackIsMobile = isMobileNow();
-      loadStack();
-    });
+    // loadStack registers the Loader-gating frames synchronously, resolves the
+    // avif/webp probe internally, then fetches only the winning format.
+    loadStack();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     rafId = requestAnimationFrame(tick);
@@ -224,8 +281,10 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   if (reduce) {
     return (
       <section id="top" className="hs hs--static">
-        <img src={desktopStack(variant).src(1)} alt="" className="hs__poster hs__poster--d" />
-        <img src={mobileStack().src(1)} alt="" className="hs__poster hs__poster--m" />
+        <picture>
+          <source media="(max-width: 768px)" srcSet={mobileStack().src(1)} />
+          <img src={desktopStack(variant).src(1)} alt="" className="hs__poster" />
+        </picture>
         <div className="hs__scrim" />
         <HeroCopy t={t} lang={lang} ease={ease} staticMode />
         <style>{heroCss}</style>
@@ -248,8 +307,10 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         />
         {/* posters sit behind the canvas until frame 1 draws; CSS picks which
             aspect shows per breakpoint (no JS branch → no hydration mismatch) */}
-        <img src={desktopStack(variant).src(1)} alt="" aria-hidden className="hs__poster hs__poster--d" />
-        <img src={mobileStack().src(1)} alt="" aria-hidden className="hs__poster hs__poster--m" />
+        <picture>
+          <source media="(max-width: 768px)" srcSet={mobileStack().src(1)} />
+          <img src={desktopStack(variant).src(1)} alt="" aria-hidden className="hs__poster" />
+        </picture>
 
         <div className="hs__scrim" />
         <div className="hs__left" />

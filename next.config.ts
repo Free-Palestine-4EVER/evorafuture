@@ -78,6 +78,16 @@ const nextConfig: NextConfig = {
   },
   // Studio route was renamed /pufferweb → /evora3dstudio; keep old links working.
   async redirects() {
+    // The Puffer-derived 3D studio TOOL is not part of the public website.
+    // On Vercel (VERCEL=1 at build time) its routes bounce to the homepage —
+    // the deployed site is the website only. Local dev keeps the tool.
+    if (process.env.VERCEL) {
+      return [
+        { source: "/evora3dstudio", destination: "/", permanent: false },
+        { source: "/evora3dstudio/:path*", destination: "/", permanent: false },
+        { source: "/pufferweb", destination: "/", permanent: false },
+      ];
+    }
     return [
       { source: "/pufferweb", destination: "/evora3dstudio", permanent: true },
     ];

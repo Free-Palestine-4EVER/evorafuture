@@ -63,6 +63,8 @@ export default function FutureHomeProof() {
           <motion.img
             src="/evora/vid-sofa.jpg"
             alt=""
+            loading="lazy"
+            decoding="async"
             className="fh__img"
             style={reduce ? undefined : { scale: imgScale, y: imgY }}
           />
@@ -91,7 +93,7 @@ export default function FutureHomeProof() {
 
         {/* floating shop-the-collection card on a forward depth plane */}
         <motion.a href="/shop" className="fh__shop" style={reduce ? undefined : { y: cardY }}>
-          <img src="/evora/p11.jpg" alt="" />
+          <img src="/evora/p11.jpg" alt="" loading="lazy" decoding="async" />
           <span className="fh__shop-scrim" />
           <span className="fh__shop-label">
             <span className="fh__shop-k">{ar ? "الكتالوج" : "The Catalogue"}</span>

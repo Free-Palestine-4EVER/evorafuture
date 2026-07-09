@@ -53,6 +53,8 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
             <motion.img
               src={stage.src}
               alt={ar ? stage.ar : stage.en}
+              loading="lazy"
+              decoding="async"
               className="ts-img"
               initial={false}
               animate={reduced ? { scale: 1 } : { scale: on ? 1.06 : 1 }}

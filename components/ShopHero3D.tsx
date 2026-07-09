@@ -92,7 +92,7 @@ export default function ShopHero3D() {
     const el = sectionRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setLive(true); io.disconnect(); } },
+      ([e]) => { if (e.isIntersecting) { useGLTF.preload(SOFA.model); setLive(true); io.disconnect(); } },
       { rootMargin: "600px 0px" },
     );
     io.observe(el);
@@ -211,4 +211,3 @@ export default function ShopHero3D() {
   );
 }
 
-useGLTF.preload(SOFA.model);

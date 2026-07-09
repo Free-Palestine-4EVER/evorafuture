@@ -75,17 +75,21 @@ export default function ConfiguratorScroll() {
   const [ready, setReady] = useState(false);
   const [revealed, setRevealed] = useState(false); // configurator UI visible/interactive
   const [isMobile, setIsMobile] = useState(false);  // ≤768px → portrait frame scrub + bottom sheet
-  // frames ship as avif (primary) + webp (fallback); resolved per-browser
-  const [frameExt, setFrameExt] = useState<FrameExt>(SAFE_FRAME_EXT);
+  // frames ship as avif (primary) + webp (fallback); resolved per-browser.
+  // null until the probe lands — the scrub preloader MUST NOT start before
+  // then, or the frameExt flip re-runs the effect and downloads BOTH formats.
+  const [frameExt, setFrameExt] = useState<FrameExt | null>(null);
 
   // frame stack + scrub length for the active device (phones scrub the portrait
   // mobile kitchen frames; desktop scrubs the landscape fly-through)
   const TOTAL = isMobile ? MOBILE_TOTAL : DESKTOP_TOTAL;
   const scrollVh = isMobile ? MOBILE_SCROLL_VH : DESKTOP_SCROLL_VH;
-  const frameSrc = (i: number) =>
-    isMobile
-      ? `/evora/config-frames-mobile/frame_${pad(i)}.${frameExt}`
-      : `/evora/config-frames/frame_${pad(i)}.${frameExt}`;
+  const frameSrc = (i: number) => {
+    const ext = frameExt ?? SAFE_FRAME_EXT; // poster renders before the probe
+    return isMobile
+      ? `/evora/config-frames-mobile/frame_${pad(i)}.${ext}`
+      : `/evora/config-frames/frame_${pad(i)}.${ext}`;
+  };
 
   // ---- phone vs. desktop: drives the whole mobile beat (video + bottom sheet) ----
   useEffect(() => {
@@ -111,6 +115,7 @@ export default function ConfiguratorScroll() {
   // ---------- frame scrubbing (phone + desktop) ----------
   useEffect(() => {
     if (reduce) return; // reduced motion shows a still poster, no scrub
+    if (!frameExt) return; // wait for the avif/webp probe — prevents dual-format downloads
     // wait until isMobile state matches reality so TOTAL/frameSrc are correct
     const mob = typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia("(max-width: 768px)").matches : false;
@@ -144,17 +149,36 @@ export default function ConfiguratorScroll() {
       ctx.drawImage(img, x, y, w, h);
     };
 
-    // Preload the frame set once (lazily — after first paint, never blocking it).
+    // Preload the frame set once (lazily — after first paint, never blocking
+    // it) through a small concurrency window: firing all 169 (~8.5MB) at once
+    // competed with the hero's loader-gating frames on every cold visit.
     let started = false;
     const startPreload = () => {
       if (started || !mounted) return;
       started = true;
-      for (let i = 1; i <= TOTAL; i++) {
-        const img = new Image();
-        img.src = frameSrc(i);
-        img.onload = () => { if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); } };
-        imagesRef.current[i] = img;
-      }
+      const WINDOW = 10;
+      let next = 1;
+      let inFlight = 0;
+      const pump = () => {
+        if (!mounted) return;
+        while (inFlight < WINDOW && next <= TOTAL) {
+          const i = next++;
+          inFlight++;
+          const img = new Image();
+          img.decoding = "async";
+          img.fetchPriority = "low";
+          const done = () => {
+            inFlight--;
+            if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
+            pump();
+          };
+          img.onload = done;
+          img.onerror = done;
+          img.src = frameSrc(i);
+          imagesRef.current[i] = img;
+        }
+      };
+      pump();
     };
 
     // One always-on rAF loop reading the scrub position straight from layout every
@@ -169,8 +193,11 @@ export default function ConfiguratorScroll() {
       if (!mounted) return;
       const el = sectionRef.current;
       if (el) {
-        startPreload();
-        const rect = el.getBoundingClientRect();
+        const near = el.getBoundingClientRect();
+        // only start pulling frames once the visitor approaches the section
+        // (~3 viewports out) — not at hydration while the hero is still gating
+        if (near.top < window.innerHeight * 3) startPreload();
+        const rect = near;
         const scrollable = el.offsetHeight - window.innerHeight;
         const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
         // frames play across the first 78% of the scroll; last 22% holds the
@@ -199,8 +226,9 @@ export default function ConfiguratorScroll() {
     });
     let idleId: number | undefined;
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
-    if (ric.requestIdleCallback) idleId = ric.requestIdleCallback(startPreload, { timeout: 2500 });
-    else idleTimer = setTimeout(startPreload, 1400);
+    // idle fallback waits past the hero's critical window (Loader HARD_CAP=4s)
+    if (ric.requestIdleCallback) idleId = ric.requestIdleCallback(startPreload, { timeout: 4500 });
+    else idleTimer = setTimeout(startPreload, 4500);
     rafId = requestAnimationFrame(tick);
 
     return () => {
@@ -258,7 +286,20 @@ export default function ConfiguratorScroll() {
             aria-label={t("cfg_aria")} />
         )}
         {!reduce && !ready && (
-          <img src={frameSrc(TOTAL)} alt="" className="cfg__poster" aria-hidden />
+          // <picture> so phones never fetch the desktop poster during the
+          // pre-hydration render (isMobile state starts false on SSR)
+          <picture>
+            <source
+              media="(max-width: 768px)"
+              srcSet={`/evora/config-frames-mobile/frame_${pad(MOBILE_TOTAL)}.${frameExt ?? SAFE_FRAME_EXT}`}
+            />
+            <img
+              src={`/evora/config-frames/frame_${pad(DESKTOP_TOTAL)}.${frameExt ?? SAFE_FRAME_EXT}`}
+              alt=""
+              className="cfg__poster"
+              aria-hidden
+            />
+          </picture>
         )}
 
         {/* reduced-motion: still poster */}

@@ -2,7 +2,7 @@ import Nav from "@/components/Nav";
 import HeroScroll, { type HeroVariant } from "@/components/HeroScroll";
 import ProcessJourney from "@/components/ProcessJourney";
 import StartAndTrack from "@/components/StartAndTrack";
-import ShopHero3D from "@/components/ShopHero3D";
+import ShopHero3D from "@/components/ShopHero3DLazy";
 import ConfiguratorScroll from "@/components/ConfiguratorScroll";
 import Marquee from "@/components/Marquee";
 import FutureHomeProof from "@/components/FutureHomeProof";
