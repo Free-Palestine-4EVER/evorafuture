@@ -38,7 +38,9 @@
     ".next-offline/types/**/*.ts",
     ".next-offline/dev/types/**/*.ts",
     ".next-vercel-check/types/**/*.ts",
-    ".next-vercel-check/dev/types/**/*.ts"
+    ".next-vercel-check/dev/types/**/*.ts",
+    ".next-prod/types/**/*.ts",
+    ".next-prod/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

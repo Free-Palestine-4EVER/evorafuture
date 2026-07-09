@@ -620,6 +620,9 @@ export default function PlanEditor() {
 
   // sizing helper: real-world mm of a rect dimension
   const mm = (px: number) => (mmPerPx ? Math.round(px * mmPerPx) : null);
+  // real-world size in metres (2 decimals) — the plan/scan is calibrated so this
+  // is the true physical size (a scanned 2.15 m wall reads "2.15 m")
+  const meters = (px: number) => (mmPerPx ? (px * mmPerPx / 1000).toFixed(2) : null);
 
   // next-step guide: a step is "done" once its result exists
   const hasFurniture = rects.some((r) => r.productId);
@@ -1109,10 +1112,11 @@ export default function PlanEditor() {
                         onPointerDown={(e) => { e.stopPropagation(); svgRef.current?.setPointerCapture(e.pointerId); setWallEdit({ kind: "end", id: w.id, end }); }}
                       />
                     ))}
-                    {selected && mmPerPx && (
+                    {mmPerPx && layers.walls && (
                       <text
-                        x={(w.x1 + w.x2) / 2} y={(w.y1 + w.y2) / 2 - Math.max(8, imgW / 90)}
-                        fill="#bae6fd" fontSize={Math.max(11, imgW / 60)}
+                        x={(w.x1 + w.x2) / 2 + uy * Math.max(10, imgW / 70)}
+                        y={(w.y1 + w.y2) / 2 - ux * Math.max(10, imgW / 70)}
+                        fill={selected ? "#fde68a" : "#bae6fd"} fontSize={Math.max(11, imgW / 62)}
                         textAnchor="middle" dominantBaseline="middle"
                         style={{ paintOrder: "stroke", pointerEvents: "none" }}
                         stroke="#000" strokeWidth={Math.max(2, imgW / 350)}
@@ -1211,7 +1215,7 @@ export default function PlanEditor() {
                         style={{ paintOrder: "stroke", pointerEvents: "none" }}
                         stroke="#000" strokeWidth={Math.max(1.5, imgW / 500)}
                       >
-                        {mm(r.w)} × {mm(r.h)} mm
+                        {meters(r.w)} × {meters(r.h)} m
                       </text>
                     )}
                     {/* resize handles on the selected slot */}

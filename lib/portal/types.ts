@@ -56,6 +56,7 @@ export interface Project {
   usdzUrl?: string;       // real 3D room scan (.usdz) from the LiDAR app — AR Quick Look + download
   viewerUrl?: string;     // hosted Puffer 3D viewer link (iframe)
   scanData?: string;      // JSON ScanFile from the live web scanner / LiDAR app (re-editable)
+  studioDoc?: string;     // JSON ProjectFile from the Evora 3D Home Studio (fully re-editable room)
   sentToPuffer?: boolean;  // a LiDAR scan the app/admin queued for the Puffer designer
   notes?: string;
   approvedByClient?: boolean;
