@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
+import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 import Monogram from "@/components/brand/Monogram";
 import ResponsiveVideo from "@/components/ResponsiveVideo";
 import {
@@ -25,7 +26,8 @@ import {
 const ORBIT_TOTAL = 169;
 const ORBIT_VH = 360; // scrub length of the pinned section
 const orbitPad = (n: number) => String(n).padStart(4, "0");
-const orbitSrc = (i: number) => `/evora/config-frames/frame_${orbitPad(i)}.webp`;
+const orbitSrc = (i: number, ext: FrameExt = SAFE_FRAME_EXT) =>
+  `/evora/config-frames/frame_${orbitPad(i)}.${ext}`;
 
 /* ============================================================
    FrameScrub — sticky, scroll-scrubbed canvas of the orbit.
@@ -43,6 +45,9 @@ function WalkInside() {
   const currentFrame = useRef(1);
   const ticking = useRef(false);
   const [ready, setReady] = useState(false);
+  const [frameExt, setFrameExt] = useState<FrameExt>(SAFE_FRAME_EXT);
+
+  useEffect(() => { resolveFrameExt().then(setFrameExt); }, []);
 
   useEffect(() => {
     if (reduce) return;
@@ -101,7 +106,7 @@ function WalkInside() {
     let loaded = 0;
     for (let i = 1; i <= ORBIT_TOTAL; i++) {
       const img = new Image();
-      img.src = orbitSrc(i);
+      img.src = orbitSrc(i, frameExt);
       img.onload = () => {
         loaded++;
         if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
@@ -120,7 +125,7 @@ function WalkInside() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [reduce]);
+  }, [reduce, frameExt]);
 
   return (
     <section

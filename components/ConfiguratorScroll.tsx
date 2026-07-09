@@ -7,6 +7,7 @@ import { Rise } from "@/components/motion";
 import { openStartProject } from "@/lib/startProject";
 import { WHATSAPP } from "@/lib/brand";
 import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
+import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -74,6 +75,8 @@ export default function ConfiguratorScroll() {
   const [ready, setReady] = useState(false);
   const [revealed, setRevealed] = useState(false); // configurator UI visible/interactive
   const [isMobile, setIsMobile] = useState(false);  // ≤768px → portrait frame scrub + bottom sheet
+  // frames ship as avif (primary) + webp (fallback); resolved per-browser
+  const [frameExt, setFrameExt] = useState<FrameExt>(SAFE_FRAME_EXT);
 
   // frame stack + scrub length for the active device (phones scrub the portrait
   // mobile kitchen frames; desktop scrubs the landscape fly-through)
@@ -81,8 +84,8 @@ export default function ConfiguratorScroll() {
   const scrollVh = isMobile ? MOBILE_SCROLL_VH : DESKTOP_SCROLL_VH;
   const frameSrc = (i: number) =>
     isMobile
-      ? `/evora/config-frames-mobile/frame_${pad(i)}.webp`
-      : `/evora/config-frames/frame_${pad(i)}.webp`;
+      ? `/evora/config-frames-mobile/frame_${pad(i)}.${frameExt}`
+      : `/evora/config-frames/frame_${pad(i)}.${frameExt}`;
 
   // ---- phone vs. desktop: drives the whole mobile beat (video + bottom sheet) ----
   useEffect(() => {
@@ -92,6 +95,9 @@ export default function ConfiguratorScroll() {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
+
+  // ---- resolve avif-vs-webp once (near-instant data-URI probe) ----
+  useEffect(() => { resolveFrameExt().then(setFrameExt); }, []);
 
   // the panel reveals near the end of the scrub (phone & desktop); reduced motion
   // shows it immediately
@@ -204,7 +210,7 @@ export default function ConfiguratorScroll() {
       if (idleId !== undefined && ric.cancelIdleCallback) ric.cancelIdleCallback(idleId);
       if (idleTimer !== undefined) clearTimeout(idleTimer);
     };
-  }, [reduce, isMobile]);
+  }, [reduce, isMobile, frameExt]);
 
   // ---- handle a user-uploaded variant image (instant local preview) ----
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
 import { preload } from "@/lib/preload";
+import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 
 /* ============================================================
    EVORA — scroll-scrubbed hero (rebuilt)
@@ -23,10 +24,10 @@ export type HeroVariant = "a" | "b" | "c";
 const MOBILE_QUERY = "(max-width: 768px)";
 const pad = (n: number) => String(n).padStart(4, "0");
 
-// Desktop landscape films. "c" is the full-quality walk-through (WebP);
-// "a"/"b" are the earlier JPG films.
+// Desktop landscape films. "c" is the full-quality walk-through; "a"/"b" are
+// the earlier films. All ship as AVIF (primary) + WebP (fallback) — the ext is
+// resolved per-browser at runtime (see resolveFrameExt).
 const DESKTOP_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
-const DESKTOP_EXT: Record<HeroVariant, "webp" | "jpg"> = { a: "jpg", b: "jpg", c: "webp" };
 
 // Phones scrub a portrait stack extracted from the 9:16 showroom film at the
 // clip's full 24fps (250 frames @native 720px) — same frame-per-scroll density
@@ -48,19 +49,20 @@ type Stack = {
   src: (i: number) => string;
 };
 
-function desktopStack(variant: HeroVariant): Stack {
-  const ext = DESKTOP_EXT[variant];
+function desktopStack(variant: HeroVariant, ext: FrameExt = SAFE_FRAME_EXT): Stack {
   return {
     total: DESKTOP_TOTAL[variant],
     critical: DESKTOP_CRITICAL,
     src: (i) => `/evora/hero-frames-${variant}/frame_${pad(i)}.${ext}`,
   };
 }
-const MOBILE_STACK: Stack = {
-  total: MOBILE_TOTAL,
-  critical: MOBILE_CRITICAL,
-  src: (i) => `/evora/hero-frames-mobile/frame_${pad(i)}.webp`,
-};
+function mobileStack(ext: FrameExt = SAFE_FRAME_EXT): Stack {
+  return {
+    total: MOBILE_TOTAL,
+    critical: MOBILE_CRITICAL,
+    src: (i) => `/evora/hero-frames-mobile/frame_${pad(i)}.${ext}`,
+  };
+}
 
 const isMobileNow = () =>
   typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
@@ -87,8 +89,11 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     let mounted = true;
     let rafId = 0;
     let images: HTMLImageElement[] = [];
-    let stack: Stack = isMobileNow() ? MOBILE_STACK : desktopStack(variant);
-    let stackIsMobile = stack === MOBILE_STACK;
+    let frameExt: FrameExt = SAFE_FRAME_EXT; // upgraded to "avif" once the probe resolves
+    const buildStack = (): Stack =>
+      isMobileNow() ? mobileStack(frameExt) : desktopStack(variant, frameExt);
+    let stack: Stack = buildStack();
+    let stackIsMobile = isMobileNow();
     let currentFrame = 1;
     let lastDrawn = -1;
     let firstDrawn = false;
@@ -179,7 +184,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       const nowMobile = isMobileNow();
       if (nowMobile !== stackIsMobile) {
         // crossed the breakpoint — swap to the right stack
-        stack = nowMobile ? MOBILE_STACK : desktopStack(variant);
+        stack = buildStack();
         stackIsMobile = nowMobile;
         currentFrame = 1;
         loadStack();
@@ -190,7 +195,16 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     };
 
     sizeCanvas();
-    loadStack();
+    // Resolve avif-vs-webp first (a near-instant data-URI decode, no network),
+    // then load the stack once in the format this browser can actually decode —
+    // so avif browsers never fetch the webp frames and vice-versa.
+    resolveFrameExt().then((ext) => {
+      if (!mounted) return;
+      frameExt = ext;
+      stack = buildStack();
+      stackIsMobile = isMobileNow();
+      loadStack();
+    });
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     rafId = requestAnimationFrame(tick);
@@ -211,7 +225,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     return (
       <section id="top" className="hs hs--static">
         <img src={desktopStack(variant).src(1)} alt="" className="hs__poster hs__poster--d" />
-        <img src={MOBILE_STACK.src(1)} alt="" className="hs__poster hs__poster--m" />
+        <img src={mobileStack().src(1)} alt="" className="hs__poster hs__poster--m" />
         <div className="hs__scrim" />
         <HeroCopy t={t} lang={lang} ease={ease} staticMode />
         <style>{heroCss}</style>
@@ -235,7 +249,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         {/* posters sit behind the canvas until frame 1 draws; CSS picks which
             aspect shows per breakpoint (no JS branch → no hydration mismatch) */}
         <img src={desktopStack(variant).src(1)} alt="" aria-hidden className="hs__poster hs__poster--d" />
-        <img src={MOBILE_STACK.src(1)} alt="" aria-hidden className="hs__poster hs__poster--m" />
+        <img src={mobileStack().src(1)} alt="" aria-hidden className="hs__poster hs__poster--m" />
 
         <div className="hs__scrim" />
         <div className="hs__left" />

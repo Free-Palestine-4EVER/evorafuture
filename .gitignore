@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /.next-offline/
+/.next-prod/
 /out/
 
 # production

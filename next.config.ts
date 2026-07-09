@@ -59,6 +59,23 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  // Long immutable caching for the heavy static media (scroll-scrub frame
+  // sequences, 3D models, posters). Without this Vercel serves public/ files
+  // with `max-age=0, must-revalidate`, so every repeat visit re-negotiates
+  // 1100+ frame files — brutal from far-away countries. These assets never
+  // change in place: a re-encode MUST bump the directory/file name (e.g.
+  // hero-frames-c2/) or returning visitors keep stale cached copies.
+  async headers() {
+    const immutable = [
+      { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+    ];
+    return [
+      { source: "/evora/:path*", headers: immutable },
+      { source: "/models/:path*", headers: immutable },
+      { source: "/posters/:path*", headers: immutable },
+      { source: "/textures/:path*", headers: immutable },
+    ];
+  },
   // Studio route was renamed /pufferweb → /evora3dstudio; keep old links working.
   async redirects() {
     return [
