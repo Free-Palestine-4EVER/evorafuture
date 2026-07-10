@@ -64,7 +64,7 @@ export default function ModelViewer({ product, onReady, autoRotate }: Props) {
       exposure="1.05"
       environment-image="neutral"
       min-camera-orbit="auto auto 4%"
-      loading="eager"
+      loading="lazy"
       style={{ width: "100%", height: "100%" }}
     >
       {/* Suppress model-viewer's default chrome; we drive AR ourselves. */}

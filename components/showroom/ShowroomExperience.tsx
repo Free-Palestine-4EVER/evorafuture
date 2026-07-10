@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useT } from "@/lib/i18n";
@@ -94,6 +94,21 @@ export default function ShowroomExperience() {
   const roomRef = useRef<ViewerEl | null>(null);
   const activeVantage = goal?.id ?? "overview";
 
+  // Mount the 3D room (its chunk + ~90MB of staged GLBs) only once the stage
+  // nears the viewport — not at page hydration while the hero is still loading.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageLive, setStageLive] = useState(false);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setStageLive(true); io.disconnect(); } },
+      { rootMargin: "900px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const enterRoomAR = () => {
     const el = roomRef.current;
     if (el && el.canActivateAR) el.activateAR();
@@ -122,14 +137,18 @@ export default function ShowroomExperience() {
         <p className="room-sub">{t("sub")}</p>
       </div>
 
-      <div className="room-stage">
-        <VirtualShowroom
-          onSelect={setActive}
-          onHover={setHover}
-          goal={goal}
-          onGoto={setGoal}
-          lang={lang}
-        />
+      <div className="room-stage" ref={stageRef}>
+        {stageLive ? (
+          <VirtualShowroom
+            onSelect={setActive}
+            onHover={setHover}
+            goal={goal}
+            onGoto={setGoal}
+            lang={lang}
+          />
+        ) : (
+          <RoomLoading />
+        )}
 
         <div className="room-nav">
           <span className="room-nav-label">{t("move_to")}</span>

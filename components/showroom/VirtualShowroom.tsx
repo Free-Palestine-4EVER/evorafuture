@@ -302,8 +302,6 @@ export default function VirtualShowroom({
   );
 }
 
-// Preload the unique models staged in the room.
-showroomLayout.forEach((pl) => {
-  const p = getProduct(pl.id);
-  if (p) useGLTF.preload(p.model, true);
-});
+// NOTE: no module-scope useGLTF.preload here — it fired ~92MB of GLB
+// downloads at chunk eval, before the visitor even reached the room. The
+// staged models stream in through the Canvas's own Suspense as it mounts.

@@ -6,7 +6,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Cursor from "@/components/Cursor";
 import WhatsappCTA from "@/components/WhatsappCTA";
 import ScrollProgress from "@/components/ScrollProgress";
-import StartProjectModal from "@/components/StartProjectModal";
+import StartProjectModal from "@/components/StartProjectHost";
 import Loader from "@/components/brand/Loader";
 
 // Bold modern luxury — a confident display grotesk for headlines.

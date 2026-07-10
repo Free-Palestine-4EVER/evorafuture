@@ -54,7 +54,7 @@ export default function RoomARViewer({
         ar-modes="webxr scene-viewer quick-look"
         ar-scale="fixed"
         ar-placement="floor"
-        loading="eager"
+        loading="lazy"
         reveal="manual"
       />
     </div>

@@ -33,12 +33,14 @@ const T = {
   err: { en: "Something went wrong. Please try again or WhatsApp us.", ar: "حدث خطأ ما. حاول مجددًا أو راسلنا عبر واتساب." },
 };
 
-export default function StartProjectModal() {
+export default function StartProjectModal({ initialOpen = false }: { initialOpen?: boolean }) {
   const { lang, dir } = useT();
   const t = (k: keyof typeof T) => T[k][lang];
   const ar = lang === "ar";
 
-  const [open, setOpen] = useState(false);
+  // initialOpen: the lazy host mounts this component ON the first open event,
+  // which fired before our listener existed — so open immediately.
+  const [open, setOpen] = useState(initialOpen);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
