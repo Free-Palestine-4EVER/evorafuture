@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import { Rise, Magnetic } from "@/components/motion";
 import { WHATSAPP } from "@/lib/brand";
 import { PAGE_COUNT, PDF_HREF, pageSrc } from "./data";
+import { avifSrc } from "@/lib/avifSrc";
 import BookMode from "./BookMode";
 import ZoomMode from "./ZoomMode";
 import TourMode from "./TourMode";
@@ -160,7 +161,10 @@ export default function LookbookApp() {
             onClick={() => go(i)}
             aria-label={en ? `Go to page ${i + 1}` : `اذهب إلى صفحة ${i + 1}`}
           >
-            <img src={pageSrc(i)} alt="" loading="lazy" draggable={false} />
+            <picture>
+              <source srcSet={avifSrc(pageSrc(i))} type="image/avif" />
+              <img src={pageSrc(i)} alt="" loading="lazy" draggable={false} />
+            </picture>
             <i>{i + 1}</i>
           </button>
         ))}

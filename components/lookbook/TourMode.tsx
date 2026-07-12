@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PAGE_COUNT, pageSrc, chapterOf, type Lang } from "./data";
+import { avifSrc } from "@/lib/avifSrc";
 
 /* "Tour" — a guided, hands-free presentation. Each plate holds for a beat with
  * a slow ken-burns drift, then advances; play/pause and a progress beam. */
@@ -41,12 +42,18 @@ export default function TourMode({
 
   return (
     <div className="lbtour">
-      <img className="lbtour-bloom" key={`b${page}`} src={pageSrc(page)} alt="" aria-hidden="true" draggable={false} />
+      <picture key={`b${page}`}>
+        <source srcSet={avifSrc(pageSrc(page))} type="image/avif" />
+        <img className="lbtour-bloom" src={pageSrc(page)} alt="" aria-hidden="true" draggable={false} />
+      </picture>
       <div className="lbtour-vignette" aria-hidden="true" />
 
       <button className="lbtour-stage" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"}>
         <figure className={`lbtour-figure ${page % 2 ? "kb-b" : "kb-a"}`} key={page}>
-          <img className="lbtour-img" src={pageSrc(page)} alt={en ? `Page ${page + 1}` : `صفحة ${page + 1}`} draggable={false} />
+          <picture>
+            <source srcSet={avifSrc(pageSrc(page))} type="image/avif" />
+            <img className="lbtour-img" src={pageSrc(page)} alt={en ? `Page ${page + 1}` : `صفحة ${page + 1}`} draggable={false} />
+          </picture>
         </figure>
         <span className={`lbtour-play ${playing ? "is-playing" : ""}`}>
           {playing ? <PauseGlyph /> : <PlayGlyph />}

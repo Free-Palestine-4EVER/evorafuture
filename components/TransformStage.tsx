@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import ResponsiveVideo from "@/components/ResponsiveVideo";
+import { avifSrc } from "@/lib/avifSrc";
 
 /* ------------------------------------------------------------------ *
  * TransformStage — the "flat plan → finished home" film, in 4 parts,
@@ -49,18 +50,21 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
             transition={{ duration: reduced ? 0 : 0.7, ease: "easeInOut" }}
             style={{ zIndex: on ? 2 : 1 }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <motion.img
-              src={stage.src}
-              alt={ar ? stage.ar : stage.en}
-              loading="lazy"
-              decoding="async"
-              className="ts-img"
-              initial={false}
-              animate={reduced ? { scale: 1 } : { scale: on ? 1.06 : 1 }}
-              transition={{ duration: on ? 7 : 0, ease: "linear" }}
-              draggable={false}
-            />
+            <picture>
+              <source srcSet={avifSrc(stage.src)} type="image/avif" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <motion.img
+                src={stage.src}
+                alt={ar ? stage.ar : stage.en}
+                loading="lazy"
+                decoding="async"
+                className="ts-img"
+                initial={false}
+                animate={reduced ? { scale: 1 } : { scale: on ? 1.06 : 1 }}
+                transition={{ duration: on ? 7 : 0, ease: "linear" }}
+                draggable={false}
+              />
+            </picture>
           </motion.div>
         );
       })}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PAGE_COUNT, pageSrc, type Lang } from "./data";
+import { avifSrc } from "@/lib/avifSrc";
 
 /* v1 — a realistic 3D page-turn book (square pages, two-page spread on
  * desktop). Drag the page or use arrows. Controlled by the shared `page`. */
@@ -103,7 +104,12 @@ export default function BookMode({
   const Face = ({ idx }: { idx: number }) => {
     const v = sheets[idx];
     if (v == null) return <span className="lbk-blank" />;
-    return <img className="lbk-img" src={pageSrc(v)} alt={en ? `Page ${v + 1}` : `صفحة ${v + 1}`} draggable={false} loading={v < 4 ? "eager" : "lazy"} />;
+    return (
+      <picture>
+        <source srcSet={avifSrc(pageSrc(v))} type="image/avif" />
+        <img className="lbk-img" src={pageSrc(v)} alt={en ? `Page ${v + 1}` : `صفحة ${v + 1}`} draggable={false} loading={v < 4 ? "eager" : "lazy"} />
+      </picture>
+    );
   };
 
   return (

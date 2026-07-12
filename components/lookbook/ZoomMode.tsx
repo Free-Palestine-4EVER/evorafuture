@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PAGE_COUNT, pageSrc, chapterOf, type Lang } from "./data";
+import { avifSrc } from "@/lib/avifSrc";
 
 /* "Read" — a deep-zoom inspector. Wheel / pinch / double-tap to zoom, drag to
  * pan; at 1× a horizontal drag turns the page. Built for studying detail. */
@@ -96,13 +97,16 @@ export default function ZoomMode({
         className={`lbz-frame ${zoomed ? "is-zoomed" : ""}`}
         onWheel={onWheel} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onDoubleClick={dbl}
       >
-        <img
-          className="lbz-img"
-          src={pageSrc(page)}
-          alt={en ? `Page ${page + 1}` : `صفحة ${page + 1}`}
-          draggable={false}
-          style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.s})`, transition: pan.current.on || pinch.current.d ? "none" : "transform .28s cubic-bezier(.22,1,.36,1)" }}
-        />
+        <picture>
+          <source srcSet={avifSrc(pageSrc(page))} type="image/avif" />
+          <img
+            className="lbz-img"
+            src={pageSrc(page)}
+            alt={en ? `Page ${page + 1}` : `صفحة ${page + 1}`}
+            draggable={false}
+            style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.s})`, transition: pan.current.on || pinch.current.d ? "none" : "transform .28s cubic-bezier(.22,1,.36,1)" }}
+          />
+        </picture>
       </div>
 
       <div className="lbz-tools">

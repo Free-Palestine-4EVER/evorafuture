@@ -24,44 +24,56 @@ export type HeroVariant = "a" | "b" | "c";
 const MOBILE_QUERY = "(max-width: 768px)";
 const pad = (n: number) => String(n).padStart(4, "0");
 
-// Desktop landscape films. "c" is the full-quality walk-through; "a"/"b" are
-// the earlier films. All ship as AVIF (primary) + WebP (fallback) — the ext is
-// resolved per-browser at runtime (see resolveFrameExt).
+// PHYSICAL frame counts on disk (each ships as AVIF primary + WebP fallback;
+// the ext is resolved per-browser at runtime — see resolveFrameExt).
 const DESKTOP_TOTAL: Record<HeroVariant, number> = { a: 193, b: 193, c: 361 };
-
-// Phones scrub a portrait stack extracted from the 9:16 showroom film at the
-// clip's full 24fps (250 frames @native 720px) — same frame-per-scroll density
-// as the desktop film, so the scrub is just as smooth. Crisp on 2–3× phones.
 const MOBILE_TOTAL = 250;
 
-// How many leading frames the branded Loader waits on before it lifts. Keep
-// this small — it gates the FIRST PAINT of the whole site on these frames
-// finishing download over the network (64 frames was ~9MB on a cold CDN edge,
-// which made the loader sit for the full HARD_CAP and look like the site was
-// broken). The scrub only reaches later frames after real scroll distance, so
-// a handful of frames is enough for a smooth start; the rest stream in lazily.
-const DESKTOP_CRITICAL = 8;
-const MOBILE_CRITICAL = 6;
+// STRIDE subsampling. We only FETCH every Nth physical frame, which roughly
+// halves the bytes on the wire without touching a single asset on disk or
+// losing quality. 180 desktop / 125 mobile frames over a 600vh / 420svh scrub
+// is still far denser than one frame per rAF tick, so the scrub stays smooth —
+// the previous 1:1 density just wasted bandwidth the network couldn't deliver
+// fast enough, which is what starved the scrub and made it stutter.
+const DESKTOP_STRIDE = 2;
+const MOBILE_STRIDE = 2;
+
+// How many leading frames the branded Loader waits on before it lifts. The
+// nearest-loaded-frame fallback (see draw) means the reveal never lands on a
+// blank/broken hero even if these are the ONLY frames ready — so we keep the
+// gate small for a fast first paint and let the rest stream in behind it.
+const DESKTOP_CRITICAL = 12;
+const MOBILE_CRITICAL = 10;
 
 type Stack = {
-  total: number;
+  total: number;            // number of LOGICAL (fetched) frames, 1..total
   critical: number;
   src: (i: number) => string;
 };
 
-function desktopStack(variant: HeroVariant, ext: FrameExt = SAFE_FRAME_EXT): Stack {
+// Map a logical index (1..total, after striding) to its physical frame number,
+// always including the very last physical frame so the scrub reaches the end.
+const strideStack = (
+  physicalTotal: number,
+  stride: number,
+  critical: number,
+  dir: string,
+  ext: FrameExt,
+): Stack => {
+  const total = Math.floor((physicalTotal - 1) / stride) + 1;
+  const phys = (i: number) => Math.min(physicalTotal, 1 + (i - 1) * stride);
   return {
-    total: DESKTOP_TOTAL[variant],
-    critical: DESKTOP_CRITICAL,
-    src: (i) => `/evora/hero-frames-${variant}/frame_${pad(i)}.${ext}`,
+    total,
+    critical: Math.min(critical, total),
+    src: (i) => `${dir}/frame_${pad(phys(i))}.${ext}`,
   };
+};
+
+function desktopStack(variant: HeroVariant, ext: FrameExt = SAFE_FRAME_EXT): Stack {
+  return strideStack(DESKTOP_TOTAL[variant], DESKTOP_STRIDE, DESKTOP_CRITICAL, `/evora/hero-frames-${variant}`, ext);
 }
 function mobileStack(ext: FrameExt = SAFE_FRAME_EXT): Stack {
-  return {
-    total: MOBILE_TOTAL,
-    critical: MOBILE_CRITICAL,
-    src: (i) => `/evora/hero-frames-mobile/frame_${pad(i)}.${ext}`,
-  };
+  return strideStack(MOBILE_TOTAL, MOBILE_STRIDE, MOBILE_CRITICAL, `/evora/hero-frames-mobile`, ext);
 }
 
 const isMobileNow = () =>
@@ -96,10 +108,15 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     let stackIsMobile = isMobileNow();
     let currentFrame = 1;
     let lastDrawn = -1;
+    let lastDrawnExact = false;
     let firstDrawn = false;
 
     const sizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Cap DPR lower on phones: many are DPR 3, where the per-frame fill
+      // (drawImage over a full-screen canvas) is 2.25× the pixels of DPR 2 and
+      // can't hold 60fps on mid-range devices. 1.75 stays crisp for a MOVING
+      // film while cutting ~23% of the fill cost vs the 2 cap.
+      const dpr = Math.min(window.devicePixelRatio || 1, isMobileNow() ? 1.75 : 2);
       canvas.width = Math.round(window.innerWidth * dpr);
       canvas.height = Math.round(window.innerHeight * dpr);
       canvas.style.width = window.innerWidth + "px";
@@ -107,9 +124,24 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const draw = (i: number) => {
+    const isLoaded = (i: number) => {
       const img = images[i];
-      if (!img || !img.complete || !img.naturalWidth) return;
+      return !!img && img.complete && !!img.naturalWidth;
+    };
+
+    // The nearest already-loaded frame to `i` (search outward). Guarantees the
+    // scrub always shows SOMETHING close instead of freezing/blanking when the
+    // exact frame hasn't streamed in yet — the film just sharpens as it fills.
+    const nearestLoaded = (i: number): number => {
+      if (isLoaded(i)) return i;
+      for (let d = 1; d < stack.total; d++) {
+        if (i - d >= 1 && isLoaded(i - d)) return i - d;
+        if (i + d <= stack.total && isLoaded(i + d)) return i + d;
+      }
+      return -1;
+    };
+
+    const paint = (img: HTMLImageElement) => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const ir = img.naturalWidth / img.naturalHeight;
@@ -121,6 +153,16 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         w = vw; h = vw / ir; x = 0; y = (vh - h) / 2;
       }
       ctx.drawImage(img, x, y, w, h);
+    };
+
+    // Draw frame `i`, or the nearest loaded frame if it isn't ready yet.
+    // Returns true only when the EXACT frame was drawn (so the tick loop knows
+    // to keep retrying that index until its real frame lands).
+    const draw = (i: number): boolean => {
+      if (isLoaded(i)) { paint(images[i]); return true; }
+      const near = nearestLoaded(i);
+      if (near > 0) paint(images[near]);
+      return false;
     };
 
     // (re)load the frame stack for the current device. Called on mount and
@@ -136,6 +178,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       images.forEach((im) => { im.onload = null; im.onerror = null; im.src = ""; });
       images = [];
       lastDrawn = -1;
+      lastDrawnExact = false;
       loadGen++; // invalidates any in-flight streamer from a previous stack
       const gen = loadGen;
       // frame COUNTS are ext-independent — register with the Loader
@@ -160,16 +203,36 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         stackIsMobile = isMobileNow();
         const s = stack;
 
-        // phase 2 — stream the rest, max WINDOW in flight, ascending (scroll
-        // reaches later frames only after real distance, so order = need)
-        const WINDOW = 10;
-        let next = critical + 1;
+        // phase 2 — stream the rest, max WINDOW in flight, always fetching the
+        // unloaded frame NEAREST the current scrub position first. Ascending
+        // order starved mid-scroll: if the user was at 50% the frame under them
+        // was the LAST to arrive. Prioritising by distance-to-current means the
+        // frames actually on screen download first, wherever the user is.
+        const WINDOW = 8;
+        const requested: boolean[] = [];
+        for (let i = 1; i <= critical; i++) requested[i] = true; // phase-1 owns these
+        let remaining = s.total - critical;
         let inFlight = 0;
         let streaming = false;
+
+        const pickNext = (): number => {
+          const cur = Math.max(1, Math.min(s.total, Math.round(currentFrame)));
+          let best = -1, bestD = Infinity;
+          for (let i = 1; i <= s.total; i++) {
+            if (requested[i]) continue;
+            const d = Math.abs(i - cur);
+            if (d < bestD) { bestD = d; best = i; }
+          }
+          return best;
+        };
+
         const pump = () => {
           if (gen !== loadGen || !mounted) return;
-          while (inFlight < WINDOW && next <= s.total) {
-            const i = next++;
+          while (inFlight < WINDOW && remaining > 0) {
+            const i = pickNext();
+            if (i < 0) break;
+            requested[i] = true;
+            remaining--;
             inFlight++;
             const im = new Image();
             im.decoding = "async";
@@ -240,7 +303,13 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       let idx = Math.round(currentFrame);
       if (idx < 1) idx = 1;
       if (idx > stack.total) idx = stack.total;
-      if (idx !== lastDrawn) { draw(idx); lastDrawn = idx; }
+      // Redraw when the index moves OR when we last drew an APPROXIMATION for
+      // this index (nearest-frame fallback) and its real frame has since
+      // streamed in — otherwise the canvas would freeze on the stand-in forever.
+      if (idx !== lastDrawn || !lastDrawnExact) {
+        lastDrawnExact = draw(idx);
+        lastDrawn = idx;
+      }
       rafId = requestAnimationFrame(tick);
     };
 
@@ -255,6 +324,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       }
       sizeCanvas();
       lastDrawn = -1;
+      lastDrawnExact = false;
       draw(Math.round(currentFrame));
     };
 

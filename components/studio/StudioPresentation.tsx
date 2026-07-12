@@ -276,7 +276,10 @@ export default function StudioPresentation() {
           <div className="studio-beat">
             <Rise className="studio-beat__media" y={30}>
               <span className="studio-beat__tag">{en ? "Your plan" : "مخطّطك"}</span>
-              <img src="/evora/kitchen/stage-1.jpg" alt={en ? "A 2D Evora floor plan" : "مخطّط إيفورا ثنائي الأبعاد"} />
+              <picture>
+                <source srcSet="/evora/kitchen/stage-1.avif" type="image/avif" />
+                <img src="/evora/kitchen/stage-1.jpg" alt={en ? "A 2D Evora floor plan" : "مخطّط إيفورا ثنائي الأبعاد"} />
+              </picture>
             </Rise>
             <div className="studio-beat__copy">
               <span className="studio-num">01</span>
@@ -297,7 +300,10 @@ export default function StudioPresentation() {
             <Rise className="studio-beat__media" y={30}>
               <span className="studio-beat__tag">{en ? "In 3D" : "بالأبعاد الثلاثية"}</span>
               {reduce ? (
-                <img src="/evora/kitchen/stage-4.jpg" alt={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"} />
+                <picture>
+                  <source srcSet="/evora/kitchen/stage-4.avif" type="image/avif" />
+                  <img src="/evora/kitchen/stage-4.jpg" alt={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"} />
+                </picture>
               ) : (
                 <ResponsiveVideo src="/evora/kitchen/reveal.mp4" poster="/evora/kitchen/stage-4.jpg" aria-label={en ? "The plan rebuilt as a furnished 3D room" : "المخطّط بعد بنائه غرفةً مؤثّثة بالأبعاد الثلاثية"} />
               )}

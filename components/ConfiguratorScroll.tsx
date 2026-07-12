@@ -8,6 +8,7 @@ import { openStartProject } from "@/lib/startProject";
 import { WHATSAPP } from "@/lib/brand";
 import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
+import { avifSrc } from "@/lib/avifSrc";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -256,13 +257,19 @@ export default function ConfiguratorScroll() {
   };
 
   const isBase = active?.image === CONFIG_BASE || active?.id === SURFACES[0].id;
+  // Upgrade the still images (base poster + stone swaps) to AVIF, but ONLY once
+  // the probe has confirmed this browser can decode it — so the .webp original
+  // is always the safe fallback (identical pattern to the frame stack). ~54%
+  // lighter swaps with zero risk on old Safari/Android.
+  const toAvif = (src: string) => (frameExt === "avif" ? src.replace(/\.webp$/i, ".avif") : src);
   // On phones the swap uses a portrait 9:16 render of each stone
   // (surface-<id>-mobile.webp) so it fills the vertical frame instead of a
   // cropped landscape. Falls back to the landscape image via onError.
-  const variantSrc =
+  const variantSrc = toAvif(
     isMobile && active && /^\/evora\/configurator\/surface-[a-z0-9-]+\.webp$/.test(active.image)
       ? active.image.replace(/\.webp$/, "-mobile.webp")
-      : active?.image;
+      : (active?.image ?? "")
+  ) || active?.image;
 
   const steps = [
     { n: tl("s1_n"), title: tl("s1_t"), body: tl("s1_b") },
@@ -303,7 +310,12 @@ export default function ConfiguratorScroll() {
         )}
 
         {/* reduced-motion: still poster */}
-        {reduce && <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />}
+        {reduce && (
+          <picture>
+            <source srcSet={avifSrc(CONFIG_BASE)} type="image/avif" />
+            <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />
+          </picture>
+        )}
 
         {/* the selected variant image, layered over the final frame */}
         <AnimatePresence mode="popLayout">
@@ -321,9 +333,10 @@ export default function ConfiguratorScroll() {
               // landscape image; if that's missing too, fade out to the base
               onError={(ev) => {
                 const el = ev.currentTarget as HTMLImageElement;
-                if (active && el.src.includes("-mobile.webp") && !el.dataset.fellback) {
+                // ext-agnostic: matches -mobile.webp OR -mobile.avif
+                if (active && /-mobile\.(webp|avif)$/i.test(el.src) && !el.dataset.fellback) {
                   el.dataset.fellback = "1";
-                  el.src = active.image;
+                  el.src = toAvif(active.image); // landscape, same format
                 } else {
                   el.style.opacity = "0";
                 }
