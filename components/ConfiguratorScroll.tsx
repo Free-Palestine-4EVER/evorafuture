@@ -127,20 +127,36 @@ export default function ConfiguratorScroll() {
     if (!ctx) return;
     let mounted = true;
 
+    // Cached viewport size for all scrub math and canvas sizing — never read
+    // window.innerWidth/innerHeight live inside tick()/draw(). Instagram/TikTok's
+    // in-app browser resizes window.innerHeight by ~50-120px as its chrome bars
+    // auto-hide/reappear WHILE the user scrolls, with no real viewport change;
+    // reading it live made the scrub (and the page's own scrollable height,
+    // see the section's svh height below) visibly jump on every scroll
+    // direction change. commitViewport() only trusts a height change on mobile
+    // when it comes with a width change (a real rotation/resize).
+    let viewportW = window.innerWidth;
+    let viewportH = window.innerHeight;
+    const commitViewport = (w: number, h: number) => {
+      const widthChanged = w !== viewportW;
+      viewportW = w;
+      if (widthChanged || !isMobile) viewportH = h;
+    };
+
     const sizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = window.innerWidth + "px";
-      canvas.style.height = window.innerHeight + "px";
+      canvas.width = viewportW * dpr;
+      canvas.height = viewportH * dpr;
+      canvas.style.width = viewportW + "px";
+      canvas.style.height = viewportH + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     const draw = (i: number) => {
       const img = imagesRef.current[i];
       if (!img || !img.complete || !img.naturalWidth) return;
-      const cw = window.innerWidth;
-      const ch = window.innerHeight;
+      const cw = viewportW;
+      const ch = viewportH;
       const ir = img.naturalWidth / img.naturalHeight;
       const cr = cw / ch;
       let w = cw, h = ch, x = 0, y = 0;
@@ -197,9 +213,9 @@ export default function ConfiguratorScroll() {
         const near = el.getBoundingClientRect();
         // only start pulling frames once the visitor approaches the section
         // (~3 viewports out) — not at hydration while the hero is still gating
-        if (near.top < window.innerHeight * 3) startPreload();
+        if (near.top < viewportH * 3) startPreload();
         const rect = near;
-        const scrollable = el.offsetHeight - window.innerHeight;
+        const scrollable = el.offsetHeight - viewportH;
         const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
         // frames play across the first 78% of the scroll; last 22% holds the
         // final frame and brings up the configurator.
@@ -217,7 +233,12 @@ export default function ConfiguratorScroll() {
       rafId = requestAnimationFrame(tick);
     };
 
-    const onResize = () => { sizeCanvas(); lastDrawn = -1; draw(Math.round(currentFrame.current)); };
+    const onResize = () => {
+      commitViewport(window.innerWidth, window.innerHeight);
+      sizeCanvas();
+      lastDrawn = -1;
+      draw(Math.round(currentFrame.current));
+    };
     window.addEventListener("resize", onResize);
 
     // idle fallback so frames are ready even if the visitor lingers off-screen
@@ -283,7 +304,7 @@ export default function ConfiguratorScroll() {
       id="configurator"
       ref={sectionRef}
       className={`cfg ${isMobile ? "cfg--mobile" : ""}`}
-      style={{ height: reduce ? "100svh" : `${scrollVh}${isMobile ? "dvh" : "vh"}` }}
+      style={{ height: reduce ? "100svh" : `${scrollVh}${isMobile ? "svh" : "vh"}` }}
     >
       <div className="cfg__sticky">
         {/* scrubbed frame canvas — portrait stack on phones, landscape on desktop
@@ -494,7 +515,7 @@ export default function ConfiguratorScroll() {
 
 const css = `
   .cfg { position: relative; background: #0d0b09; }
-  .cfg__sticky { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+  .cfg__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
   .cfg__canvas, .cfg__poster, .cfg__variant {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; display: block; z-index: 0;
@@ -557,7 +578,7 @@ const css = `
   [dir="rtl"] .cfg__intro, [dir="rtl"] .cfg__panel { left: auto; right: clamp(1.4rem, 5vw, 5rem); }
 
   /* ── MOBILE (≤768px): full-bleed video beat + bottom-sheet panel ──────── */
-  .cfg--mobile .cfg__sticky { height: 100dvh; }
+  .cfg--mobile .cfg__sticky { height: 100svh; }
   .cfg--mobile .cfg__intro { display: none; } /* the panel carries the explanation */
 
   .cfg--mobile .cfg__panel,

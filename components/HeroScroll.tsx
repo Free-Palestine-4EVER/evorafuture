@@ -111,16 +111,32 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     let lastDrawnExact = false;
     let firstDrawn = false;
 
+    // Cached viewport size used for ALL scrub math and canvas sizing below —
+    // never read window.innerWidth/innerHeight live inside tick()/paint(). In
+    // Instagram/TikTok's in-app browser, window.innerHeight changes by ~50-120px
+    // as their chrome (address/bottom bars) auto-hides and reappears WHILE the
+    // user scrolls, with no real viewport change. Reading it live made the scrub
+    // progress (and thus the visible frame) jump on every scroll direction
+    // change. commitViewport() only trusts a height change on mobile when it
+    // arrives together with a width change (a real rotation/resize).
+    let viewportW = window.innerWidth;
+    let viewportH = window.innerHeight;
+    const commitViewport = (w: number, h: number) => {
+      const widthChanged = w !== viewportW;
+      viewportW = w;
+      if (widthChanged || !isMobileNow()) viewportH = h;
+    };
+
     const sizeCanvas = () => {
       // Cap DPR lower on phones: many are DPR 3, where the per-frame fill
       // (drawImage over a full-screen canvas) is 2.25× the pixels of DPR 2 and
       // can't hold 60fps on mid-range devices. 1.75 stays crisp for a MOVING
       // film while cutting ~23% of the fill cost vs the 2 cap.
       const dpr = Math.min(window.devicePixelRatio || 1, isMobileNow() ? 1.75 : 2);
-      canvas.width = Math.round(window.innerWidth * dpr);
-      canvas.height = Math.round(window.innerHeight * dpr);
-      canvas.style.width = window.innerWidth + "px";
-      canvas.style.height = window.innerHeight + "px";
+      canvas.width = Math.round(viewportW * dpr);
+      canvas.height = Math.round(viewportH * dpr);
+      canvas.style.width = viewportW + "px";
+      canvas.style.height = viewportH + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
@@ -142,8 +158,8 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     };
 
     const paint = (img: HTMLImageElement) => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const vw = viewportW;
+      const vh = viewportH;
       const ir = img.naturalWidth / img.naturalHeight;
       const vr = vw / vh;
       let w: number, h: number, x: number, y: number;
@@ -283,7 +299,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     const tick = () => {
       if (!mounted) return;
       const rect = section.getBoundingClientRect();
-      const scrollable = section.offsetHeight - window.innerHeight;
+      const scrollable = section.offsetHeight - viewportH;
       const progress = scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
       const target = 1 + progress * (stack.total - 1);
 
@@ -314,6 +330,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     };
 
     const onResize = () => {
+      commitViewport(window.innerWidth, window.innerHeight);
       const nowMobile = isMobileNow();
       if (nowMobile !== stackIsMobile) {
         // crossed the breakpoint — swap to the right stack
