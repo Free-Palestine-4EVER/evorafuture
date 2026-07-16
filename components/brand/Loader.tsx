@@ -16,11 +16,13 @@ import { preload } from "@/lib/preload";
 
 const SESSION_KEY = "evora_loader_seen";
 const MIN_DWELL = 900; // hold the brand beat at least this long
-// Absolute ceiling. The bus gates on a tiny critical set (~300KB desktop /
-// ~180KB mobile AVIF, fetched at high priority with nothing else competing),
-// so real connections lift in 1-3s — the cap only exists for broken networks.
-// 4s was too short for slow phones: it revealed a still-buffering hero.
-const HARD_CAP = 12000;
+// Absolute ceiling. The bus now gates on the hero's FULL frame stack (~3.5MB
+// mobile / ~5MB desktop AVIF), not just a small critical subset, so the
+// curtain holds until the whole scrub has actually streamed in — no visitor
+// should hit a still-buffering, glitchy hero mid-scroll. This is a last-resort
+// safety net for a genuinely broken connection, not the normal-case lift time;
+// real connections should still finish well under this.
+const HARD_CAP = 30000;
 const GRACE_MS = 700; // wait this long for a hero to register critical assets
 const LIFT_MS = 640; // curtain-lift duration
 

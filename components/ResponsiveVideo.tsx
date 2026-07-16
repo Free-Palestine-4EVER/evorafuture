@@ -108,7 +108,7 @@ export default function ResponsiveVideo({
   if (reduce) {
     if (poster) {
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={poster} alt="" className={className} style={fill} />;
+      return <img src={poster} alt="" loading="lazy" decoding="async" className={className} style={fill} />;
     }
     return (
       <video
@@ -131,8 +131,13 @@ export default function ResponsiveVideo({
       ref={videoRef}
       className={className}
       style={fill}
+      // The poster attribute isn't lazy like an <img> — browsers fetch it the
+      // instant it's on a <video>, same priority as any eager image. Six of
+      // these mount on the homepage; withholding it until "near" (same gate
+      // as src, ~800px out) stops all six posters competing with the hero's
+      // own critical frames + JS bundle on a cold, bandwidth-constrained load.
       src={near ? activeSrc : undefined}
-      poster={poster}
+      poster={near ? poster : undefined}
       onError={handleError}
       autoPlay={near}
       muted

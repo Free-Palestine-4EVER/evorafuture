@@ -85,6 +85,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   const ease = [0.22, 1, 0.36, 1] as const;
 
   const sectionRef = useRef<HTMLElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
@@ -119,21 +120,32 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     let lastDrawnExact = false;
     let firstDrawn = false;
 
-    // Cached viewport size used for ALL scrub math and canvas sizing below —
-    // never read window.innerWidth/innerHeight live inside tick()/paint(). In
-    // Instagram/TikTok's in-app browser, window.innerHeight changes by ~50-120px
-    // as their chrome (address/bottom bars) auto-hides and reappears WHILE the
-    // user scrolls, with no real viewport change. Reading it live made the scrub
-    // progress (and thus the visible frame) jump on every scroll direction
-    // change. commitViewport() only trusts a height change on mobile when it
-    // arrives together with a width change (a real rotation/resize).
+    // Viewport size used for ALL scrub math and canvas sizing below — measured
+    // from .hs__sticky's own rendered box (CSS: height:100svh) rather than
+    // window.innerWidth/innerHeight. svh is a browser-guaranteed STABLE value
+    // that does not change as Instagram/TikTok's in-app-browser chrome
+    // (address/bottom bars) hides and reappears during scroll, unlike
+    // innerHeight, which does — reading innerHeight live made the scrub jump
+    // on every scroll direction change. (An earlier fix cached innerHeight at
+    // mount instead of reading it live, but that still broke if the chrome
+    // happened to be in its "hidden" state at the exact moment the component
+    // mounted: that wrong height got frozen with no way to self-correct.
+    // Measuring the sticky element sidesteps that — it's what the browser
+    // itself already computed for 100svh, correct regardless of chrome state
+    // at mount, and safe to re-measure on every resize with no filtering.)
     let viewportW = window.innerWidth;
     let viewportH = window.innerHeight;
-    const commitViewport = (w: number, h: number) => {
-      const widthChanged = w !== viewportW;
-      viewportW = w;
-      if (widthChanged || !isMobileNow()) viewportH = h;
+    const measureViewport = () => {
+      const rect = stickyRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        viewportW = rect.width;
+        viewportH = rect.height;
+      } else {
+        viewportW = window.innerWidth;
+        viewportH = window.innerHeight;
+      }
     };
+    measureViewport();
 
     const sizeCanvas = () => {
       // Cap DPR lower on phones: many are DPR 3, where the per-frame fill
@@ -192,11 +204,14 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     // (re)load the frame stack for the current device. Called on mount and
     // whenever a resize crosses the mobile breakpoint (e.g. phone rotate).
     //
-    // TWO-PHASE: the critical frames (the only thing the Loader waits on,
-    // ~300KB) fetch alone at high priority; the remaining ~14MB stream in
-    // AFTERWARDS through a small concurrency window, in scrub order. Firing
-    // all 361 at once made the tail starve the gating 8 over one HTTP/2
-    // connection — the loader then sat its full HARD_CAP on cold cache.
+    // TWO-PHASE FETCH, FULL-STACK GATE: the critical frames fetch alone at
+    // high priority first (so frame 1 paints fast and the scrub isn't blank),
+    // then the rest stream in through a small concurrency window, in scrub
+    // order. But the Loader itself now waits for EVERY frame in the stack —
+    // not just the critical set — before lifting. Gating on a small critical
+    // subset let visitors who started scrolling before the rest had streamed
+    // in see a stale/blurry "nearest loaded" stand-in frame right as the page
+    // revealed, which read as "the hero didn't load" / glitchy.
     let loadGen = 0;
     const loadStack = () => {
       images.forEach((im) => { im.onload = null; im.onerror = null; im.src = ""; });
@@ -205,21 +220,22 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       lastDrawnExact = false;
       loadGen++; // invalidates any in-flight streamer from a previous stack
       const gen = loadGen;
-      // frame COUNTS are ext-independent — register with the Loader
-      // SYNCHRONOUSLY, before the avif/webp probe's async hop, so the Loader
-      // can never hit its "no hero registered" fallback and lift early.
+      // frame COUNTS are ext-independent — register the FULL stack with the
+      // Loader SYNCHRONOUSLY, before the avif/webp probe's async hop, so the
+      // Loader can never hit its "no hero registered" fallback and lift early.
       const critical = Math.min(stack.critical, stack.total);
+      const total = stack.total;
       let releasedCount = 0;
       const release = () => {
-        if (releasedCount < critical) { releasedCount++; preload.done(); }
+        if (releasedCount < total) { releasedCount++; preload.done(); }
       };
-      preload.add(critical);
+      preload.add(total);
 
       resolveFrameExt().then((ext) => {
         if (!mounted || gen !== loadGen) {
           // stack swapped (rotate) or unmounted before fetching began — drain
           // this generation's registered slots so the Loader never stalls
-          while (releasedCount < critical) release();
+          while (releasedCount < total) release();
           return;
         }
         frameExt = ext;
@@ -261,7 +277,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
             const im = new Image();
             im.decoding = "async";
             im.fetchPriority = "low";
-            const done = () => { inFlight--; pump(); };
+            const done = () => { inFlight--; release(); pump(); };
             im.onload = done;
             im.onerror = done;
             im.src = s.src(i);
@@ -338,7 +354,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     };
 
     const onResize = () => {
-      commitViewport(window.innerWidth, window.innerHeight);
+      measureViewport();
       const nowMobile = isMobileNow();
       if (nowMobile !== stackIsMobile) {
         // crossed the breakpoint — swap to the right stack
@@ -389,7 +405,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
   return (
     <section id="top" ref={sectionRef} className={`hs hs--${variant}`}>
-      <div className="hs__sticky">
+      <div className="hs__sticky" ref={stickyRef}>
         <canvas
           ref={canvasRef}
           className={`hs__canvas${ready ? " is-ready" : ""}`}

@@ -68,6 +68,7 @@ export default function ConfiguratorScroll() {
   const waHref = `${WHATSAPP}?text=${encodeURIComponent(T.wa_msg[lang])}`;
 
   const sectionRef = useRef<HTMLElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const targetFrame = useRef(1);
@@ -127,21 +128,32 @@ export default function ConfiguratorScroll() {
     if (!ctx) return;
     let mounted = true;
 
-    // Cached viewport size for all scrub math and canvas sizing — never read
-    // window.innerWidth/innerHeight live inside tick()/draw(). Instagram/TikTok's
-    // in-app browser resizes window.innerHeight by ~50-120px as its chrome bars
-    // auto-hide/reappear WHILE the user scrolls, with no real viewport change;
-    // reading it live made the scrub (and the page's own scrollable height,
-    // see the section's svh height below) visibly jump on every scroll
-    // direction change. commitViewport() only trusts a height change on mobile
-    // when it comes with a width change (a real rotation/resize).
+    // Viewport size for all scrub math and canvas sizing — measured from
+    // .cfg__sticky's own rendered box (CSS: height:100svh) rather than
+    // window.innerWidth/innerHeight. svh is a browser-guaranteed STABLE value
+    // that does not change as Instagram/TikTok's in-app-browser chrome
+    // (address/bottom bars) hides and reappears during scroll, unlike
+    // innerHeight, which does — reading innerHeight live made the scrub jump
+    // on every scroll direction change. (An earlier fix cached innerHeight at
+    // mount instead of reading it live, but that still broke if the chrome
+    // happened to be in its "hidden" state at the exact moment the component
+    // mounted: that wrong height got frozen with no way to self-correct.
+    // Measuring the sticky element sidesteps that — it's what the browser
+    // itself already computed for 100svh, correct regardless of chrome state
+    // at mount, and safe to re-measure on every resize with no filtering.)
     let viewportW = window.innerWidth;
     let viewportH = window.innerHeight;
-    const commitViewport = (w: number, h: number) => {
-      const widthChanged = w !== viewportW;
-      viewportW = w;
-      if (widthChanged || !isMobile) viewportH = h;
+    const measureViewport = () => {
+      const rect = stickyRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        viewportW = rect.width;
+        viewportH = rect.height;
+      } else {
+        viewportW = window.innerWidth;
+        viewportH = window.innerHeight;
+      }
     };
+    measureViewport();
 
     const sizeCanvas = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -234,7 +246,7 @@ export default function ConfiguratorScroll() {
     };
 
     const onResize = () => {
-      commitViewport(window.innerWidth, window.innerHeight);
+      measureViewport();
       sizeCanvas();
       lastDrawn = -1;
       draw(Math.round(currentFrame.current));
@@ -306,7 +318,7 @@ export default function ConfiguratorScroll() {
       className={`cfg ${isMobile ? "cfg--mobile" : ""}`}
       style={{ height: reduce ? "100svh" : `${scrollVh}${isMobile ? "svh" : "vh"}` }}
     >
-      <div className="cfg__sticky">
+      <div className="cfg__sticky" ref={stickyRef}>
         {/* scrubbed frame canvas — portrait stack on phones, landscape on desktop
             (LILITH pattern: always-on rAF poll, opaque canvas, light frames) */}
         {!reduce && (

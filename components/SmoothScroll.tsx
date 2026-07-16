@@ -13,7 +13,18 @@ export default function SmoothScroll() {
     });
     (window as unknown as { __lenis?: Lenis }).__lenis = lenis;
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    lenis.scrollTo(0, { immediate: true });
+    // Only force back to the top on an actual back/forward navigation — that's
+    // the one case scrollRestoration:"manual" needs help with (the browser
+    // would otherwise auto-restore a stale position before Lenis's virtual
+    // scroll state is established). On a FRESH navigation this used to fire
+    // unconditionally, which on a slow connection snapped the page back to 0
+    // out from under anyone who had already started scrolling natively (real
+    // touch-scroll works before any JS loads) while the page was still
+    // hydrating — a jarring "glitch" right as the site became interactive.
+    const navEntry = performance.getEntriesByType?.("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    if (navEntry?.type === "back_forward") lenis.scrollTo(0, { immediate: true });
     let raf = 0;
     const loop = (time: number) => {
       lenis.raf(time);
