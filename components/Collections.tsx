@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import {
   motion,
@@ -91,6 +91,19 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLAnchorElement>(null);
 
+  // world.poster ships a matching "name-mobile.ext" companion (same convention
+  // ResponsiveVideo already uses for its video source) — the <video poster>
+  // attribute can't do a CSS <picture>-style swap, so resolve it in JS.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  const poster = isMobile ? world.poster.replace(/\.(\w+)$/, "-mobile.$1") : world.poster;
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
@@ -124,7 +137,7 @@ function WorldPanel({ world, i }: { world: World; i: number }) {
           <ResponsiveVideo
             className="world__video"
             src={world.video}
-            poster={world.poster}
+            poster={poster}
           />
           <span className="world__scrim" />
           <span className="world__grain" aria-hidden />
@@ -165,7 +178,13 @@ function SlideCard({ card, i }: { card: RoomCard; i: number }) {
       transition={{ duration: 0.7, ease: EASE, delay: (i % 4) * 0.07 }}
     >
       <div className="rcard__imgwrap">
-        <img src={card.img} alt={card.name[lang]} className="rcard__img" loading="lazy" />
+        {/* each card.img ships a matching "name-mobile.ext" companion (same
+            convention as ResponsiveVideo) — a smaller file for the single/
+            two-column mobile grid instead of the desktop 4-up resolution */}
+        <picture>
+          <source media="(max-width: 768px)" srcSet={card.img.replace(/\.(\w+)$/, "-mobile.$1")} />
+          <img src={card.img} alt={card.name[lang]} className="rcard__img" loading="lazy" />
+        </picture>
         <span className="rcard__scrim" />
       </div>
       <div className="rcard__meta">
