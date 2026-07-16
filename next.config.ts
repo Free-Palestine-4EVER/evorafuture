@@ -71,6 +71,7 @@ const nextConfig: NextConfig = {
     ];
     return [
       { source: "/evora/:path*", headers: immutable },
+      { source: "/evora-legacy/:path*", headers: immutable },
       { source: "/models/:path*", headers: immutable },
       { source: "/posters/:path*", headers: immutable },
       { source: "/textures/:path*", headers: immutable },

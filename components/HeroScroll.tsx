@@ -90,6 +90,14 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   const hintRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
+  // The poster <img> (behind the canvas, and the whole hero in reduced-motion
+  // mode) is the actual LCP element — the canvas isn't LCP-eligible. It starts
+  // on SAFE_FRAME_EXT (webp) so server and first client render agree, then
+  // upgrades to AVIF (~30-45% lighter) once the decode probe resolves, same
+  // as the scrub frames already do.
+  const [posterExt, setPosterExt] = useState<FrameExt>(SAFE_FRAME_EXT);
+  useEffect(() => { resolveFrameExt().then(setPosterExt); }, []);
+
   useEffect(() => {
     if (reduce) return; // reduced motion renders a static poster, no scrub
     const canvas = canvasRef.current;
@@ -369,8 +377,8 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     return (
       <section id="top" className="hs hs--static">
         <picture>
-          <source media="(max-width: 768px)" srcSet={mobileStack().src(1)} />
-          <img src={desktopStack(variant).src(1)} alt="" className="hs__poster" />
+          <source media="(max-width: 768px)" srcSet={mobileStack(posterExt).src(1)} />
+          <img src={desktopStack(variant, posterExt).src(1)} alt="" className="hs__poster" fetchPriority="high" />
         </picture>
         <div className="hs__scrim" />
         <HeroCopy t={t} lang={lang} ease={ease} staticMode />
@@ -395,8 +403,8 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         {/* posters sit behind the canvas until frame 1 draws; CSS picks which
             aspect shows per breakpoint (no JS branch → no hydration mismatch) */}
         <picture>
-          <source media="(max-width: 768px)" srcSet={mobileStack().src(1)} />
-          <img src={desktopStack(variant).src(1)} alt="" aria-hidden className="hs__poster" />
+          <source media="(max-width: 768px)" srcSet={mobileStack(posterExt).src(1)} />
+          <img src={desktopStack(variant, posterExt).src(1)} alt="" aria-hidden className="hs__poster" fetchPriority="high" />
         </picture>
 
         <div className="hs__scrim" />
