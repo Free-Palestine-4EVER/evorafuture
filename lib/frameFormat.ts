@@ -29,10 +29,20 @@ export function resolveFrameExt(): Promise<FrameExt> {
       resolve("webp");
       return;
     }
+    let settled = false;
+    const finish = (ext: FrameExt) => {
+      if (settled) return;
+      settled = true;
+      resolve(ext);
+    };
     const img = new Image();
-    img.onload = () => resolve(img.width > 0 && img.height > 0 ? "avif" : "webp");
-    img.onerror = () => resolve("webp");
+    img.onload = () => finish(img.width > 0 && img.height > 0 ? "avif" : "webp");
+    img.onerror = () => finish("webp");
     img.src = AVIF_PROBE;
+    // Some old Safari builds never fire load/error on a data-URI probe; without
+    // this the whole frame-stack loader (which runs inside this promise) would
+    // never release its slots and the branded curtain would hang to its hard cap.
+    window.setTimeout(() => finish("webp"), 1500);
   });
   return cached;
 }

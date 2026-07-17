@@ -23,6 +23,14 @@ const MIN_DWELL = 900; // hold the brand beat at least this long
 // safety net for a genuinely broken connection, not the normal-case lift time;
 // real connections should still finish well under this.
 const HARD_CAP = 30000;
+// Soft ceiling. The full-stack gate holds the curtain until EVERY hero frame
+// has streamed in — great on a fast desktop, but on an older iPhone (slower
+// CPU, tighter Safari image-decode budget, slower network) a late frame's
+// load/error can stall and never fire, trapping the visitor at HARD_CAP (30s,
+// reads as "stuck on the loader"). Past this soft cap we lift regardless: the
+// hero's nearest-loaded-frame fallback means the reveal is never blank/broken,
+// and the remaining frames keep streaming in behind the lifted curtain.
+const SOFT_CAP = 8000;
 const GRACE_MS = 700; // wait this long for a hero to register critical assets
 const LIFT_MS = 640; // curtain-lift duration
 
@@ -123,12 +131,20 @@ export default function Loader() {
       else window.addEventListener("load", onLoad, { once: true });
     }, GRACE_MS);
 
+    // Once assets are registered, never hold longer than the soft cap even if a
+    // frame's load/error stalls (older iPhones). Respects MIN_DWELL so the brand
+    // beat still reads. If no hero registered assets, the grace/load path owns
+    // the lift and this is a harmless backstop.
+    const soft = window.setTimeout(() => {
+      if (sawAssets) liftRespectingMin();
+    }, SOFT_CAP);
     const cap = window.setTimeout(lift, HARD_CAP); // never block the user
 
     return () => {
       cancelAnimationFrame(raf);
       unsub();
       window.clearTimeout(grace);
+      window.clearTimeout(soft);
       window.clearTimeout(cap);
       window.removeEventListener("load", onLoad);
     };
