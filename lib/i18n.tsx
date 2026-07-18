@@ -49,8 +49,8 @@ export const STR = {
   shop_page_eyebrow: { en: "The Catalogue", ar: "الكتالوج" },
   shop_page_title: { en: "Shop the collection", ar: "تسوّق المجموعة" },
   shop_page_sub: {
-    en: "Every piece, made to order and finished by hand. Tap any piece to place it in your room in AR.",
-    ar: "كل قطعة، تُصنع حسب الطلب وتُشطّب يدويًا. انقر أي قطعة لتضعها في غرفتك بالواقع المعزّز.",
+    en: "Every piece, made to order and finished by hand. Tap any piece for the full story.",
+    ar: "كل قطعة، تُصنع حسب الطلب وتُشطّب يدويًا. انقر أي قطعة لمعرفة تفاصيلها كاملة.",
   },
   shop_all: { en: "All", ar: "الكل" },
   shop_view_ar: { en: "View in AR", ar: "اعرض بالواقع المعزّز" },

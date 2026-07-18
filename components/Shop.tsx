@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
-import { products, posterFor, productCopy, type Category, type Product } from "@/lib/products";
+import { shopProducts as products, shopProductCopy as productCopy, type ShopCategory as Category, type ShopProduct as Product } from "@/lib/shopCatalog";
 import {
   getTaxNode,
   resolveSlug,
@@ -189,7 +189,7 @@ export default function Shop({ seed }: { seed?: string }) {
                     <button type="button" className="shop-card" data-cursor="hover" onClick={() => setOpen(p)}
                       aria-label={`${t("shop_quickview")} — ${p.name}`}>
                       <div className="shop-card-img">
-                        <img src={posterFor(p)} alt={p.name} loading="lazy" />
+                        <img src={p.image} alt={p.name} loading="lazy" />
                         {p.badge && <span className="shop-badge">{lang === "ar" ? BADGE_AR[p.badge] : p.badge}</span>}
                         <span className="shop-qv">{t("shop_quickview")} <span aria-hidden>↗</span></span>
                       </div>

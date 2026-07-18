@@ -88,35 +88,6 @@ export const tourHotspots: Hotspot[] = [
   { id: "mirror", x: 0.80, y: 0.38, name: { en: "Halo Wall Mirror", ar: "مرآة هالو" } },
 ];
 
-// Hotspots for the shoppable room (p11 brass coffee table / curved sofa)
-export const shopHotspots: Hotspot[] = [
-  { id: "table", x: 0.46, y: 0.74, name: { en: "Helios Brass Coffee Table", ar: "طاولة هيليوس النحاسية" } },
-  { id: "sofa", x: 0.7, y: 0.38, name: { en: "Dune Curved Sofa", ar: "كنبة ديون المنحنية" } },
-  { id: "plant", x: 0.5, y: 0.22, name: { en: "Olive Tree Planter", ar: "حوض شجرة الزيتون" } },
-];
-
-export type ModelDef = {
-  id: string;
-  name: Bi;
-  tagline: Bi;
-  src: string;
-};
-
-export const models: ModelDef[] = [
-  {
-    id: "sofa",
-    name: { en: "Velvet Lounge Sofa", ar: "كنبة فيلفيت لاونج" },
-    tagline: { en: "Three-seater · deep emerald velvet", ar: "ثلاثة مقاعد · مخمل زمردي" },
-    src: "/models/sofa.glb",
-  },
-  {
-    id: "chair",
-    name: { en: "Sheen Accent Chair", ar: "كرسي شين المميّز" },
-    tagline: { en: "Hand-finished frame · sheen weave", ar: "إطار يدوي · نسيج لامع" },
-    src: "/models/chair.glb",
-  },
-];
-
 // Every token carries a proof or benefit — not a generic tag. A passive ribbon
 // becomes a stack of trust signals (free design, halal-friendly 36mo, white-glove
 // delivery, since 2017). Edited per the Marquee sectionCopy.

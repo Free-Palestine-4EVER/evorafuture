@@ -178,7 +178,6 @@ export const getProduct = (id: string) => products.find((p) => p.id === id);
 // The English `tagline`/`description` live in ROWS above; this is their warm
 // native-Arabic transcreation — written as original copy, not a calque, naming
 // the SAME real materials (مخمل، جوز، بلوط، كتّان). Keyed by id so the three
-// featured signature pieces (azur, carrara, castello) localise too. Anything
 // without an entry falls back to the English, so nothing ever renders empty.
 export interface LocalizedCopy {
   tagline: string;
@@ -204,11 +203,6 @@ const AR_COPY: Record<string, LocalizedCopy> = {
   // ── Bedroom ──
   bed: { tagline: "سرير منجّد", description: "سرير منخفض منجّد بظهرٍ عريضٍ طريٍّ تتّكئ عليه، يُكسى بكتّانٍ عاجيٍّ ناصع. نهاية اليوم الهادئة." },
   "turkish-room": { tagline: "طقم غرفة نوم", description: "طقم الأناضول — سريرٌ منجّد، وتسريحةٌ من خشب الجوز بمرآة ومقعد، مؤلّفةً كغرفةٍ واحدةٍ دافئةٍ متكاملة على الطراز التركي." },
-
-  // ── Featured signature pieces (lib/featured.ts) ──
-  azur: { tagline: "كنبة مخمل منحنية", description: "كنبة بانحناءةٍ واحدةٍ كالنحت من المخمل الكحلي العميق، تطفو على أرجلٍ نحاسية رفيعة. القطعة المميّزة — كريمة، منخفضة، ومسرحيةٌ بهدوء." },
-  carrara: { tagline: "طاولة قهوة رخام ونحاس", description: "سطحٌ مستدير من رخام الكرارا على قاعدةٍ نحاسيةٍ مصقولةٍ كالحلقة. حجرٌ بارد ومعدنٌ دافئ — قطعةٌ مركزية تتجاوز الموضات." },
-  castello: { tagline: "كرسي مخمل مكبوس", description: "كرسي استرخاء منخفض مكبوس بعمق من المخمل الغنيّ على أرجلٍ من البلوط المدبّب. لمسةُ لونٍ دافئة بوقفةٍ مسترخية على طراز منتصف القرن — بالمانجو أو الطاووسي." },
 };
 
 /** Tagline + description for a piece in the active language (EN fallback). */

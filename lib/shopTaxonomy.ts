@@ -15,12 +15,13 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import {
-  products,
-  CATEGORIES,
-  type Product,
-  type Category,
-  type Room,
-} from "@/lib/products";
+  shopProducts as products,
+  SHOP_CATEGORIES as CATEGORIES,
+  SHOP_CATEGORY_SLUG,
+  type ShopProduct as Product,
+  type ShopCategory as Category,
+  type ShopRoom as Room,
+} from "@/lib/shopCatalog";
 
 export type TaxKind = "type" | "room" | "soft";
 
@@ -254,13 +255,7 @@ export function resolveSlug(raw: string): Product[] {
 }
 
 /** Map a catalogue Category to its canonical URL slug. */
-export const CATEGORY_SLUG: Record<Category, string> = {
-  Sofas: "sofas",
-  Seating: "seating",
-  Tables: "tables",
-  Storage: "storage",
-  Bedroom: "bedroom",
-};
+export const CATEGORY_SLUG: Record<Category, string> = SHOP_CATEGORY_SLUG;
 
 /** The categories actually present in a product list — for tab seeding. */
 export function categoriesIn(list: Product[]): Category[] {

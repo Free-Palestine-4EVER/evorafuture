@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import ModelViewer, { type ViewerEl } from "@/components/showroom/ModelViewer";
-import { applyFinish, pickUpholsteryIndices, type MVElement } from "@/lib/recolor";
-import { posterFor, productCopy, type Product, type Category } from "@/lib/products";
+import { shopProductCopy as productCopy, type ShopProduct as Product, type ShopCategory as Category } from "@/lib/shopCatalog";
 import { completeTheRoom, CATEGORY_SLUG } from "@/lib/shopTaxonomy";
 import { WHATSAPP } from "@/lib/brand";
 import { openStartProject } from "@/lib/startProject";
@@ -65,11 +63,10 @@ export default function ShopQuickView({
   // The popup owns a "current" piece so the "Complete the room" rail can swap
   // content in place without unmounting the dialog.
   const [current, setCurrent] = useState(product);
+  // Which finish is selected — decorative only (no live re-render), it just
+  // names the pick for the enquiry message since these are single photographs.
   const [color, setColor] = useState(0);
-  const viewerRef = useRef<MVElement | null>(null);
-  const targetIdx = useRef<number[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const anchorHex = current.colorways[0].hex;
 
   // Parent opened a different piece → follow it.
   useEffect(() => setCurrent(product), [product]);
@@ -91,27 +88,10 @@ export default function ShopQuickView({
     };
   }, [onClose]);
 
-  // When the model finishes loading, lock onto the upholstery material(s) and
-  // apply whatever finish is currently selected.
-  const onReady = useCallback(
-    (el: ViewerEl) => {
-      const mv = el as unknown as MVElement;
-      viewerRef.current = mv;
-      targetIdx.current = pickUpholsteryIndices(mv, anchorHex, current.swatchHints);
-      const c = current.colorways[color];
-      applyFinish(mv, c.name, c.hex, targetIdx.current);
-    },
-    [anchorHex, color, current.colorways, current.swatchHints]
-  );
-
-  const pickColor = (i: number) => {
-    setColor(i);
-    const c = current.colorways[i];
-    applyFinish(viewerRef.current, c.name, c.hex, targetIdx.current);
-  };
+  const pickColor = (i: number) => setColor(i);
 
   // Swap the popup content in place — the dialog stays mounted (stable key in
-  // the parent), the 3D stage re-keys to reload the new model.
+  // the parent), the image swaps to the new piece.
   const swapTo = (p: Product) => setCurrent(p);
 
   const copy = productCopy(current, lang);
@@ -149,14 +129,9 @@ export default function ShopQuickView({
           </svg>
         </button>
 
-        {/* 3D stage — re-keyed so a swapped piece reloads its own model */}
+        {/* stage — the catalogue photograph, swaps with the current piece */}
         <div className="qv-stage">
-          <div className="qv-stage-glow" />
-          <ModelViewer key={current.id} product={current} onReady={onReady} autoRotate />
-          <span className="qv-hint">
-            <span className="qv-dot" />
-            {t("qv_drag")}
-          </span>
+          <img key={current.id} src={current.image} alt={current.name} className="qv-stage-img" />
         </div>
 
         {/* Info */}
@@ -216,7 +191,7 @@ export default function ShopQuickView({
                     <button key={p.id} type="button" className="qv-mini" data-cursor="hover"
                       onClick={() => swapTo(p)} aria-label={p.name}>
                       <span className="qv-mini-img">
-                        <img src={posterFor(p)} alt={p.name} loading="lazy" />
+                        <img src={p.image} alt={p.name} loading="lazy" />
                       </span>
                       <span className="qv-mini-name display">{p.name}</span>
                       <span className="qv-mini-tag">{productCopy(p, lang).tagline}</span>
@@ -238,10 +213,6 @@ export default function ShopQuickView({
               <button type="button" onClick={openStartProject} className="qv-btn qv-btn-dark" data-cursor="hover">
                 {t("shop_add_design")}
               </button>
-              <a href={`/showroom?p=${current.id}`} className="qv-btn qv-btn-ghost" data-cursor="hover">
-                <ArIcon />
-                {t("qv_try")}
-              </a>
             </div>
             <div className="qv-cta-sub">
               <a href={waEnquire} target="_blank" rel="noopener noreferrer" className="qv-link" data-cursor="hover">
@@ -262,11 +233,8 @@ export default function ShopQuickView({
         .qv-close { position: absolute; top: 0.9rem; inset-inline-end: 0.9rem; z-index: 10; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line, rgba(0,0,0,0.12)); background: rgba(251,249,244,0.8); backdrop-filter: blur(6px); color: var(--ink, #1c1815); cursor: none; transition: background .3s var(--ease), transform .3s var(--ease); }
         .qv-close:hover { background: var(--ink, #1c1815); color: var(--paper, #fbf9f4); transform: rotate(90deg); }
 
-        .qv-stage { position: relative; background: linear-gradient(165deg, #fff, var(--bone, #efe9dd)); border-inline-end: 1px solid var(--line-soft, rgba(0,0,0,0.07)); min-height: 340px; }
-        .qv-stage-glow { position: absolute; inset: 0; background: radial-gradient(58% 52% at 50% 62%, rgba(54,65,47,0.10), transparent 70%); pointer-events: none; }
-        .qv-stage model-viewer { width: 100%; height: 100%; }
-        .qv-hint { position: absolute; bottom: 0.9rem; inset-inline-start: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(251,249,244,0.82); backdrop-filter: blur(6px); border-radius: 100px; padding: 0.45rem 0.85rem; font-size: 0.7rem; letter-spacing: 0.04em; color: var(--ink, #1c1815); }
-        .qv-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--clay, #b27457); box-shadow: 0 0 0 4px rgba(178,116,87,0.22); }
+        .qv-stage { position: relative; background: linear-gradient(165deg, #fff, var(--bone, #efe9dd)); border-inline-end: 1px solid var(--line-soft, rgba(0,0,0,0.07)); min-height: 340px; overflow: hidden; }
+        .qv-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
         .qv-info { display: flex; flex-direction: column; min-height: 0; }
         .qv-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: clamp(1.6rem, 3vw, 2.6rem); padding-bottom: 1rem; }
@@ -341,15 +309,6 @@ export default function ShopQuickView({
         }
       `}</style>
     </motion.div>
-  );
-}
-
-function ArIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
   );
 }
 
