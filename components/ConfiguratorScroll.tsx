@@ -105,6 +105,32 @@ export default function ConfiguratorScroll() {
   // ---- resolve avif-vs-webp once (near-instant data-URI probe) ----
   useEffect(() => { resolveFrameExt().then(setFrameExt); }, []);
 
+  // ---- preload every stone variant once the format is known ----
+  // Without this, tapping a swatch swaps `src` on an unloaded <img>; the
+  // AnimatePresence crossfade starts immediately, so for the ~100-300ms the
+  // new file takes to fetch you see straight through the (now-transparent)
+  // outgoing image to the base kitchen frame on the canvas underneath — read
+  // by the visitor as "it flashes the first photo, then loads another."
+  // Preloading means every variant is already cached before it's ever picked.
+  useEffect(() => {
+    if (!frameExt) return;
+    const toAvifLocal = (src: string) => (frameExt === "avif" ? src.replace(/\.webp$/i, ".avif") : src);
+    const urls = new Set<string>();
+    for (const v of SURFACES) {
+      urls.add(toAvifLocal(v.image));
+      if (/^\/evora\/configurator\/surface-[a-z0-9-]+\.webp$/.test(v.image)) {
+        urls.add(toAvifLocal(v.image.replace(/\.webp$/, "-mobile.webp")));
+      }
+    }
+    const imgs = Array.from(urls, (src) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+      return img;
+    });
+    return () => { imgs.length = 0; };
+  }, [frameExt]);
+
   // the panel reveals near the end of the scrub (phone & desktop); reduced motion
   // shows it immediately
   const panelOpen = revealed || reduce;
