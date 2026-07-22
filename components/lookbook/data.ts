@@ -1,11 +1,16 @@
 /* Shared data for the Evora · ARGOS Lookbook web-app (all 3 modes). */
 
-/* Page 0 is the branded cover (cover.webp/.avif); pages 1..31 are the real book
- * content and keep their original p01..p31 filenames untouched. */
-export const PAGE_COUNT = 32;
+/* Page 0 is the branded front cover, page 32 is a closing room shot that pairs
+ * with the final blueprint (p31), and page 33 is the branded back cover — so
+ * the book opens AND closes on Evora branding instead of a floor-plan page.
+ * Pages 1..31 keep their original p01..p31 filenames untouched. */
+export const PAGE_COUNT = 34;
 export const PDF_HREF = "/evora/Evora-ARGOS-Lookbook.pdf";
-export const pageSrc = (i: number) =>
-  i === 0 ? "/evora/lookbook/cover.webp" : `/evora/lookbook/p${String(i).padStart(2, "0")}.webp`;
+export const pageSrc = (i: number) => {
+  if (i === 0 || i === PAGE_COUNT - 1) return "/evora/lookbook/cover.webp";
+  if (i === PAGE_COUNT - 2) return "/evora/lookbook/back-filler.webp";
+  return `/evora/lookbook/p${String(i).padStart(2, "0")}.webp`;
+};
 
 export type Lang = "en" | "ar";
 
