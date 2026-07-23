@@ -18,6 +18,7 @@ import { randomBytes } from "crypto";
 import * as db from "@/lib/portal/serverdb";
 import { uploadToStorage } from "@/lib/portal/admin";
 import { scanDataToGLB } from "@/lib/portal/roomglb";
+import { sessionFromRequest, issueToken, sessionCookie, clearCookie } from "@/lib/portal/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,8 +33,23 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...CORS } });
+const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS, ...extra },
+  });
+
+// ---- authorisation --------------------------------------------------------
+// These endpoints return customer PII (names, phones, emails, floor plans) and
+// used to be readable by anyone on the internet. They are now gated on the
+// httpOnly session cookie issued at sign-in.
+//
+// Scope note: only the READS are gated. The POST paths stay open on purpose —
+// POST /leads is the public contact form, and POST /upload + POST /projects are
+// what the SHIPPED EvoraScan iOS app calls (verified against EvoraAPI.swift;
+// it never GETs any of these). Gating those would brick an app that can only be
+// fixed by an App Store resubmit.
+const deny = () => json({ error: "unauthorized" }, 401);
 
 // The absolute origin the *client* actually connected to (Host header), so local
 // upload URLs are reachable from the phone. `req.nextUrl.origin` would give the
@@ -54,12 +70,22 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   const [head] = path;
 
   if (head === "health") return json({ ok: true });
-  if (head === "clients") return json(await db.listClients());
-  if (head === "leads") return json(await db.listLeads());
+
+  const session = await sessionFromRequest(req);
+  const isAdmin = session?.role === "admin";
+
+  if (head === "me") return session ? json({ uid: session.uid, role: session.role }) : deny();
+  if (head === "clients") return isAdmin ? json(await db.listClients()) : deny();
+  if (head === "leads") return isAdmin ? json(await db.listLeads()) : deny();
   if (head === "registered") return json({ registered: await db.isPhoneRegistered(req.nextUrl.searchParams.get("phone") || "") });
   if (head === "projects") {
     const uid = req.nextUrl.searchParams.get("uid");
-    return json(uid ? await db.listForUser(uid) : await db.listAll());
+    // Admins see everything. A signed-in client sees only their OWN projects —
+    // without this check anyone could enumerate uids and read other people's
+    // rooms and scans.
+    if (!uid) return isAdmin ? json(await db.listAll()) : deny();
+    if (!session || (!isAdmin && session.uid !== uid)) return deny();
+    return json(await db.listForUser(uid));
   }
   if (head === "events") {
     const stream = new ReadableStream({
@@ -86,19 +112,44 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
 
   if (head === "signin") {
     const u = await db.signIn(String(body.phone || body.identifier || ""), String(body.password || ""));
-    return u ? json(u) : json({ error: "invalid" }, 401);
+    if (!u) return json({ error: "invalid" }, 401);
+    // Issue the httpOnly session the PII reads are gated on. The browser
+    // callers are same-origin, so this cookie rides along automatically with
+    // no client-side change.
+    const token = await issueToken(u.uid, u.role || "client");
+    return json(u, 200, { "Set-Cookie": sessionCookie(token) });
   }
+  if (head === "signout") return json({ ok: true }, 200, { "Set-Cookie": clearCookie() });
   if (head === "register") {
-    try { return json(await db.registerCustomer(String(body.phone), String(body.name || ""), String(body.password || ""))); }
+    try {
+      const u = await db.registerCustomer(String(body.phone), String(body.name || ""), String(body.password || ""));
+      // Same session cookie as signin — without it a freshly-registered client
+      // would hold a localStorage session with no cookie, get 401 on their very
+      // first /dashboard projects call, and be bounced straight back to login.
+      const token = await issueToken(u.uid, u.role || "client");
+      return json(u, 200, { "Set-Cookie": sessionCookie(token) });
+    }
     catch (e) { return json({ error: (e as Error).message }, 409); }
   }
   if (head === "clients") {
+    // Staff-only: this mints an account with a password. Left open, anyone on
+    // the internet could create client records. Customer SELF-registration is
+    // the separate, deliberately-public `register` route above.
+    if ((await sessionFromRequest(req))?.role !== "admin") return deny();
     try { return json(await db.createClient(String(body.phone), String(body.name || ""), String(body.password || ""))); }
     catch (e) { return json({ error: (e as Error).message }, 409); }
   }
   if (head === "upload") {
     // body: { ext, dataBase64 } → stores in Firebase Storage, returns a public URL.
+    // Deliberately unauthenticated: the shipped EvoraScan iOS app POSTs here and
+    // can only be changed via an App Store resubmit. Bounded instead by a size
+    // and type limit, which evoraproj.md lists as an open risk ("no upload size
+    // limits — a stray huge upload could exhaust disk/memory").
     const ext = String(body.ext || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const b64 = String(body.dataBase64 || "");
+    const MAX_UPLOAD = 25 * 1024 * 1024; // 25MB decoded — a LiDAR USDZ can be large
+    if (b64.length * 0.75 > MAX_UPLOAD) return json({ error: "too_large", max: MAX_UPLOAD }, 413);
+    if (!MIME[ext]) return json({ error: "unsupported_type", ext }, 415);
     const name = `uploads/${randomBytes(8).toString("hex")}.${ext}`;
     try {
       const url = await uploadToStorage(name, Buffer.from(String(body.dataBase64 || ""), "base64"), MIME[ext] || "application/octet-stream", clientOrigin(req));

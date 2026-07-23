@@ -9,6 +9,10 @@ import { onRev, realtimeConfigured } from "./realtime";
 type Mode = "sync" | "mock";
 let _mode: Mode | null = null;
 const SESSION_KEY = "evora_sync_session";
+// Fired in-tab whenever the local session is established or dropped, so
+// watchAuth re-reads immediately instead of waiting for a reload. (The native
+// `storage` event only fires in OTHER tabs, never the one doing the writing.)
+const AUTH_EVENT = "evora:auth";
 
 // The portal backend base. Empty = same-origin (when the app itself serves the
 // API, e.g. the self-hosted server). On Vercel, set NEXT_PUBLIC_PORTAL_API to the
@@ -30,7 +34,23 @@ async function mode(): Promise<Mode> {
 export const isLive = true;
 const post = (p: string, body: unknown) =>
   fetch(api(p), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-const getJSON = (p: string) => fetch(api(p), { cache: "no-store" }).then((r) => r.json());
+// The PII reads (clients / leads / projects) are now gated on an httpOnly
+// session cookie issued at sign-in. A 401 therefore means "your local session
+// predates the cookie, or it expired" — so drop the stale localStorage session
+// and let the auth watcher fall back to the login form. Without this, an admin
+// who was already signed in before the auth change would keep a local user
+// object, call load(), and render a dashboard full of error objects.
+const getJSON = async (p: string) => {
+  const r = await fetch(api(p), { cache: "no-store" });
+  if (r.status === 401) {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+      window.dispatchEvent(new Event(AUTH_EVENT));
+    } catch { /* SSR / storage blocked */ }
+    throw new Error("UNAUTHORIZED");
+  }
+  return r.json();
+};
 
 // ---- auth -----------------------------------------------------------------
 
@@ -40,6 +60,7 @@ export async function signIn(identifier: string, password: string): Promise<Port
   if (!r.ok) throw new Error("INVALID_CREDENTIALS");
   const u = (await r.json()) as PortalUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  try { window.dispatchEvent(new Event(AUTH_EVENT)); } catch { /* SSR */ }
   return u;
 }
 
@@ -48,6 +69,7 @@ export async function registerCustomer(phone: string, name: string, password: st
   if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error || "FAILED");
   const u = (await r.json()) as PortalUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  try { window.dispatchEvent(new Event(AUTH_EVENT)); } catch { /* SSR */ }
   return u;
 }
 
@@ -58,14 +80,31 @@ export async function isRegistered(phone: string): Promise<boolean> {
 export async function signOutPortal(): Promise<void> {
   if ((await mode()) === "mock") return mockBackend.signOut();
   localStorage.removeItem(SESSION_KEY);
+  // Also drop the httpOnly cookie server-side — clearing only localStorage
+  // would leave a valid session cookie behind on a shared machine.
+  try { await post("signout", {}); } catch { /* offline — local session is gone regardless */ }
+  try { window.dispatchEvent(new Event(AUTH_EVENT)); } catch { /* SSR */ }
 }
 
 export function watchAuth(cb: (u: PortalUser | null) => void): () => void {
+  const read = () => {
+    try { cb(JSON.parse(localStorage.getItem(SESSION_KEY) || "null")); } catch { cb(null); }
+  };
+  let live = true;
   (async () => {
     if ((await mode()) === "mock") return cb(mockBackend.current());
-    try { cb(JSON.parse(localStorage.getItem(SESSION_KEY) || "null")); } catch { cb(null); }
+    if (live) read();
   })();
-  return () => {};
+  // Re-read when the session changes — either in another tab (`storage`) or in
+  // this one (AUTH_EVENT, fired on sign-out and when a request comes back 401).
+  const onChange = () => { if (live) read(); };
+  window.addEventListener("storage", onChange);
+  window.addEventListener(AUTH_EVENT, onChange);
+  return () => {
+    live = false;
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(AUTH_EVENT, onChange);
+  };
 }
 
 // ---- realtime -------------------------------------------------------------
