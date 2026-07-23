@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Rise } from "@/components/motion";
-import { products as catalog, posterFor, productCopy } from "@/lib/products";
+import {
+  shopProducts,
+  shopProductCopy,
+  SHOP_CATEGORIES,
+  type ShopProduct,
+} from "@/lib/shopCatalog";
+import ShopQuickView from "@/components/ShopQuickView";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -13,6 +19,36 @@ const BADGE_AR: Record<string, string> = {
   Bestseller: "الأكثر مبيعًا",
   Limited: "إصدار محدود",
 };
+
+/* "Everything for every corner" — this grid used to render lib/products.ts,
+   which is the NINE 3D/AR pieces (GLB + USDZ) that exist only so the /showroom
+   can render them in 3D. The real catalogue is the 346 photographed pieces in
+   lib/shopCatalog.ts, so the section promising "every corner" was showing 2.6%
+   of the range. It now samples the photographed catalogue, PER_CAT from each of
+   the five categories so all five worlds are actually represented, with the
+   full range one click away. lib/products.ts is left alone — the showroom still
+   needs it for the pieces that have real geometry. */
+const PER_CAT = 4;
+
+/* The catalogue reuses names across categories — 346 products share only 222
+   names ("Waha" alone covers 9 pieces in 4 categories) — and because every
+   category's list starts at the same point in that name pool, a naive
+   first-N-per-category pick put "Marmar", "Waha" and "Nocturne" on screen
+   twice each. Pieces are still chosen in catalogue order; we just skip one
+   whose name is already on the wall, so twenty tiles read as twenty pieces. */
+const cornerPicks: ShopProduct[] = (() => {
+  const used = new Set<string>();
+  return SHOP_CATEGORIES.flatMap((c) => {
+    const picked: ShopProduct[] = [];
+    for (const p of shopProducts) {
+      if (picked.length >= PER_CAT) break;
+      if (p.category !== c || used.has(p.name)) continue;
+      used.add(p.name);
+      picked.push(p);
+    }
+    return picked;
+  });
+})();
 
 type Bi = { en: string; ar: string };
 
@@ -147,6 +183,8 @@ export default function Rooms() {
   const ar = lang === "ar";
   const reduce = useReducedMotion();
   const [active, setActive] = useState(0);
+  // the "Everything for every corner" tile the visitor opened, if any
+  const [quick, setQuick] = useState<ShopProduct | null>(null);
   const room = rooms[active];
 
   // ---- scroll-driven active room (desktop): whichever row crosses the
@@ -320,33 +358,45 @@ export default function Rooms() {
           {ar ? "كل ما يحتاجه كل ركن" : "Everything for every corner"}
         </Rise>
         <div className="rm__cat">
-          {catalog.map((p, i) => {
-            const copy = productCopy(p, lang);
+          {cornerPicks.map((p, i) => {
+            const copy = shopProductCopy(p, lang);
             return (
-              <motion.a
+              <motion.button
                 key={p.id}
-                href={`/showroom?p=${p.id}`}
+                type="button"
+                onClick={() => setQuick(p)}
                 className="rm__cat-item"
                 data-cursor="hover"
-                aria-label={p.name}
+                aria-label={`${p.name} — ${copy.tagline}`}
                 initial={reduce ? false : { opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "0px 0px -8% 0px" }}
                 transition={{ duration: 0.55, ease: EASE, delay: (i % 4) * 0.05 }}
               >
                 <div className="rm__cat-imgwrap">
-                  <img src={posterFor(p)} alt={p.name} className="rm__cat-img" loading="lazy" />
+                  <img src={p.image} alt={p.name} className="rm__cat-img" loading="lazy" />
                   {p.badge ? (
                     <span className="rm__cat-badge">{ar ? BADGE_AR[p.badge] : p.badge}</span>
                   ) : null}
                 </div>
                 <span className="rm__cat-name">{p.name}</span>
                 <span className="rm__cat-note">{copy.tagline}</span>
-              </motion.a>
+              </motion.button>
             );
           })}
         </div>
+
+        <a href="/shop" className="rm__catall" data-cursor="hover">
+          {ar
+            ? `تصفّح المجموعة كاملة — ${shopProducts.length} قطعة`
+            : `View the full collection — ${shopProducts.length} pieces`}
+          <span className="rm__parrow" aria-hidden>→</span>
+        </a>
       </div>
+
+      <AnimatePresence>
+        {quick && <ShopQuickView key={quick.id} product={quick} onClose={() => setQuick(null)} />}
+      </AnimatePresence>
 
       {/* The real catalogue from evorafuturehome.com/Products — the two Evora
           collections, each across its renders. */}
@@ -501,7 +551,20 @@ export default function Rooms() {
           font-size: 0.72rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
           color: var(--brass-2); margin-bottom: clamp(1.6rem,3vw,2.4rem); }
         .rm__cat { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1rem, 2.2vw, 1.8rem); }
-        .rm__cat-item { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
+        /* these tiles are <button> (they open the quick-view), so the browser's
+           button chrome has to be reset back to the plain tile they were as <a> */
+        .rm__cat-item { display: flex; flex-direction: column; text-decoration: none; color: var(--ink);
+          appearance: none; -webkit-appearance: none; background: none; border: 0; margin: 0;
+          padding: 0; font: inherit; text-align: start; cursor: pointer; }
+        /* centred under the grid, matching the centred .rm__taxlabel above it */
+        .rm__catall { display: flex; width: fit-content; margin-inline: auto;
+          align-items: center; gap: 0.5rem; margin-top: clamp(1.8rem, 3.5vw, 2.6rem);
+          font-family: var(--f-sans); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
+          color: var(--ink); text-decoration: none; padding-bottom: 0.35rem;
+          border-bottom: 1px solid var(--line); transition: border-color .3s, color .3s; }
+        .rm__catall:hover { color: var(--brass, #9a7b4f); border-bottom-color: currentColor; }
+        .rm__catall .rm__parrow { transition: transform .3s; }
+        .rm__catall:hover .rm__parrow { transform: translateX(4px); }
         .rm__cat-imgwrap { position: relative; overflow: hidden; border-radius: 4px; aspect-ratio: 4 / 3;
           background: var(--surface, #efece6); border: 1px solid var(--line); isolation: isolate; }
         .rm__cat-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
