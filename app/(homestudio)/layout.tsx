@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Space_Mono } from "next/font/google";
 import "./homestudio.css";
 import Toaster from "@/components/homestudio/Toaster";
+import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 // Poppins — the Evora Home Studio brand font (matches evorafuturehome.com).
 // This route group is its own root layout so the studio's dark bronze/coral
@@ -35,6 +36,7 @@ export default function HomeStudioLayout({
       className={`${poppins.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ChunkErrorRecovery />
         {children}
         <Toaster />
       </body>

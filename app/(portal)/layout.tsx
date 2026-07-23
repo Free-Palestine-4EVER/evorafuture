@@ -5,6 +5,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { PortalAuthProvider } from "@/lib/portal/auth";
 import OfflineReady from "@/components/portal/OfflineReady";
 import OneSignalInit from "@/components/portal/OneSignalInit";
+import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 /* Third root layout (route group "(portal)") for the Client Portal and Admin
  * dashboard. Lean chrome — fonts + i18n + auth, no heavy 3D / smooth-scroll.
@@ -40,6 +41,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* The portal is a tool, not the cinematic marketing site — always show a
             normal cursor (globals.css hides it for the custom-cursor on the site). */}
         <style>{`body, body * { cursor: auto; } a, button, [role="button"], label, select { cursor: pointer; } input, textarea { cursor: text; }`}</style>
+        <ChunkErrorRecovery />
         <I18nProvider>
           <PortalAuthProvider>
             {children}

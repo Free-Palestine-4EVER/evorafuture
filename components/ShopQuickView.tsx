@@ -15,39 +15,11 @@ const CAT_AR: Record<Category, string> = {
   Storage: "التخزين",
   Bedroom: "غرف النوم",
 };
-const FINISH_AR: Record<string, string> = {
-  "As shown": "كما هو",
-  Oat: "شوفان",
-  Bone: "عاجي",
-  Sage: "مريمية",
-  Olive: "زيتي",
-  Slate: "رمادي",
-  Clay: "طيني",
-  Ink: "حبري",
-  Tan: "بني فاتح",
-  Cognac: "كونياك",
-  Saddle: "سرج",
-  Espresso: "إسبريسو",
-  Oxblood: "عنّابي",
-  Black: "أسود",
-  // featured signature pieces
-  Navy: "كحلي",
-  Champagne: "شمبانيا",
-  Gray: "رمادي",
-  "Pale Pink": "وردي فاتح",
-  Carrara: "كرارا",
-  Sand: "رملي",
-  Graphite: "غرافيت",
-  Onyx: "أونيكس",
-  "Mango Velvet": "مخمل مانجو",
-  "Peacock Velvet": "مخمل طاووسي",
-};
 const BADGE_AR: Record<string, string> = {
   New: "جديد",
   Bestseller: "الأكثر مبيعًا",
   Limited: "محدود",
 };
-const finishLabel = (n: string, lang: Lang) => (lang === "ar" ? FINISH_AR[n] ?? n : n);
 const catLabel = (c: Category, lang: Lang) => (lang === "ar" ? CAT_AR[c] : c);
 
 export default function ShopQuickView({
@@ -63,16 +35,12 @@ export default function ShopQuickView({
   // The popup owns a "current" piece so the "Complete the room" rail can swap
   // content in place without unmounting the dialog.
   const [current, setCurrent] = useState(product);
-  // Which finish is selected — decorative only (no live re-render), it just
-  // names the pick for the enquiry message since these are single photographs.
-  const [color, setColor] = useState(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Parent opened a different piece → follow it.
   useEffect(() => setCurrent(product), [product]);
-  // New piece → reset to its as-shown finish and scroll the panel back up.
+  // New piece → scroll the panel back up.
   useEffect(() => {
-    setColor(0);
     scrollRef.current?.scrollTo({ top: 0 });
   }, [current.id]);
 
@@ -87,8 +55,6 @@ export default function ShopQuickView({
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
-
-  const pickColor = (i: number) => setColor(i);
 
   // Swap the popup content in place — the dialog stays mounted (stable key in
   // the parent), the image swaps to the new piece.
@@ -132,6 +98,7 @@ export default function ShopQuickView({
         {/* stage — the catalogue photograph, swaps with the current piece */}
         <div className="qv-stage">
           <img key={current.id} src={current.image} alt={current.name} className="qv-stage-img" />
+          <span className="qv-wm" aria-hidden />
         </div>
 
         {/* Info */}
@@ -142,26 +109,6 @@ export default function ShopQuickView({
             <h2 className="display qv-name">{current.name}</h2>
             <p className="qv-tagline">{copy.tagline}</p>
             <p className="qv-desc">{copy.description}</p>
-
-            <div className="qv-finish">
-              <span className="qv-label">
-                {t("qv_finish")} — {finishLabel(current.colorways[color].name, lang)}
-              </span>
-              <div className="qv-dots">
-                {current.colorways.map((c, i) => (
-                  <button
-                    key={c.name}
-                    className={`qv-swatch${i === color ? " on" : ""}`}
-                    style={{ background: c.hex }}
-                    onClick={() => pickColor(i)}
-                    data-cursor="hover"
-                    aria-pressed={i === color}
-                    aria-label={finishLabel(c.name, lang)}
-                    title={finishLabel(c.name, lang)}
-                  />
-                ))}
-              </div>
-            </div>
 
             <dl className="qv-specs">
               <div>
@@ -192,15 +139,10 @@ export default function ShopQuickView({
                       onClick={() => swapTo(p)} aria-label={p.name}>
                       <span className="qv-mini-img">
                         <img src={p.image} alt={p.name} loading="lazy" />
+                        <span className="qv-mini-wm" aria-hidden />
                       </span>
                       <span className="qv-mini-name display">{p.name}</span>
                       <span className="qv-mini-tag">{productCopy(p, lang).tagline}</span>
-                      <span className="qv-mini-swatches" aria-hidden>
-                        {p.colorways.slice(0, 3).map((c) => (
-                          <span key={c.name} className="qv-mini-swatch" style={{ background: c.hex }} />
-                        ))}
-                        <span className="qv-mini-finish">{finishLabel(p.colorways[0].name, lang)}</span>
-                      </span>
                     </button>
                   ))}
                 </div>
@@ -213,12 +155,11 @@ export default function ShopQuickView({
               <button type="button" onClick={openStartProject} className="qv-btn qv-btn-dark" data-cursor="hover">
                 {t("shop_add_design")}
               </button>
-            </div>
-            <div className="qv-cta-sub">
-              <a href={waEnquire} target="_blank" rel="noopener noreferrer" className="qv-link" data-cursor="hover">
+              <a href={waEnquire} target="_blank" rel="noopener noreferrer" className="qv-btn qv-btn-ghost" data-cursor="hover">
                 {t("shop_enquire")}
               </a>
-              <span aria-hidden>·</span>
+            </div>
+            <div className="qv-cta-sub">
               <a href="/visit" className="qv-link" data-cursor="hover">
                 {t("shop_showroom_cta")}
               </a>
@@ -235,6 +176,7 @@ export default function ShopQuickView({
 
         .qv-stage { position: relative; background: linear-gradient(165deg, #fff, var(--bone, #efe9dd)); border-inline-end: 1px solid var(--line-soft, rgba(0,0,0,0.07)); min-height: 340px; overflow: hidden; }
         .qv-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .qv-wm { position: absolute; bottom: 1rem; inset-inline-end: 1rem; width: 26px; height: 26px; background-color: rgba(255,255,255,0.94); -webkit-mask: url('/brand/evora-monogram.svg') center / contain no-repeat; mask: url('/brand/evora-monogram.svg') center / contain no-repeat; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4)); pointer-events: none; }
 
         .qv-info { display: flex; flex-direction: column; min-height: 0; }
         .qv-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: clamp(1.6rem, 3vw, 2.6rem); padding-bottom: 1rem; }
@@ -264,6 +206,7 @@ export default function ShopQuickView({
         .qv-mini { display: block; text-align: start; background: none; border: none; padding: 0; cursor: none; font: inherit; color: inherit; }
         .qv-mini-img { display: block; position: relative; aspect-ratio: 4/3; overflow: hidden; border-radius: 4px; background: var(--bone, #efe9dd); }
         .qv-mini-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .9s var(--ease); }
+        .qv-mini-wm { position: absolute; bottom: 0.35rem; inset-inline-end: 0.35rem; width: 14px; height: 14px; background-color: rgba(255,255,255,0.94); -webkit-mask: url('/brand/evora-monogram.svg') center / contain no-repeat; mask: url('/brand/evora-monogram.svg') center / contain no-repeat; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); pointer-events: none; }
         .qv-mini:hover .qv-mini-img img { transform: scale(1.07); }
         .qv-mini-name { display: block; font-size: 1.05rem; color: var(--ink, #1c1815); margin: 0.5rem 0 0.1rem; }
         .qv-mini-tag { display: block; font-size: 0.76rem; color: var(--ink-faint, #8a857c); }

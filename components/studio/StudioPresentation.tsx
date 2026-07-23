@@ -191,8 +191,7 @@ export default function StudioPresentation() {
   const en = lang === "en";
   const reduce = useReducedMotion();
 
-  // staff tool + portal links sell the experience without a price anywhere.
-  const openStudio = en ? "Open the Studio" : "افتح الاستوديو";
+  // portal link sells the experience without a price anywhere.
   const seeDesigns = en ? "See your designs" : "شاهد تصاميمك";
 
   // What the Studio does — verbatim from studioSpec.featuresEN / featuresAR
@@ -243,9 +242,6 @@ export default function StudioPresentation() {
           <Rise className="studio-hero__cta" delay={0.32} y={20}>
             <a href="/visit" className="btn btn-brass">
               {t("studio_cta")} <span className="arrow">→</span>
-            </a>
-            <a href="/evora3dstudio" className="studio-quiet">
-              {openStudio} <span className="arrow">→</span>
             </a>
           </Rise>
         </div>
@@ -428,13 +424,6 @@ export default function StudioPresentation() {
                 {seeDesigns} <span className="arrow">→</span>
               </a>
             </Rise>
-
-            <div className="studio-close__staff">
-              <span>{en ? "Evora team" : "فريق إيفورا"}</span>
-              <a href="/evora3dstudio" className="studio-quiet">
-                {openStudio} <span className="arrow">→</span>
-              </a>
-            </div>
           </div>
         </div>
       </section>

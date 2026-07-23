@@ -100,7 +100,16 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   useEffect(() => { resolveFrameExt().then(setPosterExt); }, []);
 
   useEffect(() => {
-    if (reduce) return; // reduced motion renders a static poster, no scrub
+    // NOTE: the scrub deliberately does NOT bail out under prefers-reduced-motion.
+    // Nothing here moves on its own — every frame change is driven directly by
+    // the user's own scroll, which is not the autoplaying/parallax motion that
+    // reduced-motion protects against. Bailing out here used to blank the film
+    // into a dead poster for anyone whose OS *or browser* reports "reduce" —
+    // including every Chrome laptop running Battery/Energy Saver, which forces
+    // prefers-reduced-motion: reduce regardless of what the user chose. That
+    // turned the entire hero into a still image on ordinary laptops.
+    // Reduced motion is honoured by dropping the AUTOPLAYING copy animations
+    // instead (see reduceCopy below).
     const canvas = canvasRef.current;
     const section = sectionRef.current;
     if (!canvas || !section) return;
@@ -388,21 +397,6 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     // variant is the only real input; device is handled live inside the effect.
   }, [variant, reduce]);
 
-  // ----- reduced motion: a calm static hero, no scrub -----
-  if (reduce) {
-    return (
-      <section id="top" className="hs hs--static">
-        <picture>
-          <source media="(max-width: 768px)" srcSet={mobileStack(posterExt).src(1)} />
-          <img src={desktopStack(variant, posterExt).src(1)} alt="" className="hs__poster" fetchPriority="high" />
-        </picture>
-        <div className="hs__scrim" />
-        <HeroCopy t={t} lang={lang} ease={ease} staticMode />
-        <style>{heroCss}</style>
-      </section>
-    );
-  }
-
   return (
     <section id="top" ref={sectionRef} className={`hs hs--${variant}`}>
       <div className="hs__sticky" ref={stickyRef}>
@@ -428,15 +422,15 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
         <div className="hero__top" />
 
         <div ref={copyRef} className="hs__copy">
-          <HeroCopy t={t} lang={lang} ease={ease} />
+          <HeroCopy t={t} lang={lang} ease={ease} staticMode={!!reduce} />
         </div>
 
         <motion.div
           ref={hintRef}
           className="hero__scroll hs__scroll"
-          initial={{ opacity: 0 }}
+          initial={{ opacity: reduce ? 1 : 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.9, ease, delay: 1.3 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.9, ease, delay: 1.3 }}
         >
           <span>{t("scroll")}</span>
           <span className="hero__scroll-line" />
@@ -465,15 +459,23 @@ function HeroCopy({
   ease: readonly [number, number, number, number];
   staticMode?: boolean;
 }) {
-  const up = {
-    hidden: { y: "108%" },
-    show: (i: number) => ({ y: "0%", transition: { duration: 1.0, ease, delay: 0.35 + i * 0.1 } }),
-  };
-  const fade = (delay: number) => ({
-    initial: { opacity: 0, y: 18 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.9, ease, delay },
-  });
+  // staticMode = the visitor prefers reduced motion. The scroll-driven film
+  // still scrubs (it only moves when they move), but the copy stops performing
+  // its own entrance: it is simply there, already in place, on first paint.
+  const up = staticMode
+    ? { hidden: { y: "0%" }, show: () => ({ y: "0%", transition: { duration: 0 } }) }
+    : {
+        hidden: { y: "108%" },
+        show: (i: number) => ({ y: "0%", transition: { duration: 1.0, ease, delay: 0.35 + i * 0.1 } }),
+      };
+  const fade = (delay: number) =>
+    staticMode
+      ? { initial: { opacity: 1, y: 0 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
+      : {
+          initial: { opacity: 0, y: 18 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.9, ease, delay },
+        };
 
   return (
     <div className="hero__content hs__content">

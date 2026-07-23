@@ -1,16 +1,18 @@
 // Cloud sync for the Evora 3D Home Studio.
 // The studio runs inside the same Next app as the client portal, so the portal
-// API is same-origin (/api/portal/*). This talks to the shared projects store:
-//   • sign in as an Evora designer (e.g. bakri@evorafuture.com)
+// API is same-origin (/api/portal/*). Auth is handled once, at the page level
+// (the studio route is gated behind an admin login — see evora3dstudio/page.tsx)
+// — this module does NOT sign in separately. It talks to the shared projects
+// store to:
 //   • save / open the current studio room to the database (re-editable)
 //   • pull LiDAR room scans the mobile app uploaded, straight into the studio
+//   • assign a scan or a saved room to the client it belongs to
 
 import type { ProjectFile } from "./store";
 import type { Project, PortalUser } from "@/lib/portal/types";
 import { scanToProject, type ScanFile } from "./importScan";
 
 const API = "/api/portal";
-const SESSION_KEY = "evora-studio-user";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}/${path}`, {
@@ -24,51 +26,47 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ---- auth (persisted in localStorage so a refresh keeps you signed in) -------
-
-export function currentUser(): PortalUser | null {
-  if (typeof localStorage === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
-}
-
-export async function signIn(identifier: string, password: string): Promise<PortalUser> {
-  const user = await api<PortalUser>("signin", {
-    method: "POST",
-    body: JSON.stringify({ identifier, password }),
-  });
-  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-  return user;
-}
-
-export function signOut() {
-  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
-}
-
 // ---- projects ---------------------------------------------------------------
 
 export async function listProjects(): Promise<Project[]> {
   return api<Project[]>("projects");
 }
 
+export async function listClients(): Promise<PortalUser[]> {
+  return api<PortalUser[]>("clients");
+}
+
 // Save the current studio room to the database. Reuses the same DB id on
-// re-save so a project is updated in place, not duplicated.
+// re-save so a project is updated in place, not duplicated. `owner` is
+// whichever client this room belongs to; pass the signed-in staff member for
+// a work-in-progress room that hasn't been assigned to a client yet.
 export async function saveProject(opts: {
   id?: string;
   title: string;
   doc: ProjectFile;
-  user: PortalUser;
+  owner: PortalUser;
 }): Promise<Project> {
   const payload: Partial<Project> = {
     id: opts.id,
     title: opts.title || "Untitled room",
-    ownerUid: opts.user.uid,
-    ownerPhone: opts.user.phone || "",
-    ownerName: opts.user.name,
+    ownerUid: opts.owner.uid,
+    ownerPhone: opts.owner.phone || "",
+    ownerName: opts.owner.name,
     status: "draft",
     studioDoc: JSON.stringify(opts.doc),
     thumbnailUrl: opts.doc.planImage || undefined,
   };
   return api<Project>("projects", { method: "POST", body: JSON.stringify(payload) });
+}
+
+// Re-point an existing project (a scan or a saved room) at a different
+// client — the piece staff need to "assign an edit to a client" once a scan
+// comes in under the wrong owner, or a draft room is ready to hand off.
+export async function assignProject(id: string, client: PortalUser): Promise<Project> {
+  return api<Project>("projects", {
+    method: "POST",
+    body: JSON.stringify({ id, ownerUid: client.uid, ownerPhone: client.phone || "", ownerName: client.name }),
+  });
 }
 
 export async function deleteProject(id: string): Promise<void> {

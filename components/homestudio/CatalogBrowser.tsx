@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CATALOG } from "@/lib/homestudio/catalog";
 import { CATEGORY_ORDER } from "@/lib/homestudio/catalogData";
 import { useStudio } from "@/lib/homestudio/store";
@@ -129,6 +129,34 @@ export default function CatalogBrowser({
   );
 }
 
+// Only an <img> that's actually near the viewport gets a `src` — mounted AND
+// unmounted as it scrolls in/out (not just deferred once, like `loading="lazy"`).
+// With ~185 catalog items this sits on top of the Studio's live WebGL canvas at
+// the same time, and decoding the whole grid at once was crashing mobile Safari
+// (its per-tab memory ceiling is far tighter than desktop Chrome's) — same bug
+// class as the /catalog flipbook's BookMode windowing fix, applied here too.
+function WindowedThumb({ src, alt }: { src: string; alt: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
+      root: el.closest('[class*="overflow-auto"]'),
+      rootMargin: "600px 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="h-full w-full">
+      {visible && <img src={src} alt={alt} className="h-full w-full object-contain" loading="lazy" />}
+    </div>
+  );
+}
+
 function Card({ product, active, onPick }: { product: Product; active: boolean; onPick: () => void }) {
   const { w, d, h } = product.dimensions_mm;
   return (
@@ -141,8 +169,7 @@ function Card({ product, active, onPick }: { product: Product; active: boolean; 
     >
       <div className="flex aspect-square items-center justify-center bg-paper p-2">
         {product.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.thumbnailUrl} alt={product.name} className="h-full w-full object-contain" loading="lazy" />
+          <WindowedThumb src={product.thumbnailUrl} alt={product.name} />
         ) : (
           <div
             className="flex h-full w-full items-center justify-center rounded text-2xl font-display text-white/80"

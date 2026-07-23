@@ -6,7 +6,6 @@ import {
   useState,
   type VideoHTMLAttributes,
 } from "react";
-import { useReducedMotion } from "framer-motion";
 
 /**
  * ResponsiveVideo — a full-bleed background <video> that automatically prefers
@@ -17,8 +16,14 @@ import { useReducedMotion } from "framer-motion";
  * to that file on mount; if it 404s (not supplied yet) the onError handler
  * falls back to the desktop `src` exactly once, so nothing ever breaks.
  *
- * Respects prefers-reduced-motion: shows the poster (or a paused first frame)
- * with no autoplay.
+ * These films are CONTENT, not decoration, so they are NOT gated on
+ * prefers-reduced-motion. That gate used to swap every one of them for a still
+ * poster — and because Chrome's Battery/Energy Saver forces
+ * prefers-reduced-motion: reduce on any laptop it kicks in on, ordinary
+ * visitors on battery saw a completely frozen site. They stay muted, looping
+ * and inert (no flashing, no parallax); genuine motion-sensitivity concerns are
+ * handled by the reduced-motion rules in globals.css, which still disable the
+ * site's autoplaying entrance/parallax animations.
  */
 
 const MOBILE_QUERY = "(max-width: 768px)";
@@ -41,7 +46,6 @@ export default function ResponsiveVideo({
   style,
   ...videoProps
 }: Props) {
-  const reduce = useReducedMotion();
   // Start from the desktop src so SSR + first client render agree (no hydration
   // mismatch); the effect upgrades to the -mobile source on phones.
   const [activeSrc, setActiveSrc] = useState(src);
@@ -64,7 +68,6 @@ export default function ResponsiveVideo({
 
   // fetch + play only within ~800px of the viewport; pause when far off-screen
   useEffect(() => {
-    if (reduce) return;
     const el = videoRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -80,13 +83,13 @@ export default function ResponsiveVideo({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [reduce]);
+  }, []);
 
   // the src attaches on the render after `near` flips — start playback then
   useEffect(() => {
-    if (!near || reduce) return;
+    if (!near) return;
     videoRef.current?.play().catch(() => {});
-  }, [near, activeSrc, reduce]);
+  }, [near, activeSrc]);
 
   const handleError = () => {
     // The -mobile file isn't there yet → fall back to the desktop file once.
@@ -103,27 +106,6 @@ export default function ResponsiveVideo({
     display: "block",
     ...style,
   };
-
-  // Reduced motion: never autoplay — present a still poster frame instead.
-  if (reduce) {
-    if (poster) {
-      // eslint-disable-next-line @next/next/no-img-element
-      return <img src={poster} alt="" loading="lazy" decoding="async" className={className} style={fill} />;
-    }
-    return (
-      <video
-        {...videoProps}
-        className={className}
-        style={fill}
-        src={activeSrc}
-        poster={poster}
-        muted
-        playsInline
-        preload="metadata"
-        autoPlay={false}
-      />
-    );
-  }
 
   return (
     <video

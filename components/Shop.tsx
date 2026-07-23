@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useT, type Lang } from "@/lib/i18n";
 import { shopProducts as products, shopProductCopy as productCopy, type ShopCategory as Category, type ShopProduct as Product } from "@/lib/shopCatalog";
 import {
@@ -30,6 +30,11 @@ const catLabel = (c: Category, lang: Lang) => (lang === "ar" ? CAT_AR[c] : c);
 
 type Sort = "featured" | "az";
 
+// The catalogue runs into the hundreds of pieces — render them a page at a
+// time instead of one giant list, or the grid runs to 50,000+ px tall on a
+// single mobile column.
+const PAGE_SIZE = 24;
+
 // Plain left-click (no modifier) — so tabs filter in place, but cmd/ctrl/middle
 // click still opens the real /shop/<slug> URL in a new tab.
 const plainClick = (e: React.MouseEvent) =>
@@ -48,6 +53,7 @@ export default function Shop({ seed }: { seed?: string }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
   const [open, setOpen] = useState<Product | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -78,6 +84,10 @@ export default function Shop({ seed }: { seed?: string }) {
     }
   };
   const staggerKey = `${seedSlug ?? "all"}|${active}|${sort}|${query}`;
+  // any change to what's being shown starts back at page one
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [staggerKey]);
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   // header copy — taxonomy label when seeded, default catalogue copy otherwise
   const eyebrow = node
@@ -183,33 +193,37 @@ export default function Shop({ seed }: { seed?: string }) {
 
             {/* grid — keyed so it re-staggers on any filter/sort/search change */}
             {filtered.length > 0 ? (
-              <Stagger key={staggerKey} className="shop-grid" gap={0.045}>
-                {filtered.map((p) => (
-                  <StaggerItem key={p.id} y={22}>
-                    <button type="button" className="shop-card" data-cursor="hover" onClick={() => setOpen(p)}
-                      aria-label={`${t("shop_quickview")} — ${p.name}`}>
-                      <div className="shop-card-img">
-                        <img src={p.image} alt={p.name} loading="lazy" />
-                        {p.badge && <span className="shop-badge">{lang === "ar" ? BADGE_AR[p.badge] : p.badge}</span>}
-                        <span className="shop-qv">{t("shop_quickview")} <span aria-hidden>↗</span></span>
-                      </div>
-                      <div className="shop-card-meta">
-                        <div className="shop-card-head">
-                          <span className="shop-cat">{catLabel(p.category, lang)}</span>
+              <>
+                <Stagger key={staggerKey} className="shop-grid" gap={0.045}>
+                  {visible.map((p) => (
+                    <StaggerItem key={p.id} y={22}>
+                      <button type="button" className="shop-card" data-cursor="hover" onClick={() => setOpen(p)}
+                        aria-label={`${t("shop_quickview")} — ${p.name}`}>
+                        <div className="shop-card-img">
+                          <img src={p.image} alt={p.name} loading="lazy" />
+                          {p.badge && <span className="shop-badge">{lang === "ar" ? BADGE_AR[p.badge] : p.badge}</span>}
+                          <span className="shop-qv">{t("shop_quickview")} <span aria-hidden>↗</span></span>
+                          <span className="shop-wm" aria-hidden />
                         </div>
-                        <h3 className="shop-name display">{p.name}</h3>
-                        <p className="shop-tag">{productCopy(p, lang).tagline}</p>
-                        <div className="shop-swatches" aria-hidden>
-                          {p.colorways.slice(0, 5).map((c) => (
-                            <span key={c.name} className="shop-swatch" style={{ background: c.hex }} />
-                          ))}
-                          <span className="shop-swatch-n">{p.colorways.length} {t("shop_finishes")}</span>
+                        <div className="shop-card-meta">
+                          <div className="shop-card-head">
+                            <span className="shop-cat">{catLabel(p.category, lang)}</span>
+                          </div>
+                          <h3 className="shop-name display">{p.name}</h3>
+                          <p className="shop-tag">{productCopy(p, lang).tagline}</p>
                         </div>
-                      </div>
+                      </button>
+                    </StaggerItem>
+                  ))}
+                </Stagger>
+                {hasMore && (
+                  <div className="shop-more">
+                    <button type="button" className="shop-more-btn" data-cursor="hover" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                      {t("shop_load_more")} <span className="shop-more-n">({filtered.length - visibleCount})</span>
                     </button>
-                  </StaggerItem>
-                ))}
-              </Stagger>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="shop-empty">
                 <p>{t("shop_no_results")}</p>
@@ -256,6 +270,7 @@ export default function Shop({ seed }: { seed?: string }) {
         .shop-badge { position: absolute; top: 0.8rem; inset-inline-start: 0.8rem; background: rgba(251,247,240,0.92); backdrop-filter: blur(6px); color: var(--ink); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; padding: 0.35em 0.7em; border-radius: 100px; }
         .shop-qv { position: absolute; bottom: 0.8rem; inset-inline-start: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; background: var(--ink); color: var(--paper); font-size: 0.72rem; font-weight: 500; padding: 0.55em 0.9em; border-radius: 100px; opacity: 0; transform: translateY(8px); transition: opacity .4s var(--ease), transform .4s var(--ease); }
         .shop-card:hover .shop-qv { opacity: 1; transform: translateY(0); }
+        .shop-wm { position: absolute; bottom: 0.6rem; inset-inline-end: 0.6rem; width: 20px; height: 20px; background-color: rgba(255,255,255,0.94); -webkit-mask: url('/brand/evora-monogram.svg') center / contain no-repeat; mask: url('/brand/evora-monogram.svg') center / contain no-repeat; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4)); pointer-events: none; }
         .shop-card-meta { padding: 0.95rem 0.1rem 0; }
         .shop-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
         .shop-cat { font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
@@ -264,6 +279,11 @@ export default function Shop({ seed }: { seed?: string }) {
         .shop-swatches { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.7rem; }
         .shop-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); box-shadow: inset 0 0 0 1.5px var(--paper); }
         .shop-swatch-n { margin-inline-start: 0.35rem; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+
+        .shop-more { display: flex; justify-content: center; margin-top: clamp(2.4rem, 5vw, 3.6rem); }
+        .shop-more-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 100px; padding: 0.85rem 1.8rem; font-size: 0.86rem; font-weight: 500; cursor: none; min-height: 44px; transition: border-color .3s var(--ease), background .3s var(--ease); }
+        .shop-more-btn:hover { border-color: var(--ink); background: var(--bone); }
+        .shop-more-n { color: var(--ink-faint); font-size: 0.8rem; }
 
         .shop-empty { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 5rem 0; text-align: center; color: var(--ink-faint); }
         .shop-empty p { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink-soft); margin: 0; }

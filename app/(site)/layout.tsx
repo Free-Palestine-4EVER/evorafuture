@@ -8,6 +8,7 @@ import WhatsappCTA from "@/components/WhatsappCTA";
 import ScrollProgress from "@/components/ScrollProgress";
 import StartProjectModal from "@/components/StartProjectHost";
 import Loader from "@/components/brand/Loader";
+import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 // Bold modern luxury — a confident display grotesk for headlines.
 const display = Bricolage_Grotesque({
@@ -62,6 +63,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable}`}>
       <body>
         <I18nProvider>
+          <ChunkErrorRecovery />
           <Loader />
           <SmoothScroll />
           <ScrollProgress />

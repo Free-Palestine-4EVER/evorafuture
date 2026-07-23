@@ -61,6 +61,7 @@ export const STR = {
   shop_sort_az: { en: "Name · A–Z", ar: "الاسم · أ–ي" },
   shop_quickview: { en: "Quick view", ar: "عرض سريع" },
   shop_finishes: { en: "finishes", ar: "تشطيبات" },
+  shop_load_more: { en: "Load more", ar: "عرض المزيد" },
   shop_no_results: { en: "No pieces match your search.", ar: "لا توجد قطع تطابق بحثك." },
   shop_clear: { en: "Clear filters", ar: "إعادة ضبط" },
   qv_close: { en: "Close", ar: "إغلاق" },

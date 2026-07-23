@@ -11,8 +11,50 @@ import ExportMenu from "@/components/homestudio/ExportMenu";
 import ProjectIO from "@/components/homestudio/ProjectIO";
 import CloudPanel from "@/components/homestudio/CloudPanel";
 import KeyboardShortcuts from "@/components/homestudio/KeyboardShortcuts";
+import { I18nProvider } from "@/lib/i18n";
+import { PortalAuthProvider, usePortalAuth } from "@/lib/portal/auth";
+import LoginForm from "@/components/portal/LoginForm";
+
+/* ============================================================
+   Access gate — the Studio is a staff tool, not a public page.
+   Same login system (and the exact unauth pattern) as
+   /admindashboard: no session yet → a lock-screen splash; no
+   admin session → the branded admin sign-in door; only a valid
+   admin session renders the actual studio below. This is the
+   only auth check added to this route — everything from
+   EvoraHomeStudioApp() down is the untouched studio.
+   ============================================================ */
+function StudioSplash() {
+  return (
+    <main className="flex h-screen flex-col items-center justify-center gap-3 bg-paper text-ink">
+      <span className="wordmark-gold font-display text-[22px] font-semibold leading-none tracking-[0.16em]">
+        ƎVORΛ
+      </span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-faint">
+        Checking staff session…
+      </span>
+    </main>
+  );
+}
+
+function StudioGate() {
+  const { user, loading } = usePortalAuth();
+  if (loading) return <StudioSplash />;
+  if (!user || user.role !== "admin") return <LoginForm variant="admin" />;
+  return <EvoraHomeStudioApp />;
+}
 
 export default function EvoraHomeStudio() {
+  return (
+    <I18nProvider>
+      <PortalAuthProvider>
+        <StudioGate />
+      </PortalAuthProvider>
+    </I18nProvider>
+  );
+}
+
+function EvoraHomeStudioApp() {
   const planImage = useStudio((s) => s.planImage);
   const roomScan = useStudio((s) => s.roomScan);
   const selectedId = useStudio((s) => s.selectedId);

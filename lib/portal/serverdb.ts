@@ -85,10 +85,10 @@ function ensureWatch() {
 export async function bootstrap(): Promise<void> {
   ensureWatch();
   const users = await allUsers();
-  if (!users.some((u) => emailNorm(u.email || "") === "bakri@evorafuture.com")) {
+  if (!users.some((u) => emailNorm(u.email || "") === "bakri@evorahome.online")) {
     const uid = "staff-bakri";
     await rtdb().ref(`users/${uid}`).set(clean({
-      uid, phone: "", email: "bakri@evorafuture.com", name: "Bakri", role: "admin", password: hashPw("alhamdulillah"),
+      uid, phone: "", email: "bakri@evorahome.online", name: "Bakri", role: "admin", password: hashPw("bakri123"),
     }));
   }
 }

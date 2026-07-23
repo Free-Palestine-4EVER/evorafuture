@@ -14,7 +14,6 @@ export default function ProjectViewer({
   onApprove?: (p: Project) => void;
 }) {
   const { lang } = useT();
-  const [tab, setTab] = useState<"3d" | "2d">(project.viewerUrl || project.model3dUrl || project.usdzUrl ? "3d" : "2d");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -46,7 +45,7 @@ export default function ProjectViewer({
       }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(1040px, 100%)", maxHeight: "92dvh", overflow: "auto", background: "var(--paper)",
+          width: has3d && project.plan2dUrl ? "min(1280px, 100%)" : "min(1040px, 100%)", maxHeight: "92dvh", overflow: "auto", background: "var(--paper)",
           borderRadius: 18, boxShadow: "0 40px 120px rgba(0,0,0,0.35)", display: "flex", flexDirection: "column",
         }}>
         <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "1.4rem 1.6rem 1rem", gap: "1rem", borderBottom: "1px solid var(--line-soft)" }}>
@@ -60,63 +59,94 @@ export default function ProjectViewer({
             style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 999, border: "1px solid var(--line)", background: "transparent", cursor: "pointer", fontSize: "1.1rem", color: "var(--ink)" }}>✕</button>
         </header>
 
-        <div style={{ display: "flex", gap: "0.5rem", padding: "0.9rem 1.6rem 0" }}>
-          {has3d && <Tab active={tab === "3d"} onClick={() => setTab("3d")}>{tp("view_3d", lang)}</Tab>}
-          {project.plan2dUrl && <Tab active={tab === "2d"} onClick={() => setTab("2d")}>{tp("view_2d", lang)}</Tab>}
-        </div>
-
-        <style>{`@keyframes evoraSpin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`
+          @keyframes evoraSpin { to { transform: rotate(360deg); } }
+          .pv-stage-row { display: flex; gap: 1rem; }
+          .pv-plan-pane { width: 320px; flex-shrink: 0; }
+          .pv-3d-pane { flex: 1; min-width: 0; }
+          @media (max-width: 780px) {
+            .pv-stage-row { flex-direction: column; }
+            .pv-plan-pane { width: 100%; }
+          }
+        `}</style>
         <div style={{ padding: "1rem 1.6rem", flex: 1 }}>
-          <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: "radial-gradient(120% 120% at 50% 30%, #faf8f4 0%, #ece7df 100%)", borderRadius: 12, overflow: "hidden" }}>
-            {tab === "3d" && project.viewerUrl && (
-              <iframe src={project.viewerUrl} title={project.title} allow="fullscreen; xr-spatial-tracking"
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} />
-            )}
-            {tab === "3d" && !project.viewerUrl && project.model3dUrl && (
-              <>
-                {/* spinnable furnished room, self-hosted model-viewer */}
-                <model-viewer src={project.model3dUrl} ios-src={project.usdzUrl} camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
-                  tone-mapping="neutral" shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05"
-                  camera-orbit="40deg 68deg 105%" min-camera-orbit="auto 0deg auto" max-camera-orbit="auto 95deg auto"
-                  rotation-per-second="22deg" auto-rotate-delay="600" interaction-prompt="none"
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", "--poster-color": "transparent" } as React.CSSProperties} />
-                <span style={{ position: "absolute", bottom: 12, insetInlineStart: 12, padding: "0.4em 0.85em", borderRadius: 999, background: "rgba(22,21,15,0.7)", color: "#fff", fontSize: "0.72rem", letterSpacing: "0.04em", pointerEvents: "none", display: "flex", alignItems: "center", gap: "0.4em" }}>
-                  <span style={{ display: "inline-block", animation: "evoraSpin 3s linear infinite" }}>↻</span> {lang === "ar" ? "اسحب لتدوير الغرفة" : "Drag to spin your room"}
-                </span>
-              </>
-            )}
-            {/* USDZ-only (real LiDAR scan, no web GLB yet): AR on iPhone/iPad + download everywhere */}
-            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && project.usdzUrl && (
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem" }}>
-                <div style={{ display: "grid", gap: "0.9rem", justifyItems: "center" }}>
-                  <div style={{ fontSize: "2.4rem", opacity: 0.75 }}>◳</div>
-                  <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--ink)", fontWeight: 600 }}>
-                    {ar ? "تم التقاط الغرفة ثلاثية الأبعاد بالليدار" : "3D room captured by LiDAR"}
-                  </p>
-                  {/* AR Quick Look on iOS Safari needs the single <img> child */}
-                  <a rel="ar" href={project.usdzUrl}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "0.5em", padding: "0.7rem 1.2rem", borderRadius: 999, background: "var(--ink)", color: "#fff", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none" }}>
-                    <img alt="" width={1} height={1} style={{ opacity: 0, position: "absolute", pointerEvents: "none" }} src={project.plan2dUrl || project.thumbnailUrl || project.usdzUrl} />
-                    ⛶ {ar ? "عرض في مساحتك (AR)" : "View in your space (AR)"}
-                  </a>
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--ink-faint)" }}>
-                    {ar ? "على آيفون/آيباد. أو نزّل الموديل بالأسفل." : "on iPhone / iPad — or download the model below."}
-                  </p>
+          {/* 2D plan (left sidebar) + 3D room (right, main) shown together — no
+              more switching tabs back and forth between the plan and the room. */}
+          <div className="pv-stage-row">
+            {project.plan2dUrl && (
+              <div className="pv-plan-pane">
+                <p style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.5rem" }}>{tp("view_2d", lang)}</p>
+                <div style={{ position: "relative", width: "100%", aspectRatio: has3d ? "3/4" : "4/3", background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid var(--line-soft)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={project.plan2dUrl} alt={project.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} />
                 </div>
               </div>
             )}
-            {tab === "3d" && !project.viewerUrl && !project.model3dUrl && !project.usdzUrl && (
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem", color: "var(--ink-faint)" }}>
-                <div>
-                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem", opacity: 0.5 }}>◳</div>
-                  <p style={{ margin: 0, fontSize: "0.9rem" }}>{ar ? "نموذجك ثلاثي الأبعاد قيد التحضير" : "Your 3D room is being prepared"}</p>
+
+            {has3d && (
+              <div className="pv-3d-pane">
+                <p style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.5rem" }}>{tp("view_3d", lang)}</p>
+                <div style={{ position: "relative", width: "100%", aspectRatio: project.plan2dUrl ? "4/3" : "16/10", background: "radial-gradient(120% 120% at 50% 30%, #faf8f4 0%, #ece7df 100%)", borderRadius: 12, overflow: "hidden" }}>
+                  {project.viewerUrl && (
+                    <iframe src={project.viewerUrl} title={project.title} allow="fullscreen; xr-spatial-tracking"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} />
+                  )}
+                  {!project.viewerUrl && project.model3dUrl && (
+                    <>
+                      {/* spinnable furnished room, self-hosted model-viewer */}
+                      <model-viewer src={project.model3dUrl} ios-src={project.usdzUrl} camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
+                        tone-mapping="neutral" shadow-intensity="1.1" shadow-softness="0.8" exposure="1.05"
+                        camera-orbit="40deg 68deg 105%" min-camera-orbit="auto 0deg auto" max-camera-orbit="auto 95deg auto"
+                        rotation-per-second="22deg" auto-rotate-delay="600" interaction-prompt="none"
+                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", "--poster-color": "transparent" } as React.CSSProperties} />
+                      <span style={{ position: "absolute", bottom: 12, insetInlineStart: 12, padding: "0.4em 0.85em", borderRadius: 999, background: "rgba(22,21,15,0.7)", color: "#fff", fontSize: "0.72rem", letterSpacing: "0.04em", pointerEvents: "none", display: "flex", alignItems: "center", gap: "0.4em" }}>
+                        <span style={{ display: "inline-block", animation: "evoraSpin 3s linear infinite" }}>↻</span> {lang === "ar" ? "اسحب لتدوير الغرفة" : "Drag to spin your room"}
+                      </span>
+                    </>
+                  )}
+                  {/* USDZ-only (real LiDAR scan, no web GLB yet): AR on iPhone/iPad + download everywhere */}
+                  {!project.viewerUrl && !project.model3dUrl && project.usdzUrl && (
+                    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem" }}>
+                      <div style={{ display: "grid", gap: "0.9rem", justifyItems: "center" }}>
+                        <div style={{ fontSize: "2.4rem", opacity: 0.75 }}>◳</div>
+                        <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--ink)", fontWeight: 600 }}>
+                          {ar ? "تم التقاط الغرفة ثلاثية الأبعاد بالليدار" : "3D room captured by LiDAR"}
+                        </p>
+                        {/* AR Quick Look on iOS Safari needs the single <img> child */}
+                        <a rel="ar" href={project.usdzUrl}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.5em", padding: "0.7rem 1.2rem", borderRadius: 999, background: "var(--ink)", color: "#fff", fontSize: "0.85rem", fontWeight: 600, textDecoration: "none" }}>
+                          <img alt="" width={1} height={1} style={{ opacity: 0, position: "absolute", pointerEvents: "none" }} src={project.plan2dUrl || project.thumbnailUrl || project.usdzUrl} />
+                          ⛶ {ar ? "عرض في مساحتك (AR)" : "View in your space (AR)"}
+                        </a>
+                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--ink-faint)" }}>
+                          {ar ? "على آيفون/آيباد. أو نزّل الموديل بالأسفل." : "on iPhone / iPad — or download the model below."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-            {tab === "2d" && (project.plan2dUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={project.plan2dUrl} alt={project.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#fff" }} />
-              : <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--ink-faint)", fontSize: "0.9rem" }}>{lang === "ar" ? "لم يُرفع مخطط بعد" : "No 2D plan uploaded yet"}</div>
+
+            {!has3d && (
+              <div className="pv-3d-pane">
+                <p style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.5rem" }}>{tp("view_3d", lang)}</p>
+                <div style={{ position: "relative", width: "100%", aspectRatio: project.plan2dUrl ? "4/3" : "16/10", background: "radial-gradient(120% 120% at 50% 30%, #faf8f4 0%, #ece7df 100%)", borderRadius: 12, overflow: "hidden", display: "grid", placeItems: "center", textAlign: "center", padding: "1.5rem", color: "var(--ink-faint)" }}>
+                  <div>
+                    <div style={{ fontSize: "2rem", marginBottom: "0.5rem", opacity: 0.5 }}>◳</div>
+                    <p style={{ margin: 0, fontSize: "0.9rem" }}>{ar ? "نموذجك ثلاثي الأبعاد قيد التحضير" : "Your 3D room is being prepared"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!project.plan2dUrl && !has3d && (
+              <div className="pv-plan-pane" style={{ width: "100%" }}>
+                <p style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-faint)", margin: "0 0 0.5rem" }}>{tp("view_2d", lang)}</p>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "16/10", background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid var(--line-soft)", display: "grid", placeItems: "center", color: "var(--ink-faint)", fontSize: "0.9rem" }}>
+                  {lang === "ar" ? "لم يُرفع مخطط بعد" : "No 2D plan uploaded yet"}
+                </div>
+              </div>
             )}
           </div>
 
@@ -202,18 +232,5 @@ function DownloadPill({ href, name, icon, label, primary }: { href: string; name
       }}>
       <span aria-hidden style={{ fontSize: "1em" }}>↓</span><span aria-hidden>{icon}</span> {label}
     </a>
-  );
-}
-
-function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick}
-      style={{
-        padding: "0.55rem 1rem", borderRadius: 999, border: "1px solid", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500,
-        borderColor: active ? "var(--ink)" : "var(--line)", background: active ? "var(--ink)" : "transparent",
-        color: active ? "var(--paper)" : "var(--ink-soft)", transition: "all .25s var(--ease)",
-      }}>
-      {children}
-    </button>
   );
 }

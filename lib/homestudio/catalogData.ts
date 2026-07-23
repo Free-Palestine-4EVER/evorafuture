@@ -167,7 +167,7 @@ export const KENNEY_CATALOG: Product[] = ROWS.map(
     dimensions_mm: { w, d, h },
     color: CAT_COLOR[category] ?? "#6b7280",
     glbUrl: `/models/catalog/${glb}.glb`,
-    thumbnailUrl: `/models/catalog/thumbs/${glb}.png`,
+    thumbnailUrl: `/models/catalog/thumbs/${glb}.avif`,
     fitToDims: true,
   }),
 );

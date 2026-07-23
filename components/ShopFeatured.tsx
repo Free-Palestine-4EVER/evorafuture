@@ -29,16 +29,12 @@ function FeaturedCard({ product, onOpen }: { product: ShopProduct; onOpen: () =>
       <div className="feat-stage">
         {product.badge && <span className="feat-badge">{lang === "ar" ? BADGE_AR[product.badge] : product.badge}</span>}
         <img src={product.image} alt={product.name} className="feat-img" loading="lazy" />
+        <span className="feat-wm" aria-hidden />
         <span className="feat-look">↗</span>
       </div>
       <div className="feat-meta">
         <h3 className="display feat-name">{product.name}</h3>
         <p className="feat-tag">{tagline}</p>
-        <div className="feat-dots" aria-hidden>
-          {product.colorways.slice(0, 5).map((c) => (
-            <span key={c.name} className="feat-swatch" style={{ background: c.hex }} />
-          ))}
-        </div>
       </div>
     </button>
   );
@@ -89,6 +85,7 @@ export default function ShopFeatured() {
         .feat-img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s var(--ease); }
         .feat-card:hover .feat-img { transform: scale(1.06); }
         .feat-badge { position: absolute; top: 1rem; inset-inline-start: 1rem; z-index: 4; background: var(--brass, #a98445); color: #fff; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; padding: 0.4em 0.8em; border-radius: 100px; }
+        .feat-wm { position: absolute; bottom: 1rem; inset-inline-end: 1rem; z-index: 4; width: 26px; height: 26px; background-color: rgba(255,255,255,0.94); -webkit-mask: url('/brand/evora-monogram.svg') center / contain no-repeat; mask: url('/brand/evora-monogram.svg') center / contain no-repeat; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4)); pointer-events: none; }
         .feat-look { position: absolute; bottom: 1rem; inset-inline-end: 1rem; z-index: 4; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: var(--ink, #1c1815); color: var(--paper, #fbf9f4); font-size: 1rem; opacity: 0; transform: translateY(8px); transition: opacity .35s var(--ease), transform .35s var(--ease); }
         .feat-stage:hover .feat-look { opacity: 1; transform: translateY(0); }
 
