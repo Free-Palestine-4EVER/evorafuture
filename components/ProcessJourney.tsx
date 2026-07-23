@@ -53,7 +53,7 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           {ar ? (
             <>مخطّطٌ مسطّح، <em>يصبح منزلك.</em></>
           ) : (
-            <>A flat plan, <em>made your home.</em></>
+            <>A flat plan, <em>made a home.</em></>
           )}
         </Rise>
         <Rise delay={0.12} as="p" className="pj-lede">

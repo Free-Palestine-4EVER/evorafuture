@@ -66,20 +66,24 @@ export default function Showroom() {
           </h2>
         </div>
         <div className="filters">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              className={`filter${filter === f ? " on" : ""}`}
-              onClick={() => setFilter(f)}
-            >
-              {filterLabel(f)}
-              <span className="filter-n">
-                {f === "All"
-                  ? products.length
-                  : products.filter((p) => p.category === f).length}
-              </span>
-            </button>
-          ))}
+          {FILTERS
+            // Hide any category with no products (e.g. "Storage 0") — an empty
+            // filter chip reads as a bug and dead-ends on an empty grid.
+            .filter((f) => f === "All" || products.some((p) => p.category === f))
+            .map((f) => (
+              <button
+                key={f}
+                className={`filter${filter === f ? " on" : ""}`}
+                onClick={() => setFilter(f)}
+              >
+                {filterLabel(f)}
+                <span className="filter-n">
+                  {f === "All"
+                    ? products.length
+                    : products.filter((p) => p.category === f).length}
+                </span>
+              </button>
+            ))}
         </div>
       </div>
 

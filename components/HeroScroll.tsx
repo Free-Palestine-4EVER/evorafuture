@@ -296,18 +296,26 @@ function HeroCopy({
           transition: { duration: 0.9, ease, delay },
         };
 
+  const heroTitleLines = [t("hero_l1" as never), t("hero_l2" as never), t("hero_l3" as never)];
+
   return (
     <div className="hero__content hs__content">
       <motion.span {...fade(0.2)} className="eyebrow" style={{ color: "var(--brass-2)", display: "block" }}>
         {t("hero_eyebrow" as never)}
       </motion.span>
 
-      <h1 className="display hero__title">
-        {[t("hero_l1" as never), t("hero_l2" as never), t("hero_l3" as never)].map((line, i) => (
+      {/* aria-label carries the whole sentence, and a real space text node
+          follows each line, so a screen reader / crawler reads
+          "Your home, beautifully furnished." — not the run-together
+          "Your home,beautifullyfurnished." the block spans produced with no
+          whitespace between them. */}
+      <h1 className="display hero__title" aria-label={heroTitleLines.join(" ")}>
+        {heroTitleLines.map((line, i) => (
           <span key={i} style={{ display: "block", overflow: "hidden", paddingBottom: "0.06em" }}>
             <motion.span variants={up} custom={i} initial="hidden" animate="show" style={{ display: "inline-block" }}>
               {i === 1 ? <span className="serif-i" style={{ color: "var(--brass-2)" }}>{line}</span> : line}
             </motion.span>
+            {i < heroTitleLines.length - 1 ? " " : ""}
           </span>
         ))}
       </h1>
