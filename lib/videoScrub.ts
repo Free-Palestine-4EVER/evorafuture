@@ -70,6 +70,14 @@ export type VideoScrubOptions = {
   reduce?: boolean;
   /** Per-frame easing toward the scroll target. */
   lerp?: number;
+  /**
+   * Download the whole clip as a Blob before scrubbing. Only needed on an
+   * origin that does NOT honour HTTP range requests — a blob URL is always
+   * seekable, but nothing can be scrubbed until the full file has landed
+   * (measured: 30s for the 14MB desktop hero). Ours does support ranges, so
+   * this defaults off and we stream instead.
+   */
+  useBlob?: boolean;
 };
 
 export type VideoScrubHandle = {
@@ -95,6 +103,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     onError,
     reduce = false,
     lerp = 0.18,
+    useBlob = false,
   } = opts;
 
   const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(mobileQuery) : null;
@@ -133,15 +142,24 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   window.addEventListener("pointerdown", onFirstGesture, { once: true, passive: true });
   window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
 
-  /* ---- load the clip as a Blob --------------------------------------------
-     Always seekable, independent of whether the origin supports byte ranges.
-     Costs us the full download up front, which is the trade we want here: one
-     5-16MB request instead of 125-361 image requests, and no mid-scrub stalls. */
+  /* ---- source strategy -----------------------------------------------------
+     scroll-world's engine fetches the clip as a Blob because a blob URL is
+     always seekable, whereas a plain src depends on the origin honouring HTTP
+     range requests. We measured ours: Caddy returns `accept-ranges: bytes` on
+     /evora/scrub/*, so ranges genuinely work here.
+
+     That matters a lot, because the blob has to finish downloading before the
+     video is seekable at ALL. Measured against production, the 14MB desktop
+     hero took 30.3s to reach loadedmetadata — worse than the memory bug we
+     replaced, for anyone on a slow line. Streaming from a plain src reaches
+     metadata in well under a second and seeks against whatever is buffered,
+     fetching the rest on demand.
+
+     So: stream directly. Blob stays available via `useBlob` for any origin
+     that can't do ranges. */
   const url = isMobile() && srcMobile ? srcMobile : src;
 
-  fetch(url)
-    .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
-    .then((blob) => {
+  const attach = (objectSrc: string) => {
       if (destroyed) return;
       const v = document.createElement("video");
       if (className) v.className = className;
@@ -158,13 +176,18 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       v.setAttribute("aria-hidden", "true");
       v.setAttribute("disableremoteplayback", "");
 
-      objectUrl = URL.createObjectURL(blob);
-      v.src = objectUrl;
+      v.src = objectSrc;
 
       v.addEventListener("loadedmetadata", () => {
         if (destroyed) return;
         ready = true;
         onReady?.();
+        // Force ONE seek so a real frame paints. Without this the poster never
+        // lifts at the top of the page: the scrub target there is 0 and
+        // currentTime is already 0, so the loop never issues a seek, `seeked`
+        // never fires, and the reveal never happens until the user scrolls.
+        try { v.currentTime = Math.max(0.001, clamp(progress(), 0, 0.999) * (v.duration || 1)); }
+        catch { /* not seekable yet — the rAF loop will retry */ }
       });
 
       // Reveal only once a real frame has painted (see header note 3).
@@ -183,12 +206,24 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
         if (userReady) prime(v);
       });
 
+      v.addEventListener("error", () => { if (!destroyed) onError?.(); });
+
       container.appendChild(v);
       video = v;
-    })
-    .catch(() => {
-      if (!destroyed) onError?.();
-    });
+  };
+
+  if (useBlob) {
+    fetch(url)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((blob) => {
+        if (destroyed) return;
+        objectUrl = URL.createObjectURL(blob);
+        attach(objectUrl);
+      })
+      .catch(() => { if (!destroyed) onError?.(); });
+  } else {
+    attach(url);
+  }
 
   /* ---- the scrub loop ------------------------------------------------------
      One rAF for this clip. Reads the caller's progress every frame so it is
