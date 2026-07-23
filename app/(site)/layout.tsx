@@ -63,6 +63,20 @@ export const metadata: Metadata = {
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable}`}>
+      <head>
+        {/* Set dir/lang from the persisted choice BEFORE first paint, so an
+            Arabic visitor doesn't see the layout flash LTR then flip to RTL on
+            hydration. Text still starts English (the page is static, so the
+            server HTML is English) and swaps on hydration — full Arabic SSR
+            would need per-language URLs and is tracked separately. This only
+            fixes the direction/layout flash, which is the jarring part. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var m=document.cookie.match(/(?:^|; )evora_lang=(ar|en)/);var l=m&&m[1]||localStorage.getItem('evora_lang');if(l==='ar'){document.documentElement.lang='ar';document.documentElement.dir='rtl';}}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         <I18nProvider>
           <ChunkErrorRecovery />

@@ -365,6 +365,18 @@ const heroCss = `
   .hs--c .hero__top { height: 130px; background: linear-gradient(rgba(8,6,4,0.28), transparent); }
   .hs__left { position: absolute; inset: 0; z-index: 2; pointer-events: none;
     background: linear-gradient(90deg, rgba(8,6,4,0.6) 0%, rgba(8,6,4,0.3) 14%, rgba(8,6,4,0) 34%); }
+
+  /* RTL: the copy moves to the right, so the readability scrim must darken the
+     RIGHT instead of the left. Mirror each gradient's angle horizontally
+     (Xdeg -> 360-Xdeg). Without this the Arabic copy sits over the bright side
+     of the film. */
+  html[dir="rtl"] .hs__scrim, html[dir="rtl"] .hero__scrim { background:
+      linear-gradient(255deg, rgba(13,11,9,0.92) 0%, rgba(13,11,9,0.62) 32%, rgba(13,11,9,0.18) 64%, rgba(13,11,9,0.05) 100%),
+      radial-gradient(120% 80% at 50% 120%, rgba(8,6,4,0.6), transparent 60%); }
+  html[dir="rtl"] .hs--c .hs__scrim { background:
+      linear-gradient(260deg, rgba(13,11,9,0.44) 0%, rgba(13,11,9,0.20) 24%, rgba(13,11,9,0.03) 48%, rgba(13,11,9,0) 66%),
+      linear-gradient(0deg, rgba(8,6,4,0.26) 0%, rgba(8,6,4,0) 26%); }
+  html[dir="rtl"] .hs__left { background: linear-gradient(270deg, rgba(8,6,4,0.6) 0%, rgba(8,6,4,0.3) 14%, rgba(8,6,4,0) 34%); }
   .hs--c .hero__title { text-shadow: 0 2px 22px rgba(8,6,4,0.7), 0 1px 4px rgba(8,6,4,0.45); }
   .hs--c .hero__sub { text-shadow: 0 1px 16px rgba(8,6,4,0.7), 0 1px 3px rgba(8,6,4,0.5); }
   .hs--c .hero__meta { color: rgba(251,247,240,0.85); text-shadow: 0 1px 8px rgba(8,6,4,0.6); }

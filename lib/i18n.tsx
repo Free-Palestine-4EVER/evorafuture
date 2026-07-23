@@ -17,14 +17,37 @@ export function useT() {
   return useContext(I18nContext);
 }
 
+export const LANG_KEY = "evora_lang";
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
+  // Always start "en" to match the statically-rendered server HTML — reading
+  // localStorage in the initializer would be a hydration mismatch. The stored
+  // choice is restored in the effect below, a tick after mount.
   const [lang, setLang] = useState<Lang>("en");
   const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // Restore the persisted language on mount. THIS is the fix for "Arabic resets
+  // to English on every click": nav links are plain <a href> (full page loads),
+  // so the provider remounts on every navigation and its state was lost. The
+  // language now survives because it is persisted, not just held in React state.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(LANG_KEY) as Lang | null;
+      if (saved === "ar" || saved === "en") setLang(saved);
+    } catch { /* storage blocked (private mode / iframe) — stay on en */ }
+  }, []);
 
   useEffect(() => {
     const el = document.documentElement;
     el.lang = lang;
     el.dir = dir;
+    try {
+      window.localStorage.setItem(LANG_KEY, lang);
+      // Cookie too, so the pre-paint script in the layout <head> can set dir/lang
+      // before React hydrates (no RTL flash), and so any future server-side
+      // rendering can read it. 1 year, Lax.
+      document.cookie = `${LANG_KEY}=${lang}; path=/; max-age=31536000; samesite=lax`;
+    } catch { /* ignore */ }
   }, [lang, dir]);
 
   const toggle = useCallback(() => setLang((l) => (l === "en" ? "ar" : "en")), []);
