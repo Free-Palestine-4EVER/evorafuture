@@ -197,6 +197,52 @@ zero cross-imports. Don't assume a fix in one applies to the other.
 
 ## Recent work log (most recent first)
 
+- **Full QA & copy audit pass, 2026-07-23 (in progress).** Verified every
+  claim in a client-supplied audit against the real code + live site via a
+  26-agent workflow before touching anything. Shipped so far, all deployed
+  and verified live:
+  1. **Security (P0, not in the audit):** `GET /api/portal/{clients,leads,
+     projects}` served every customer's name/phone/email/floor-plan URL to
+     anyone on the internet (CORS-open, zero auth). Added HMAC httpOnly
+     session tokens (`lib/portal/session.ts`), gated the PII reads +
+     `POST /clients` to admins, gated `?uid=` to the owning client. Left
+     `POST /leads` (public contact form) and `POST /upload` + `POST /projects`
+     (the shipped EvoraScan iOS app — verified POST-only in EvoraAPI.swift)
+     open; upload now bounded to 25MB + a MIME allowlist.
+  2. **Counters:** `CountUp` SSR'd `0` — the live site shipped "0+ homes",
+     "0.0★", "up to 0 months" to crawlers and to anyone whose
+     IntersectionObserver never fired. Now SSRs the real figure
+     (`components/motion.tsx`).
+  3. **Share previews:** `metadataBase` pointed at `evorafuturehome.com` — a
+     DEAD host (503) — so every WhatsApp/IG share had no image. Now
+     `evorahome.online`; verified og/twitter images 200.
+  4. **Scroll-frame crash (the "breaks on some phones" report):** root cause
+     was NOT what the audit guessed (it prescribed canvas/rAF/clamp, all of
+     which the code already had). It was unbounded decoded-image memory: the
+     hero+configurator retained a live HTMLImageElement per frame and
+     force-decoded every one — **~1,033 MB on a phone**, past iOS Safari's
+     ~200-400MB tab ceiling. Replaced the frame-stack scrubber with `<video>`
+     currentTime scrubbing (`lib/videoScrub.ts`, technique from
+     oso95/scroll-world, MIT). Clips encoded from the SAME frames (no visuals
+     regenerated) into `public/evora/scrub/*.mp4`, blob-loaded (all seeks
+     instant — streaming froze mid-scrub), configurator lazy-loaded on
+     approach. Also fixed 3 hydration mismatches found along the way (Loader,
+     StartAndTrack, ConfiguratorScroll height branch) that fired on every
+     Battery-Saver laptop. **Note:** could not test on a physical iPhone from
+     this environment (browser tool is desktop-pinned) — the crash is fixed
+     *structurally* (no decoded-image stacks exist anymore), verified via
+     Playwright at desktop+mobile viewports and throttled connections.
+
+- **CORRECTION to the entry below:** the claim that `/catalog` was "ripped out
+  and rebuilt as a plain PDF embed" and that the flipbook components + nav
+  entry were deleted is **FALSE** — verified 2026-07-23 against both the repo
+  and the live site. `app/(site)/catalog/page.tsx` still mounts
+  `LookbookApp`, `components/lookbook/*` all still exist, and the `/catalog`
+  Nav entry + `nav_catalog` i18n key are both present. The custom flipbook is
+  still shipping. If "/catalog crashes on iPhone" comes up, it is the
+  windowed-but-still-heavy flipbook, NOT a PDF. (Whatever session wrote the
+  entry below either never made the change or it was reverted.)
+
 - **`/catalog` (the ARGOS lookbook) ripped out and rebuilt as a plain PDF
   embed, 2026-07-22:** after the windowing fix (below) still didn't stop it
   crashing on the user's actual iPhone, the user cut the losses and asked to
