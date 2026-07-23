@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT } from "@/lib/i18n";
@@ -23,7 +23,14 @@ export default function StartAndTrack() {
   const { lang, dir } = useT();
   const ar = lang === "ar";
   const reduce = useReducedMotion();
-  const [progress, setProgress] = useState(reduce ? LIVE_INDEX : -1);
+  // Animation decisions must not be made during the first render: the server
+  // always computes reduce=false, so any render-time branch on it mismatches
+  // for reduced-motion clients (which, thanks to Chrome's Battery Saver,
+  // includes every laptop on battery).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const animateAurora = mounted && !reduce;
+  const [progress, setProgress] = useState(-1);
   const seen = useRef(false);
 
   // Light up the tracker stage-by-stage once the section enters view.
@@ -46,13 +53,20 @@ export default function StartAndTrack() {
   return (
     <section id="start-track" className="st" dir={dir} lang={lang}>
       <div className="st__bg" aria-hidden>
-        {!reduce && (
+        {/* The spans are ALWAYS rendered so server and client agree on DOM
+            shape — gating them on `reduce` at render time made the server emit
+            two <span>s that a reduced-motion client did not, which is a
+            hydration mismatch that forces React to regenerate the tree. The
+            motion is what's suppressed instead, decided after mount. This one
+            genuinely should stop for reduced motion: unlike the scroll-scrub,
+            it's an infinite self-driven drift. */}
+        {true && (
           <>
             <motion.span className="st__aurora st__aurora--a"
-              animate={{ x: [0, 40, 0], y: [0, -30, 0], opacity: [0.45, 0.75, 0.45] }}
+              animate={animateAurora ? { x: [0, 40, 0], y: [0, -30, 0], opacity: [0.45, 0.75, 0.45] } : undefined}
               transition={{ duration: 19, repeat: Infinity, ease: "easeInOut" }} />
             <motion.span className="st__aurora st__aurora--b"
-              animate={{ x: [0, -50, 0], y: [0, 30, 0], opacity: [0.4, 0.7, 0.4] }}
+              animate={animateAurora ? { x: [0, -50, 0], y: [0, 30, 0], opacity: [0.4, 0.7, 0.4] } : undefined}
               transition={{ duration: 23, repeat: Infinity, ease: "easeInOut" }} />
           </>
         )}

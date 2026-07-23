@@ -292,7 +292,20 @@ export function CountUp({
   const reduce = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "0px 0px -10% 0px" });
-  const [display, setDisplay] = useState(reduce ? value : "");
+  // Seed with the REAL value, not "" / 0. Three reasons:
+  //  1. SSR emits the true figure, so crawlers and no-JS visitors never see
+  //     "0+ homes furnished" / "0.0★" / "up to 0 months" (which read as either
+  //     broken or as a factually false offer in the financing section).
+  //  2. If the IntersectionObserver never fires — slow device, JS error, an
+  //     in-app browser like Instagram's — the stat stays correct instead of
+  //     being stuck on zero forever.
+  //  3. No hydration branch. Seeding from `reduce` meant the server (which
+  //     always computes reduce=false) rendered "" while a client reporting
+  //     prefers-reduced-motion rendered the value — a real React text
+  //     mismatch, and on Chrome "reduce" includes every laptop on Battery
+  //     Saver, so this fired constantly.
+  // The count-up still runs: the effect below animates 0 → target on entry.
+  const [display, setDisplay] = useState(value);
 
   // parse: leading number (with commas / decimal) + trailing suffix (K, +, %, ★ …)
   const match = value.match(/^([\d.,]+)(.*)$/);
@@ -326,7 +339,7 @@ export function CountUp({
 
   return (
     <span ref={ref} className={className} style={style}>
-      {display || (reduce ? value : format(0))}
+      {display || value}
     </span>
   );
 }

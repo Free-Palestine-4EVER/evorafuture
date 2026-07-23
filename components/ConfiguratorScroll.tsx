@@ -9,6 +9,7 @@ import { WHATSAPP } from "@/lib/brand";
 import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 import { avifSrc } from "@/lib/avifSrc";
+import { createVideoScrub } from "@/lib/videoScrub";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -69,12 +70,12 @@ export default function ConfiguratorScroll() {
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
-  const targetFrame = useRef(1);
-  const currentFrame = useRef(1);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const [ready, setReady] = useState(false);
+  // Only true once the video has painted a real frame — see HeroScroll for why
+  // metadata alone is not enough on iOS.
+  const [painted, setPainted] = useState(false);
   const [revealed, setRevealed] = useState(false); // configurator UI visible/interactive
   const [isMobile, setIsMobile] = useState(false);  // ≤768px → portrait frame scrub + bottom sheet
   // frames ship as avif (primary) + webp (fallback); resolved per-browser.
@@ -85,7 +86,9 @@ export default function ConfiguratorScroll() {
   // frame stack + scrub length for the active device (phones scrub the portrait
   // mobile kitchen frames; desktop scrubs the landscape fly-through)
   const TOTAL = isMobile ? MOBILE_TOTAL : DESKTOP_TOTAL;
-  const scrollVh = isMobile ? MOBILE_SCROLL_VH : DESKTOP_SCROLL_VH;
+  // NOTE: scroll length now lives in CSS (.cfg / @media), not here — see the
+  // hydration-branch note in the JSX. MOBILE_SCROLL_VH / DESKTOP_SCROLL_VH are
+  // kept as the documented source of those two numbers.
   const frameSrc = (i: number) => {
     const ext = frameExt ?? SAFE_FRAME_EXT; // poster renders before the probe
     return isMobile
@@ -133,7 +136,11 @@ export default function ConfiguratorScroll() {
 
   // the panel reveals near the end of the scrub (phone & desktop); reduced motion
   // shows it immediately
-  const panelOpen = revealed || reduce;
+  // Was `revealed || reduce`, which force-opened the panel for reduced-motion
+  // visitors because the scrub used to be disabled for them and they'd never
+  // reach the reveal point. The scrub runs for everyone now, so `revealed`
+  // alone is correct — and it removes another server/client render branch.
+  const panelOpen = revealed;
 
   // ---- selected surface + any user-uploaded variants ----
   const [variants, setVariants] = useState<SurfaceVariant[]>(SURFACES);
@@ -142,163 +149,62 @@ export default function ConfiguratorScroll() {
 
   // ---------- frame scrubbing (phone + desktop) ----------
   useEffect(() => {
-    if (reduce) return; // reduced motion shows a still poster, no scrub
-    if (!frameExt) return; // wait for the avif/webp probe — prevents dual-format downloads
-    // wait until isMobile state matches reality so TOTAL/frameSrc are correct
-    const mob = typeof window !== "undefined" && window.matchMedia
-      ? window.matchMedia("(max-width: 768px)").matches : false;
-    if (mob !== isMobile) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
-    let mounted = true;
+    // Reduced motion no longer bails out. This scrub has no self-driven motion
+    // — it advances only as the visitor scrolls — and Chrome forces
+    // prefers-reduced-motion:reduce on every laptop running Battery Saver, so
+    // bailing turned the kitchen film into a dead poster on ordinary machines.
+    // That exact bug was already fixed in the hero (commit befef66) and never
+    // applied here. Reduced motion instead drops the easing lerp, so frames
+    // track the scroll exactly rather than drifting toward it.
+    const section = sectionRef.current;
+    const stage = stageRef.current;
+    if (!section || !stage) return;
 
-    // Viewport size for all scrub math and canvas sizing — measured from
-    // .cfg__sticky's own rendered box (CSS: height:100svh) rather than
-    // window.innerWidth/innerHeight. svh is a browser-guaranteed STABLE value
-    // that does not change as Instagram/TikTok's in-app-browser chrome
-    // (address/bottom bars) hides and reappears during scroll, unlike
-    // innerHeight, which does — reading innerHeight live made the scrub jump
-    // on every scroll direction change. (An earlier fix cached innerHeight at
-    // mount instead of reading it live, but that still broke if the chrome
-    // happened to be in its "hidden" state at the exact moment the component
-    // mounted: that wrong height got frozen with no way to self-correct.
-    // Measuring the sticky element sidesteps that — it's what the browser
-    // itself already computed for 100svh, correct regardless of chrome state
-    // at mount, and safe to re-measure on every resize with no filtering.)
-    let viewportW = window.innerWidth;
+    // Viewport height for the scrub math, measured from .cfg__sticky's own
+    // rendered box (CSS: height:100svh). svh is stable while in-app browser
+    // chrome hides and reappears; innerHeight is not, and reading it live made
+    // the scrub jump on every scroll direction change.
     let viewportH = window.innerHeight;
     const measureViewport = () => {
       const rect = stickyRef.current?.getBoundingClientRect();
-      if (rect && rect.width > 0 && rect.height > 0) {
-        viewportW = rect.width;
-        viewportH = rect.height;
-      } else {
-        viewportW = window.innerWidth;
-        viewportH = window.innerHeight;
-      }
+      viewportH = rect && rect.height > 0 ? rect.height : window.innerHeight;
     };
     measureViewport();
 
-    const sizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = viewportW * dpr;
-      canvas.height = viewportH * dpr;
-      canvas.style.width = viewportW + "px";
-      canvas.style.height = viewportH + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const draw = (i: number) => {
-      const img = imagesRef.current[i];
-      if (!img || !img.complete || !img.naturalWidth) return;
-      const cw = viewportW;
-      const ch = viewportH;
-      const ir = img.naturalWidth / img.naturalHeight;
-      const cr = cw / ch;
-      let w = cw, h = ch, x = 0, y = 0;
-      if (ir > cr) { h = ch; w = ch * ir; x = (cw - w) / 2; }
-      else { w = cw; h = cw / ir; y = (ch - h) / 2; }
-      ctx.clearRect(0, 0, cw, ch);
-      ctx.drawImage(img, x, y, w, h);
-    };
-
-    // Preload the frame set once (lazily — after first paint, never blocking
-    // it) through a small concurrency window: firing all 169 (~8.5MB) at once
-    // competed with the hero's loader-gating frames on every cold visit.
-    let started = false;
-    const startPreload = () => {
-      if (started || !mounted) return;
-      started = true;
-      const WINDOW = 10;
-      let next = 1;
-      let inFlight = 0;
-      const pump = () => {
-        if (!mounted) return;
-        while (inFlight < WINDOW && next <= TOTAL) {
-          const i = next++;
-          inFlight++;
-          const img = new Image();
-          img.decoding = "async";
-          img.fetchPriority = "low";
-          const done = () => {
-            inFlight--;
-            if (i === 1 && mounted) { sizeCanvas(); draw(1); setReady(true); }
-            pump();
-          };
-          img.onload = done;
-          img.onerror = done;
-          img.src = frameSrc(i);
-          imagesRef.current[i] = img;
-        }
-      };
-      pump();
-    };
-
-    // One always-on rAF loop reading the scrub position straight from layout every
-    // frame (à la LILITH). NEVER reacts to `scroll` events and is NOT gated by
-    // IntersectionObserver — under Lenis smooth-scroll both misreport on phones and
-    // froze the scrub on frame 1. Polling getBoundingClientRect() is input-agnostic.
-    let rafId = 0;
+    // Frames play across the first 78% of the scroll; the last 22% holds the
+    // final frame and brings up the configurator UI. Preserved exactly.
     let revealedNow = false;
-    let lastDrawn = -1;
-
-    const tick = () => {
-      if (!mounted) return;
-      const el = sectionRef.current;
-      if (el) {
-        const near = el.getBoundingClientRect();
-        // only start pulling frames once the visitor approaches the section
-        // (~3 viewports out) — not at hydration while the hero is still gating
-        if (near.top < viewportH * 3) startPreload();
-        const rect = near;
-        const scrollable = el.offsetHeight - viewportH;
-        const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
-        // frames play across the first 78% of the scroll; last 22% holds the
-        // final frame and brings up the configurator.
-        const frameP = Math.min(1, p / 0.78);
-        targetFrame.current = Math.min(TOTAL, Math.max(1, Math.round(frameP * (TOTAL - 1)) + 1));
-        const rev = p > 0.8;
-        if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
-
-        const cur = currentFrame.current, tgt = targetFrame.current;
-        const next = cur + (tgt - cur) * 0.18;
-        currentFrame.current = Math.abs(tgt - next) < 0.4 ? tgt : next;
-        const idx = Math.round(currentFrame.current);
-        if (idx !== lastDrawn) { draw(idx); lastDrawn = idx; }
-      }
-      rafId = requestAnimationFrame(tick);
+    const progress = () => {
+      const rect = section.getBoundingClientRect();
+      const scrollable = section.offsetHeight - viewportH;
+      const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+      const rev = p > 0.8;
+      if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
+      return Math.min(1, p / 0.78);
     };
 
-    const onResize = () => {
-      measureViewport();
-      sizeCanvas();
-      lastDrawn = -1;
-      draw(Math.round(currentFrame.current));
-    };
-    window.addEventListener("resize", onResize);
-
-    // idle fallback so frames are ready even if the visitor lingers off-screen
-    const ric = (window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
+    const scrub = createVideoScrub({
+      container: stage,
+      src: "/evora/scrub/config-desktop.mp4",
+      srcMobile: "/evora/scrub/config-mobile.mp4",
+      mobileQuery: "(max-width: 768px)",
+      className: "cfg__video",
+      progress,
+      reduce: !!reduce,
+      onReady: () => setReady(true),
+      onFirstFrame: () => setPainted(true),
     });
-    let idleId: number | undefined;
-    let idleTimer: ReturnType<typeof setTimeout> | undefined;
-    // idle fallback waits past the hero's critical window (Loader HARD_CAP=4s)
-    if (ric.requestIdleCallback) idleId = ric.requestIdleCallback(startPreload, { timeout: 4500 });
-    else idleTimer = setTimeout(startPreload, 4500);
-    rafId = requestAnimationFrame(tick);
+
+    const onResize = () => measureViewport();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
 
     return () => {
-      mounted = false;
-      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
-      if (idleId !== undefined && ric.cancelIdleCallback) ric.cancelIdleCallback(idleId);
-      if (idleTimer !== undefined) clearTimeout(idleTimer);
+      window.removeEventListener("orientationchange", onResize);
+      scrub.destroy();
     };
-  }, [reduce, isMobile, frameExt]);
+  }, [reduce]);
 
   // ---- handle a user-uploaded variant image (instant local preview) ----
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -342,16 +248,17 @@ export default function ConfiguratorScroll() {
       id="configurator"
       ref={sectionRef}
       className={`cfg ${isMobile ? "cfg--mobile" : ""}`}
-      style={{ height: reduce ? "100svh" : `${scrollVh}${isMobile ? "svh" : "vh"}` }}
     >
       <div className="cfg__sticky" ref={stickyRef}>
-        {/* scrubbed frame canvas — portrait stack on phones, landscape on desktop
-            (LILITH pattern: always-on rAF poll, opaque canvas, light frames) */}
-        {!reduce && (
-          <canvas ref={canvasRef} className="cfg__canvas" role="img"
-            aria-label={t("cfg_aria")} />
-        )}
-        {!reduce && !ready && (
+        {/* Scrub video — portrait clip on phones, landscape on desktop.
+            The section's scroll LENGTH is set by CSS media query (see css
+            below), not by an inline style off `isMobile` state. The old inline
+            style was a hydration branch: SSR shipped 420vh and hydration
+            flipped it to 300svh, moving document height by ~130,000px on a
+            phone mid-load. The hero avoids exactly this, by design. */}
+        <div ref={stageRef} className={`cfg__stage${painted ? " is-painted" : ""}`}
+          role="img" aria-label={t("cfg_aria")} />
+        {!painted && (
           // <picture> so phones never fetch the desktop poster during the
           // pre-hydration render (isMobile state starts false on SSR)
           <picture>
@@ -368,13 +275,10 @@ export default function ConfiguratorScroll() {
           </picture>
         )}
 
-        {/* reduced-motion: still poster */}
-        {reduce && (
-          <picture>
-            <source srcSet={avifSrc(CONFIG_BASE)} type="image/avif" />
-            <img src={CONFIG_BASE} alt="" className="cfg__poster" aria-hidden />
-          </picture>
-        )}
+        {/* The reduced-motion still poster that used to live here is gone: the
+            film now scrubs under reduced motion too, so a separate still was
+            both redundant AND a hydration branch (server renders nothing,
+            a reduced-motion client renders a <picture>). */}
 
         {/* the selected variant image, layered over the final frame */}
         <AnimatePresence mode="popLayout">
@@ -552,8 +456,14 @@ export default function ConfiguratorScroll() {
 }
 
 const css = `
-  .cfg { position: relative; background: #0d0b09; }
+  /* Scroll LENGTH set here, per breakpoint, so there is no JS/hydration branch
+     that changes document height after load (see the note in the JSX). */
+  .cfg { position: relative; background: #0d0b09; height: 420vh; }
+  @media (max-width: 768px) { .cfg { height: 300svh; } }
   .cfg__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
+  .cfg__stage { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .35s ease; }
+  .cfg__stage.is-painted { opacity: 1; }
+  .cfg__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
   .cfg__canvas, .cfg__poster, .cfg__variant {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; display: block; z-index: 0;

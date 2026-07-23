@@ -40,14 +40,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://evorafuturehome.com"),
+  // The live domain. This was pointing at evorafuturehome.com — the client's
+  // OLD PrestaShop site, which currently serves HTTP 503 — so every og:image
+  // and twitter:image was absolutised onto a host that does not serve our
+  // assets. Result: no preview image on any WhatsApp / Instagram / Facebook
+  // share, which is most of this brand's traffic in Amman.
+  metadataBase: new URL("https://evorahome.online"),
   title: "Evora — Future Home | Khalda, Amman",
   description:
     "Evora Future Home — your premium destination for home furnishing in Amman. Bedrooms, dining, sofas, built-in closets, full interior design & execution.",
-  keywords: [
-    "Evora", "Evora Future Home", "furniture Amman", "luxury furniture Jordan", "home furnishing",
-    "interior design Amman", "أثاث", "إيفورا", "بيت المستقبل", "خلدا",
-  ],
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Evora — Future Home",
     description: "Your premium supplier for home furnishing in Amman. Every room, every detail, under one roof.",

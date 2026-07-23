@@ -6,17 +6,38 @@ import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
 import { preload } from "@/lib/preload";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
+import { createVideoScrub } from "@/lib/videoScrub";
 
 /* ============================================================
-   EVORA — scroll-scrubbed hero (rebuilt)
+   EVORA — scroll-scrubbed hero
 
-   One <canvas> that advances a frame stack purely on scroll — no
-   autoplay, no <video> seeking (which stutters on iOS). Desktop
-   scrubs the landscape film; phones scrub a light 9:16 portrait
-   stack. The SAME DOM is server- and client-rendered — the device
-   is resolved *inside* the effect (matchMedia) and the section
-   height is set by CSS media query — so there is no hydration
-   branch that could leave a phone stuck on the desktop hero.
+   Scrubs a <video>'s currentTime on scroll. Previously this drew a
+   stack of individual frame images to a <canvas>, which was correct
+   in every way except the one that mattered: it retained a live
+   HTMLImageElement per frame for the page's whole life, and the
+   scrub force-decoded every one of them.
+
+       phone   125 frames x 720x1280x4  =   439 MB decoded
+       desktop 181 frames x 1920x1080x4 = 1,431 MB decoded
+
+   iOS Safari kills a tab somewhere around 200-400 MB, so the hero
+   alone blew the budget before the configurator's 594 MB landed on
+   top of it. That is the "works on some phones, not others" report.
+   The same bug class is already documented twice in evoraproj.md
+   (BookMode, CatalogBrowser) — it was fixed there and never here.
+
+   A <video> hands frame lifetime to the platform decoder, which
+   keeps a handful of frames alive instead of all of them, and turns
+   125-361 requests into one. Playback technique (blob source, seek
+   coalescing, poster-until-first-paint, iOS gesture priming) is
+   adapted from oso95/scroll-world — see lib/videoScrub.ts.
+
+   UNCHANGED ON PURPOSE: the sticky/section DOM, the copy overlay,
+   the scroll math read from the sticky element's own box (100svh is
+   stable while mobile browser chrome hides; dvh is NOT, and would
+   animate the box mid-scrub), the CSS-media-query section height so
+   there is no hydration branch, and the deliberate refusal to bail
+   out under prefers-reduced-motion.
    ============================================================ */
 
 export type HeroVariant = "a" | "b" | "c";
@@ -79,6 +100,19 @@ function mobileStack(ext: FrameExt = SAFE_FRAME_EXT): Stack {
 const isMobileNow = () =>
   typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
 
+// Scrub clips, encoded from the very same frame folders (no visuals were
+// regenerated): crf 20, -g 8 desktop / -g 4 mobile. The tight GOP is the whole
+// point — phone seek cost is dominated by how many frames must be decoded from
+// the nearest keyframe, so a short GOP is what makes scrubbing smooth.
+// Mobile is one shared portrait clip: the frame stack was shared across
+// variants too (/evora/hero-frames-mobile).
+const HERO_CLIP: Record<HeroVariant, string> = {
+  a: "/evora/scrub/hero-a-desktop.mp4",
+  b: "/evora/scrub/hero-b-desktop.mp4",
+  c: "/evora/scrub/hero-c-desktop.mp4",
+};
+const HERO_CLIP_MOBILE = "/evora/scrub/hero-shared-mobile.mp4";
+
 export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant }) {
   const { t, lang } = useT();
   const reduce = useReducedMotion();
@@ -86,10 +120,15 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
 
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  // `painted` flips only once the video has actually rendered a frame (its
+  // first `seeked`). On iOS a muted video that has been seeked but never played
+  // stays BLANK, so hiding the poster on metadata alone would flash an empty
+  // hero. The poster stays on top until there is something real behind it.
+  const [painted, setPainted] = useState(false);
 
   // The poster <img> (behind the canvas, and the whole hero in reduced-motion
   // mode) is the actual LCP element — the canvas isn't LCP-eligible. It starts
@@ -109,300 +148,80 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     // prefers-reduced-motion: reduce regardless of what the user chose. That
     // turned the entire hero into a still image on ordinary laptops.
     // Reduced motion is honoured by dropping the AUTOPLAYING copy animations
-    // instead (see reduceCopy below).
-    const canvas = canvasRef.current;
+    // (see reduceCopy below) and by removing the scrub's easing lerp, so frames
+    // track the scroll exactly instead of drifting toward it.
     const section = sectionRef.current;
-    if (!canvas || !section) return;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
+    const stage = stageRef.current;
+    if (!section || !stage) return;
 
-    let mounted = true;
-    let rafId = 0;
-    let images: HTMLImageElement[] = [];
-    let frameExt: FrameExt = SAFE_FRAME_EXT; // upgraded to "avif" once the probe resolves
-    const buildStack = (): Stack =>
-      isMobileNow() ? mobileStack(frameExt) : desktopStack(variant, frameExt);
-    let stack: Stack = buildStack();
-    let stackIsMobile = isMobileNow();
-    let currentFrame = 1;
-    let lastDrawn = -1;
-    let lastDrawnExact = false;
-    let firstDrawn = false;
-
-    // Viewport size used for ALL scrub math and canvas sizing below — measured
-    // from .hs__sticky's own rendered box (CSS: height:100svh) rather than
-    // window.innerWidth/innerHeight. svh is a browser-guaranteed STABLE value
-    // that does not change as Instagram/TikTok's in-app-browser chrome
-    // (address/bottom bars) hides and reappears during scroll, unlike
-    // innerHeight, which does — reading innerHeight live made the scrub jump
-    // on every scroll direction change. (An earlier fix cached innerHeight at
-    // mount instead of reading it live, but that still broke if the chrome
-    // happened to be in its "hidden" state at the exact moment the component
-    // mounted: that wrong height got frozen with no way to self-correct.
-    // Measuring the sticky element sidesteps that — it's what the browser
-    // itself already computed for 100svh, correct regardless of chrome state
-    // at mount, and safe to re-measure on every resize with no filtering.)
-    let viewportW = window.innerWidth;
+    // Viewport height used for the scrub math, measured from .hs__sticky's own
+    // rendered box (CSS: height:100svh) rather than window.innerHeight. svh is
+    // a browser-guaranteed STABLE value that does not change as an in-app
+    // browser's chrome hides and reappears mid-scroll, unlike innerHeight —
+    // reading innerHeight live made the scrub jump on every direction change.
     let viewportH = window.innerHeight;
     const measureViewport = () => {
       const rect = stickyRef.current?.getBoundingClientRect();
-      if (rect && rect.width > 0 && rect.height > 0) {
-        viewportW = rect.width;
-        viewportH = rect.height;
-      } else {
-        viewportW = window.innerWidth;
-        viewportH = window.innerHeight;
-      }
+      viewportH = rect && rect.height > 0 ? rect.height : window.innerHeight;
     };
     measureViewport();
 
-    const sizeCanvas = () => {
-      // Cap DPR lower on phones: many are DPR 3, where the per-frame fill
-      // (drawImage over a full-screen canvas) is 2.25× the pixels of DPR 2 and
-      // can't hold 60fps on mid-range devices. 1.75 stays crisp for a MOVING
-      // film while cutting ~23% of the fill cost vs the 2 cap.
-      const dpr = Math.min(window.devicePixelRatio || 1, isMobileNow() ? 1.75 : 2);
-      canvas.width = Math.round(viewportW * dpr);
-      canvas.height = Math.round(viewportH * dpr);
-      canvas.style.width = viewportW + "px";
-      canvas.style.height = viewportH + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const isLoaded = (i: number) => {
-      const img = images[i];
-      return !!img && img.complete && !!img.naturalWidth;
-    };
-
-    // The nearest already-loaded frame to `i` (search outward). Guarantees the
-    // scrub always shows SOMETHING close instead of freezing/blanking when the
-    // exact frame hasn't streamed in yet — the film just sharpens as it fills.
-    const nearestLoaded = (i: number): number => {
-      if (isLoaded(i)) return i;
-      for (let d = 1; d < stack.total; d++) {
-        if (i - d >= 1 && isLoaded(i - d)) return i - d;
-        if (i + d <= stack.total && isLoaded(i + d)) return i + d;
-      }
-      return -1;
-    };
-
-    const paint = (img: HTMLImageElement) => {
-      const vw = viewportW;
-      const vh = viewportH;
-      const ir = img.naturalWidth / img.naturalHeight;
-      const vr = vw / vh;
-      let w: number, h: number, x: number, y: number;
-      if (ir > vr) {
-        h = vh; w = vh * ir; x = (vw - w) / 2; y = 0;
-      } else {
-        w = vw; h = vw / ir; x = 0; y = (vh - h) / 2;
-      }
-      ctx.drawImage(img, x, y, w, h);
-    };
-
-    // Draw frame `i`, or the nearest loaded frame if it isn't ready yet.
-    // Returns true only when the EXACT frame was drawn (so the tick loop knows
-    // to keep retrying that index until its real frame lands).
-    const draw = (i: number): boolean => {
-      if (isLoaded(i)) { paint(images[i]); return true; }
-      const near = nearestLoaded(i);
-      if (near > 0) paint(images[near]);
-      return false;
-    };
-
-    // (re)load the frame stack for the current device. Called on mount and
-    // whenever a resize crosses the mobile breakpoint (e.g. phone rotate).
-    //
-    // TWO-PHASE FETCH, FULL-STACK GATE: the critical frames fetch alone at
-    // high priority first (so frame 1 paints fast and the scrub isn't blank),
-    // then the rest stream in through a small concurrency window, in scrub
-    // order. But the Loader itself now waits for EVERY frame in the stack —
-    // not just the critical set — before lifting. Gating on a small critical
-    // subset let visitors who started scrolling before the rest had streamed
-    // in see a stale/blurry "nearest loaded" stand-in frame right as the page
-    // revealed, which read as "the hero didn't load" / glitchy.
-    let loadGen = 0;
-    const loadStack = () => {
-      images.forEach((im) => { im.onload = null; im.onerror = null; im.src = ""; });
-      images = [];
-      lastDrawn = -1;
-      lastDrawnExact = false;
-      loadGen++; // invalidates any in-flight streamer from a previous stack
-      const gen = loadGen;
-      // frame COUNTS are ext-independent — register the FULL stack with the
-      // Loader SYNCHRONOUSLY, before the avif/webp probe's async hop, so the
-      // Loader can never hit its "no hero registered" fallback and lift early.
-      const critical = Math.min(stack.critical, stack.total);
-      const total = stack.total;
-      let releasedCount = 0;
-      const release = () => {
-        if (releasedCount < total) { releasedCount++; preload.done(); }
-      };
-      preload.add(total);
-
-      resolveFrameExt().then((ext) => {
-        if (!mounted || gen !== loadGen) {
-          // stack swapped (rotate) or unmounted before fetching began — drain
-          // this generation's registered slots so the Loader never stalls
-          while (releasedCount < total) release();
-          return;
-        }
-        frameExt = ext;
-        stack = buildStack();
-        stackIsMobile = isMobileNow();
-        const s = stack;
-
-        // phase 2 — stream the rest, max WINDOW in flight, always fetching the
-        // unloaded frame NEAREST the current scrub position first. Ascending
-        // order starved mid-scroll: if the user was at 50% the frame under them
-        // was the LAST to arrive. Prioritising by distance-to-current means the
-        // frames actually on screen download first, wherever the user is.
-        const WINDOW = 8;
-        const requested: boolean[] = [];
-        for (let i = 1; i <= critical; i++) requested[i] = true; // phase-1 owns these
-        let remaining = s.total - critical;
-        let inFlight = 0;
-        let streaming = false;
-
-        const pickNext = (): number => {
-          const cur = Math.max(1, Math.min(s.total, Math.round(currentFrame)));
-          let best = -1, bestD = Infinity;
-          for (let i = 1; i <= s.total; i++) {
-            if (requested[i]) continue;
-            const d = Math.abs(i - cur);
-            if (d < bestD) { bestD = d; best = i; }
-          }
-          return best;
-        };
-
-        const pump = () => {
-          if (gen !== loadGen || !mounted) return;
-          while (inFlight < WINDOW && remaining > 0) {
-            const i = pickNext();
-            if (i < 0) break;
-            requested[i] = true;
-            remaining--;
-            inFlight++;
-            const im = new Image();
-            im.decoding = "async";
-            im.fetchPriority = "low";
-            const done = () => { inFlight--; release(); pump(); };
-            im.onload = done;
-            im.onerror = done;
-            im.src = s.src(i);
-            images[i] = im;
-          }
-        };
-        const startStream = () => {
-          if (streaming || gen !== loadGen || !mounted) return;
-          streaming = true;
-          pump();
-        };
-
-        // phase 1 — the loader-gating critical set, alone on the wire
-        let settled = 0;
-        for (let i = 1; i <= critical; i++) {
-          const im = new Image();
-          im.decoding = "async";
-          im.fetchPriority = "high";
-          const settle = () => {
-            release();
-            if (!firstDrawn && i === 1 && mounted) {
-              firstDrawn = true;
-              sizeCanvas();
-              draw(1);
-              setReady(true);
-            }
-            settled++;
-            if (settled >= critical) startStream();
-          };
-          im.onload = settle;
-          im.onerror = settle;
-          im.src = s.src(i);
-          images[i] = im;
-        }
-        // safety: one stalled critical frame must not block streaming forever
-        window.setTimeout(startStream, 4000);
-      });
-    };
-
-    // One always-on rAF loop that reads scrub position from layout every frame.
-    // Input-agnostic (wheel, touch, Lenis momentum) and never gated by scroll
-    // events or IntersectionObserver — both misreport under Lenis on phones.
-    const tick = () => {
-      if (!mounted) return;
+    // Progress is read from layout every frame rather than from scroll events,
+    // so it is input-agnostic (wheel, touch, Lenis momentum). Scroll events and
+    // IntersectionObserver both misreport under Lenis on phones.
+    const progress = () => {
       const rect = section.getBoundingClientRect();
       const scrollable = section.offsetHeight - viewportH;
-      const progress = scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
-      const target = 1 + progress * (stack.total - 1);
-
-      // fade the copy out over the first 16% of the scrub
-      const fade = Math.min(progress / 0.16, 1);
-      if (copyRef.current) {
-        copyRef.current.style.opacity = (1 - fade).toFixed(3);
-        copyRef.current.style.transform = `translateY(${-fade * 34}px)`;
-      }
-      if (hintRef.current) {
-        hintRef.current.style.opacity = (1 - Math.min(progress / 0.07, 1)).toFixed(3);
-      }
-
-      // ease toward the target frame, redraw only when the index changes
-      currentFrame += (target - currentFrame) * 0.2;
-      if (Math.abs(target - currentFrame) < 0.25) currentFrame = target;
-      let idx = Math.round(currentFrame);
-      if (idx < 1) idx = 1;
-      if (idx > stack.total) idx = stack.total;
-      // Redraw when the index moves OR when we last drew an APPROXIMATION for
-      // this index (nearest-frame fallback) and its real frame has since
-      // streamed in — otherwise the canvas would freeze on the stand-in forever.
-      if (idx !== lastDrawn || !lastDrawnExact) {
-        lastDrawnExact = draw(idx);
-        lastDrawn = idx;
-      }
-      rafId = requestAnimationFrame(tick);
+      return scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
     };
 
-    const onResize = () => {
-      measureViewport();
-      const nowMobile = isMobileNow();
-      if (nowMobile !== stackIsMobile) {
-        // crossed the breakpoint — swap to the right stack
-        stack = buildStack();
-        stackIsMobile = nowMobile;
-        currentFrame = 1;
-        loadStack();
-      }
-      sizeCanvas();
-      lastDrawn = -1;
-      lastDrawnExact = false;
-      draw(Math.round(currentFrame));
-    };
+    // The Loader now gates on ONE thing (this clip) instead of 125-181 separate
+    // images, so it lifts as soon as the film can actually be scrubbed.
+    let released = false;
+    const release = () => { if (!released) { released = true; preload.done(); } };
+    preload.add(1);
 
-    sizeCanvas();
-    // loadStack registers the Loader-gating frames synchronously, resolves the
-    // avif/webp probe internally, then fetches only the winning format.
-    loadStack();
+    const scrub = createVideoScrub({
+      container: stage,
+      src: HERO_CLIP[variant],
+      srcMobile: HERO_CLIP_MOBILE,
+      mobileQuery: MOBILE_QUERY,
+      className: "hs__video",
+      progress,
+      reduce: !!reduce,
+      onReady: () => { setReady(true); release(); },
+      onFirstFrame: () => setPainted(true),
+      // Never let a failed clip leave the branded loader up forever — the
+      // poster frame stays and the page reveals normally.
+      onError: release,
+    });
+
+    // Safety net: if the clip stalls on a bad connection, reveal anyway rather
+    // than holding the whole page behind the loader.
+    const failsafe = window.setTimeout(release, 8000);
+
+    const onResize = () => measureViewport();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
-    rafId = requestAnimationFrame(tick);
 
     return () => {
-      mounted = false;
-      cancelAnimationFrame(rafId);
+      window.clearTimeout(failsafe);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      images.forEach((im) => { im.onload = null; im.onerror = null; });
-      images = [];
+      release();
+      scrub.destroy();
     };
-    // variant is the only real input; device is handled live inside the effect.
   }, [variant, reduce]);
 
   return (
     <section id="top" ref={sectionRef} className={`hs hs--${variant}`}>
       <div className="hs__sticky" ref={stickyRef}>
-        <canvas
-          ref={canvasRef}
-          className={`hs__canvas${ready ? " is-ready" : ""}`}
+        {/* The scrub <video> is appended here by createVideoScrub. The wrapper
+            carries the accessible name, because the video itself is decorative
+            chrome for a film the user drives with their own scroll. */}
+        <div
+          ref={stageRef}
+          className={`hs__stage${ready ? " is-ready" : ""}${painted ? " is-painted" : ""}`}
           role="img"
           aria-label={
             lang === "en"
@@ -519,8 +338,12 @@ const heroCss = `
   .hs--static { height: 100svh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
 
   .hs__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
-  .hs__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; opacity: 0; transition: opacity .35s ease; }
-  .hs__canvas.is-ready { opacity: 1; }
+  /* The stage holds the scrub video. It only fades in once a real frame has
+     painted (.is-painted) — not merely when metadata arrived — so the poster
+     underneath is never swapped out for a blank iOS video surface. */
+  .hs__stage { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .35s ease; }
+  .hs__stage.is-painted { opacity: 1; }
+  .hs__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
   .hs__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
   /* CSS decides which poster aspect is shown — both are in the DOM for SSR safety */
   .hs__poster--m { display: none; }

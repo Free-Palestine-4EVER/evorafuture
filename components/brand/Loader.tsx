@@ -50,9 +50,17 @@ export default function Loader() {
   const startRef = useRef(0);
   const liftedRef = useRef(false);
 
-  const reduce =
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // Read AFTER mount, not during render. Computing this with `typeof window`
+  // at render time made the server emit width:0% while a reduced-motion client
+  // emitted width:100% on its very first render — a hydration mismatch that
+  // makes React throw away and regenerate the whole tree. And because Chrome's
+  // Battery Saver forces prefers-reduced-motion:reduce, that fired on every
+  // laptop running on battery, not just genuine accessibility setups.
+  // Starting at `false` matches SSR exactly; the effect flips it a tick later.
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    setReduce(!!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   // Decide instantly (before paint) whether this session has already seen it.
   useIsoLayoutEffect(() => {
