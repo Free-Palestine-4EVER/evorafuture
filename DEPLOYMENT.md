@@ -1,44 +1,99 @@
-# Evora Future Home — deployment
+# Evora Future Home — environment variables
 
-## Environment variables (set these on Vercel / your host)
+> **Deploy steps are NOT here.** See **`evoraproj.md` → "How to deploy a change"**
+> for the authoritative procedure (build locally → rsync → `evora-deploy.sh`).
+> This file documents only the environment surface.
+>
+> **This app is self-hosted on an AWS VPS** (systemd `evora.service` + Caddy,
+> `evorahome.online`). It is **not** on Vercel — an earlier version of this file
+> described a Vercel deploy, which has been dead for a long time. Ignore any
+> Vercel-flavoured advice you find in old notes.
 
-Firebase (client):
+## Where env vars live
+
+`/var/www/evora/.env.local` on the server. It is **excluded from the rsync** on
+purpose, so it survives deploys and must be edited on the box directly:
+
+```bash
+ssh -i ~/.ssh/evora-server-key.pem ubuntu@3.69.106.150
+nano /var/www/evora/.env.local
 ```
-NEXT_PUBLIC_FIREBASE_API_KEY=...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=evorafuture-bdb21.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=evorafuture-bdb21
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=evorafuture-bdb21.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...
+
+⚠️ Anything named `NEXT_PUBLIC_*` is **inlined at build time**, not read at
+runtime. Changing one has no effect until `/usr/local/bin/evora-deploy.sh`
+rebuilds the app. A few vars also come from the systemd unit
+(`/etc/systemd/system/evora.service`: `NODE_ENV`, `EVORA_LOCAL_DB`, `PORT`) —
+edit that and you must `sudo systemctl daemon-reload` before restarting.
+
+## Currently set in production
+
+```
+EVORA_LOCAL_DB=1          # also set in the systemd unit
+NODE_ENV=production
+NEXT_PUBLIC_EVORA_LOCAL=1 # forces the self-hosted realtime path (see below)
 ```
 
-Firebase (server — Realtime Database via Admin SDK):
+That is the whole live configuration. Everything below is **optional and
+currently unset** — the app is fully functional without it.
+
+## Self-hosting flags
+
+| Var | Effect |
+| --- | --- |
+| `EVORA_LOCAL_DB=1` | Use the file-backed JSON DB (`lib/portal/localdb.ts`) instead of Firebase RTDB. |
+| `NEXT_PUBLIC_EVORA_LOCAL=1` | Keeps browsers off Firebase entirely: realtime rides the server's SSE `/api/portal/events` stream instead of a direct client→Firebase connection. |
+| `EVORA_DB_FILE` | Override the JSON DB path (defaults to `data/evora-db.json`). |
+| `EVORA_PUBLIC_BASE` | Override the public base URL used when building upload URLs. Normally derived from the request `Host` header, so leave unset. |
+| `NEXT_PUBLIC_PORTAL_API` | Point the portal client at a different API origin. Only needed if the portal is served from a different host than the API. |
+
+**Why `NEXT_PUBLIC_EVORA_LOCAL=1` matters even though nothing appears to break
+without it:** `lib/portal/realtime.ts` computes
+`realtimeConfigured = !LOCAL && Boolean(apiKey && databaseURL)`. With the flag
+absent, the app fell through to the correct SSE path only because the Firebase
+keys below happen to be unset too. The moment anyone adds a Firebase key for an
+unrelated reason, realtime would silently switch to attempting a direct Firebase
+connection that no longer exists. The flag makes the intent explicit and
+un-flippable. Added 2026-07-23.
+
+## Firebase (legacy — unset, and intentionally so)
+
+The client's Firebase billing went delinquent, which is why this app moved to a
+local DB + local file storage. `firebase-admin` is gone from the server path;
+`lib/firebase.ts`, `lib/portal/admin.ts` and `lib/portal/realtime.ts` still
+contain the code paths, but they stay dormant while these are unset:
+
 ```
-FIREBASE_DB_URL=https://evorafuture-bdb21-default-rtdb.firebaseio.com
-# Paste the ENTIRE service-account JSON on one line (it replaces the local
-# service-account.json file, which is git-ignored and not deployed):
-FIREBASE_SERVICE_ACCOUNT={"type":"service_account", ... }
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+NEXT_PUBLIC_FIREBASE_DATABASE_URL      # else derived from PROJECT_ID
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+FIREBASE_DB_URL                        # server-side Admin SDK
 ```
 
-OneSignal push notifications (optional — leave unset to disable push):
+Do not set these unless you are deliberately migrating back to the cloud. If you
+do, set `NEXT_PUBLIC_EVORA_LOCAL=0` in the same change, or you get a
+half-local/half-cloud app.
+
+## OneSignal push notifications (optional — unset)
+
+Still wired up in `lib/portal/notify.ts`, `lib/portal/push.ts` and
+`components/portal/OneSignalInit.tsx`. Leave unset to disable push entirely.
+
 ```
-NEXT_PUBLIC_ONESIGNAL_APP_ID=...        # OneSignal → Settings → Keys & IDs → App ID
-ONESIGNAL_REST_API_KEY=...              # OneSignal → Settings → Keys & IDs → REST API Key
+NEXT_PUBLIC_ONESIGNAL_APP_ID    # OneSignal → Settings → Keys & IDs → App ID
+ONESIGNAL_REST_API_KEY          # OneSignal → Settings → Keys & IDs → REST API Key
 ```
-In the OneSignal dashboard: add your **Web** platform with the site URL = your
-domain, and create a segment named **Admins** (filter: tag `role` = `admin`) so
-new-lead alerts reach staff. Customers are auto-identified by their portal uid.
 
-## Known Vercel/serverless caveats (need a change before production)
+To enable: add the **Web** platform in the OneSignal dashboard with the site URL
+set to `https://evorahome.online`, and create a segment named **Admins**
+(filter: tag `role` = `admin`) so new-lead alerts reach staff. Customers are
+auto-identified by their portal uid.
 
-1. **File uploads** (`/api/portal/upload` → `.evora-uploads/`) write to local disk.
-   Vercel's filesystem is ephemeral/read-only, so uploaded GLBs/plans/photos
-   won't persist. Move these to Firebase Storage or Vercel Blob for production.
-2. **Realtime** uses Server-Sent Events (`/api/portal/events`) with an in-process
-   event bus — fine on a single long-running Node server, but serverless
-   functions can't hold the connection. For Vercel, switch the client to Firebase
-   Realtime Database listeners (the data already lives in RTDB).
+## Secrets that must never be committed
 
-Both work as-is when self-hosted on a normal Node server (e.g. a VPS) behind your
-domain. Ping me to make them Vercel-native and I'll swap uploads → Storage and
-SSE → RTDB listeners.
+`.env.local` and `service-account.json` are gitignored and excluded from the
+rsync. `data/` (password hashes) and `public/uploads/` are live server-only —
+never overwrite them from a local copy.
