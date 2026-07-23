@@ -171,38 +171,64 @@ export default function ConfiguratorScroll() {
     };
     measureViewport();
 
-    // Frames play across the first 78% of the scroll; the last 22% holds the
-    // final frame and brings up the configurator UI. Preserved exactly.
-    let revealedNow = false;
-    const progress = () => {
+    // Raw scroll progress through the section, 0..1.
+    const sectionProgress = () => {
       const rect = section.getBoundingClientRect();
       const scrollable = section.offsetHeight - viewportH;
-      const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
-      const rev = p > 0.8;
-      if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
-      return Math.min(1, p / 0.78);
+      return scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+    };
+    // Frames play across the first 78% of the scroll; the last 22% holds the
+    // final frame and brings up the configurator UI. Passed to the scrub.
+    const progress = () => Math.min(1, sectionProgress() / 0.78);
+
+    // Lazy-load the clip only once the section is within ~2 viewports. The
+    // hero clip is what fills the screen first; if the configurator blob
+    // downloaded concurrently it would fight the hero for bandwidth (measured:
+    // first paint slipped to 30s on a cold 3Mbps mobile connection) and a
+    // phone would spend data on a clip the visitor may never scroll to. The
+    // scrub is created on approach, then the rest is identical.
+    let scrub: ReturnType<typeof createVideoScrub> | null = null;
+    const startScrub = () => {
+      if (scrub) return;
+      scrub = createVideoScrub({
+        container: stage,
+        src: "/evora/scrub/config-desktop.mp4",
+        srcMobile: "/evora/scrub/config-mobile.mp4",
+        mobileQuery: "(max-width: 768px)",
+        className: "cfg__video",
+        progress,
+        reduce: !!reduce,
+        onReady: () => setReady(true),
+        onFirstFrame: () => setPainted(true),
+      });
     };
 
-    const scrub = createVideoScrub({
-      container: stage,
-      src: "/evora/scrub/config-desktop.mp4",
-      srcMobile: "/evora/scrub/config-mobile.mp4",
-      mobileQuery: "(max-width: 768px)",
-      className: "cfg__video",
-      progress,
-      reduce: !!reduce,
-      onReady: () => setReady(true),
-      onFirstFrame: () => setPainted(true),
-    });
+    // One always-on light rAF that (a) starts the scrub on approach and (b)
+    // drives the configurator UI reveal from scroll position. Both must run
+    // regardless of whether the clip has loaded — the reveal is scroll-driven
+    // UI, not a video event, so it can't live inside the scrub's progress()
+    // callback (which only fires once the blob is ready). Poll layout rather
+    // than IntersectionObserver, which misreports under Lenis on phones.
+    let uiRaf = 0;
+    let revealedNow = false;
+    const uiTick = () => {
+      const rect = section.getBoundingClientRect();
+      if (!scrub && rect.top < viewportH * 2) startScrub();
+      const rev = sectionProgress() > 0.8;
+      if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
+      uiRaf = requestAnimationFrame(uiTick);
+    };
+    uiRaf = requestAnimationFrame(uiTick);
 
     const onResize = () => measureViewport();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
     return () => {
+      cancelAnimationFrame(uiRaf);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      scrub.destroy();
+      scrub?.destroy();
     };
   }, [reduce]);
 

@@ -71,11 +71,12 @@ export type VideoScrubOptions = {
   /** Per-frame easing toward the scroll target. */
   lerp?: number;
   /**
-   * Download the whole clip as a Blob before scrubbing. Only needed on an
-   * origin that does NOT honour HTTP range requests — a blob URL is always
-   * seekable, but nothing can be scrubbed until the full file has landed
-   * (measured: 30s for the 14MB desktop hero). Ours does support ranges, so
-   * this defaults off and we stream instead.
+   * Download the whole clip as a Blob before scrubbing (default true). A blob
+   * has the entire file buffered, so every seek is instant — which is what
+   * scrubbing needs. Setting this false streams from a plain src, which reaches
+   * metadata sooner but freezes the moment the user scrubs past the buffered
+   * region (the seek never completes and the coalescing gate locks). Only turn
+   * it off if you have measured that streaming scrubs cleanly for your assets.
    */
   useBlob?: boolean;
 };
@@ -103,7 +104,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     onError,
     reduce = false,
     lerp = 0.18,
-    useBlob = false,
+    useBlob = true,
   } = opts;
 
   const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(mobileQuery) : null;
@@ -116,9 +117,12 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let ready = false;
   let painted = false;
   let cur = 0;
+  let seekStartedAt = 0; // when the in-flight seek was issued (for the stale-seek escape)
   let userReady = false;
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const perfNow = () =>
+    typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
 
   /* ---- iOS gesture priming -------------------------------------------------
      A muted video on iOS will not reliably decode until the page has seen a
@@ -143,20 +147,21 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
 
   /* ---- source strategy -----------------------------------------------------
-     scroll-world's engine fetches the clip as a Blob because a blob URL is
-     always seekable, whereas a plain src depends on the origin honouring HTTP
-     range requests. We measured ours: Caddy returns `accept-ranges: bytes` on
-     /evora/scrub/*, so ranges genuinely work here.
+     Load the clip as a Blob, which scroll-world does for a reason that turns
+     out to be essential, not incidental: a blob has the WHOLE file buffered, so
+     every seek resolves instantly. A streamed src only has part of the file
+     buffered, and seeking to an un-buffered region leaves the element stuck in
+     `seeking = true` until that region downloads — which permanently trips the
+     seek-coalescing gate below (we never issue a seek while one is pending), so
+     the scrub freezes on the last completed frame. Measured live: streaming
+     froze the hero at currentTime 1.85s while the scroll ran to the end.
 
-     That matters a lot, because the blob has to finish downloading before the
-     video is seekable at ALL. Measured against production, the 14MB desktop
-     hero took 30.3s to reach loadedmetadata — worse than the memory bug we
-     replaced, for anyone on a slow line. Streaming from a plain src reaches
-     metadata in well under a second and seeks against whatever is buffered,
-     fetching the rest on demand.
-
-     So: stream directly. Blob stays available via `useBlob` for any origin
-     that can't do ranges. */
+     The cost of the blob is the up-front download before anything can scrub.
+     We pay it two ways: the clips were re-encoded small (hero-c 16MB -> 7.6MB,
+     everything else 3-6MB) and immutably cached, so after the first visit it is
+     instant; and the page never waits on it — the poster <img> (the film's
+     first frame) stays up until the blob is ready, and the caller reveals on
+     onFirstFrame. Nothing is blocked; only the scrub animation itself waits. */
   const url = isMobile() && srcMobile ? srcMobile : src;
 
   const attach = (objectSrc: string) => {
@@ -189,6 +194,10 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
         try { v.currentTime = Math.max(0.001, clamp(progress(), 0, 0.999) * (v.duration || 1)); }
         catch { /* not seekable yet — the rAF loop will retry */ }
       });
+
+      // Clear the stale-seek timer as soon as a seek actually resolves, so the
+      // escape hatch only ever triggers on a genuinely hung seek.
+      v.addEventListener("seeked", () => { seekStartedAt = 0; });
 
       // Reveal only once a real frame has painted (see header note 3).
       v.addEventListener(
@@ -245,14 +254,21 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       // and track the scroll exactly.
       cur += (target - cur) * (reduce ? 1 : lerp);
 
-      if (!v.seeking) {
+      // Normally we never issue a seek while one is pending (coalescing — a
+      // phone decoder can't service a pile-up). But if a seek has been pending
+      // too long it has effectively hung (e.g. a seek into an un-buffered
+      // region), and blindly waiting would freeze the scrub. After a stall we
+      // let a fresh seek through; the browser supersedes the stuck one.
+      const now = perfNow();
+      const stalled = v.seeking && seekStartedAt && now - seekStartedAt > 400;
+      if (!v.seeking || stalled) {
         const dur = v.duration;
         if (dur && isFinite(dur) && dur > 0) {
           // 0.999 not 1: seeking to exactly duration can land past the last
           // decodable frame and paint nothing on some decoders.
           const t = clamp(cur, 0, 0.999) * dur;
           if (Math.abs(v.currentTime - t) > eps) {
-            try { v.currentTime = t; } catch { /* ignore */ }
+            try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
           }
         }
       }
