@@ -1,4 +1,5 @@
 import Nav from "@/components/Nav";
+import ScrubDebug from "@/components/ScrubDebug";
 import HeroScroll, { type HeroVariant } from "@/components/HeroScroll";
 import ProcessJourney from "@/components/ProcessJourney";
 import StartAndTrack from "@/components/StartAndTrack";
@@ -40,6 +41,7 @@ export default function SiteShell({
       <Marquee />
       <Visit />
       <Footer />
+      <ScrubDebug />
     </main>
   );
 }

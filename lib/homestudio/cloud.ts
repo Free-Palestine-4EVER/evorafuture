@@ -11,6 +11,7 @@
 import type { ProjectFile } from "./store";
 import type { Project, PortalUser } from "@/lib/portal/types";
 import { scanToProject, type ScanFile } from "./importScan";
+import { clearLocalSession } from "@/lib/portal/store";
 
 const API = "/api/portal";
 
@@ -19,6 +20,16 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
   });
+  // The projects/clients reads are gated on an httpOnly session cookie issued at
+  // sign-in. A session created BEFORE that gating existed lives only in
+  // localStorage, so usePortalAuth still reports the admin as signed in while
+  // every read comes back 401 — the studio then showed a permanent
+  // "unauthorized" with no way to recover. Treat 401 as "your session is stale":
+  // clear it so the page falls back to the sign-in door, exactly like the portal.
+  if (res.status === 401) {
+    clearLocalSession();
+    throw new Error("SESSION_EXPIRED");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error || `request failed (${res.status})`);

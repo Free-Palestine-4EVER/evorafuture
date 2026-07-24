@@ -86,6 +86,17 @@ export async function signOutPortal(): Promise<void> {
   try { window.dispatchEvent(new Event(AUTH_EVENT)); } catch { /* SSR */ }
 }
 
+/** Drop the local session and tell every watcher, so the UI falls back to the
+ *  login form. Exported so other API layers (the Home Studio has its own fetch
+ *  helper in lib/homestudio/cloud.ts) can react to a 401 the same way instead of
+ *  surfacing a dead "unauthorized" error to the user. */
+export function clearLocalSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new Event(AUTH_EVENT));
+  } catch { /* SSR / storage blocked */ }
+}
+
 export function watchAuth(cb: (u: PortalUser | null) => void): () => void {
   const read = () => {
     try { cb(JSON.parse(localStorage.getItem(SESSION_KEY) || "null")); } catch { cb(null); }
