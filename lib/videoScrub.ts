@@ -124,6 +124,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let cur = 0;
   let seekStartedAt = 0; // when the in-flight seek was issued (for the stale-seek escape)
   let painterTimer = 0;  // readyState poll that reveals the video on iOS
+  let lastUnstickAt = 0; // rate-limits the play/pause nudge for a wedged seek
   let userReady = false;
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -378,21 +379,45 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       // and track the scroll exactly.
       cur += (target - cur) * (reduce ? 1 : lerp);
 
-      // Normally we never issue a seek while one is pending (coalescing — a
-      // phone decoder can't service a pile-up). But a seek into an un-buffered
-      // region waits on a network round-trip, and blindly waiting for it would
-      // freeze the scrub. So a pending seek is allowed to be superseded once it
-      // has been outstanding too long. Un-buffered targets get a longer grace
-      // period, since they legitimately need a range request to arrive.
       const now = perfNow();
+
+      // Track how long the element has been `seeking`, no matter WHO started
+      // the seek. This is the fix for a real deadlock seen on iOS 18:
+      //   readyState=4, err=null, fully buffered — but t=0.00 and seeking=true
+      //   forever, so the film never moved.
+      // The initial seek is issued from the loadedmetadata handler, outside this
+      // loop, so it never set seekStartedAt. On iOS that first seek never
+      // completes, `seeking` stays true, and the coalescing gate below then
+      // blocked every subsequent seek — while `stalled` could never become true
+      // because seekStartedAt was still 0. Total deadlock. Desktop never hit it
+      // because the first seek resolves immediately.
+      // Observing the seeking flag itself (rather than only our own seeks) means
+      // a hung seek from ANY source is escaped.
+      if (v.seeking) { if (!seekStartedAt) seekStartedAt = now; }
+      else seekStartedAt = 0;
+
       const dur = v.duration;
       if (dur && isFinite(dur) && dur > 0) {
         // 0.999 not 1: seeking to exactly duration can land past the last
         // decodable frame and paint nothing on some decoders.
         const t = clamp(cur, 0, 0.999) * dur;
+        // Un-buffered targets legitimately need a network round-trip, so they
+        // get a longer grace period before we call the seek hung.
         const grace = isBuffered(v, t) ? 250 : 900;
-        const stalled = !!seekStartedAt && now - seekStartedAt > grace;
+        const stuckFor = seekStartedAt ? now - seekStartedAt : 0;
+        const stalled = !!seekStartedAt && stuckFor > grace;
+
         if ((!v.seeking || stalled) && Math.abs(v.currentTime - t) > eps) {
+          try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
+        }
+
+        // Last resort: a seek wedged for seconds means the decoder never woke
+        // up. On iOS that happens when the video has never played — and Low
+        // Power Mode refuses the muted autoplay we use to prime it. Nudge it
+        // with a play/pause, then re-issue. Rate-limited so it can't spin.
+        if (stuckFor > 2500 && now - lastUnstickAt > 3000) {
+          lastUnstickAt = now;
+          prime(v);
           try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
         }
       }
