@@ -32,7 +32,18 @@ export default function OneSignalInit() {
       const OneSignal = os as { __inited?: boolean; init: (c: object) => Promise<void> };
       if (OneSignal.__inited) return;
       OneSignal.__inited = true;
-      await OneSignal.init({ appId: APP_ID, allowLocalhostAsSecureOrigin: true });
+      // Register OneSignal's worker under /onesignal/ instead of the site root.
+      // At root scope it competes with the portal's own /sw.js for control of
+      // EVERY page on the domain — which took the marketing site down with
+      // Chrome's "This page couldn't load". Scope only limits which pages the
+      // worker controls; push delivery is unaffected.
+      await OneSignal.init({
+        appId: APP_ID,
+        allowLocalhostAsSecureOrigin: true,
+        serviceWorkerPath: "onesignal/OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "onesignal/OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/onesignal/" },
+      });
     });
   }, []);
 
