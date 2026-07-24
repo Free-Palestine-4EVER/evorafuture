@@ -22,10 +22,13 @@
 
    The four behaviours that actually make this work on a phone:
 
-     1. Blob source.   fetch() -> createObjectURL. A blob URL is always
-                       seekable; a plain src depends on the origin honouring
-                       HTTP range requests, and a partial/streaming response
-                       makes currentTime seeks fail silently.
+     1. Prefetch, then REAL url. We fetch the whole clip (which drives the
+                       Loader's progress bar and warms the HTTP cache), then
+                       point the element at the ordinary URL — never a blob:
+                       URL. iOS Safari loads video via HTTP range requests and
+                       does not reliably do that against a blob, so a blob src
+                       leaves the element stuck at readyState 0 on a real
+                       iPhone: a permanently static poster.
      2. Seek coalescing. Never assign currentTime while the decoder is still
                        `seeking`. A fast flick otherwise queues seeks faster
                        than they resolve and the clip freezes for good.
@@ -116,7 +119,6 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let destroyed = false;
   let rafId = 0;
   let video: HTMLVideoElement | null = null;
-  let objectUrl = "";
   let ready = false;
   let painted = false;
   let cur = 0;
@@ -275,6 +277,25 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
 
       container.appendChild(v);
       video = v;
+
+      /* Self-healing watchdog. If this source has produced NOTHING after a
+         while — no metadata, no duration, readyState still 0 — the element is
+         not going to recover on its own. Rather than leave a dead poster (which
+         is what every previous failure here looked like to the visitor), force a
+         reload of the element once, with a cache-busting query so we are not
+         handed the same unusable cached response. Only ever fires once. */
+      let healed = false;
+      const watchdog = window.setTimeout(() => {
+        if (destroyed || healed || !video) return;
+        if (video.readyState >= 1) return;   // it is fine, leave it alone
+        healed = true;
+        try {
+          video.src = objectSrc + (objectSrc.includes("?") ? "&" : "?") + "reload=1";
+          video.load();
+          prime(video);
+        } catch { /* ignore */ }
+      }, 9000);
+      v.addEventListener("loadedmetadata", () => window.clearTimeout(watchdog), { once: true });
   };
 
   if (useBlob) {
@@ -312,8 +333,23 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
 
         if (destroyed) return;
         onProgress?.(1);
-        objectUrl = URL.createObjectURL(blob);
-        attach(objectUrl);
+
+        // Hand the element the REAL URL, not a blob: URL.
+        //
+        // iOS Safari's media stack loads video by issuing HTTP range requests,
+        // and it does not reliably do that against a blob: object URL — the
+        // element frequently never even reaches readyState 1, so nothing ever
+        // scrubs and the poster stays up forever. That is the "it's just a
+        // static photo on my phone" report, and it is invisible to desktop
+        // Chromium and to its mobile emulation, both of which handle blobs fine.
+        //
+        // We still did the full fetch above: it drives the Loader's progress bar
+        // AND warms the HTTP cache, so this src resolves out of cache
+        // immediately (the clips are served immutable, max-age 1y). Range seeks
+        // then work against the cached bytes, which is exactly what iOS wants.
+        // The blob is deliberately discarded.
+        void blob;
+        attach(url);
       } catch {
         if (!destroyed) { onProgress?.(1); onError?.(); }
       }
@@ -381,7 +417,6 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
         try { v.load(); } catch { /* ignore */ }
         v.remove();
       }
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
       video = null;
     },
   };
