@@ -64,7 +64,7 @@ export default function FutureHomeProof() {
             <source media="(max-width: 768px)" srcSet="/evora/vid-sofa-mobile.jpg" />
             <motion.img
               src="/evora/vid-sofa.jpg"
-              alt=""
+              alt={lang === "ar" ? "كنبة إيفورا منحنية في غرفة معيشة مؤثّثة" : "A curved Evora sofa in a furnished living room"}
               loading="lazy"
               decoding="async"
               className="fh__img"
@@ -98,7 +98,7 @@ export default function FutureHomeProof() {
         <motion.a href="/shop" className="fh__shop" style={reduce ? undefined : { y: cardY }}>
           <picture>
             <source media="(max-width: 768px)" srcSet="/evora/p11-mobile.jpg" />
-            <img src="/evora/p11.jpg" alt="" loading="lazy" decoding="async" />
+            <img src="/evora/p11.jpg" alt={lang === "ar" ? "قطع من مجموعة إيفورا داخل منزل مكتمل" : "Pieces from the Evora collection in a finished home"} loading="lazy" decoding="async" />
           </picture>
           <span className="fh__shop-scrim" />
           <span className="fh__shop-label">

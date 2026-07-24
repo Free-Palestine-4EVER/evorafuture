@@ -50,7 +50,7 @@ export default function Manifesto() {
       <motion.div className="mani__stage" style={reduce ? undefined : { rotateX: rotX, rotateY: rotY }}>
         <div className="mani__plane mani__plane--bg">
           <motion.div className="mani__imgwrap" style={reduce ? undefined : { scale: imgScale, y: imgY }}>
-            <img src="/evora/mani-bedroom.jpg" alt="" className="mani__img" />
+            <img src="/evora/mani-bedroom.jpg" alt={lang === "ar" ? "غرفة نوم مصمّمة ومؤثّثة من إيفورا" : "A bedroom designed and furnished by Evora"} className="mani__img" />
           </motion.div>
         </div>
 
@@ -58,7 +58,7 @@ export default function Manifesto() {
 
         <div className="mani__plane mani__plane--card">
           <motion.a href="/shop" data-cursor="hover" className="mani__shop" style={reduce ? undefined : { y: cardY }}>
-            <img src="/evora/p09.jpg" alt="" />
+            <img src="/evora/p09.jpg" alt={lang === "ar" ? "تسوّق مجموعة إيفورا" : "Shop the Evora collection"} />
             <span className="mani__shop-scrim" />
             <span className="mani__shop-label">
               <span className="mani__shop-k">{lang === "en" ? "The Catalogue" : "الكتالوج"}</span>

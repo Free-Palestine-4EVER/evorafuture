@@ -30,7 +30,7 @@ export default function Financing() {
           <Rise className="fin-figure" y={36}>
             <ParallaxImage
               src="/evora/p10.jpg"
-              alt=""
+              alt={lang === "ar" ? "غرفة معيشة مؤثّثة بالكامل من إيفورا" : "A living room fully furnished by Evora"}
               amount={10}
               className="fin-photo"
             />
