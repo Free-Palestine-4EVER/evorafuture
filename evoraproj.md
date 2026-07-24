@@ -233,6 +233,25 @@ zero cross-imports. Don't assume a fix in one applies to the other.
      *structurally* (no decoded-image stacks exist anymore), verified via
      Playwright at desktop+mobile viewports and throttled connections.
 
+  5. **Scroll films — FINAL design, do not re-litigate.** The clips are
+     downloaded WHOLE and the branded Loader HOLDS until both are ready, showing
+     real byte progress. Streaming was tried twice: smooth on a fast line, but
+     it leaves a visibly frozen hero on a slow phone, which reads as broken.
+     The user's explicit decision was "I don't care if it takes 10 minutes —
+     make the loader stay until everything loads." Two things had been lifting
+     the curtain early and were the real bug: `prefers-reduced-motion` lifted it
+     after ~900ms with NO asset gating (and **iOS Low Power Mode / Chrome
+     Battery Saver FORCE that media query**, so power-saving phones got the page
+     instantly over unloaded video), plus an 8s soft cap. Both removed; caps are
+     now a 10-minute last resort. Clip sizes: mobile pair 6.0MB, desktop 9.9MB.
+  6. **Also shipped:** Arabic now persists across navigation (it reset to English
+     on every click — links are plain `<a>`, and the language was never
+     persisted); RTL hero scrim mirrored; newsletter form wired for real (it was
+     fake-success with an unbound input); per-page metadata + canonicals;
+     FurnitureStore JSON-LD; robots.txt + sitemap.xml (neither existed);
+     noindex on /v2 /v3 /clientexample /configurator; bilingual alt text; the
+     hero scroll indicator moved to bottom-centre (it crossed the meta line).
+
 - **CORRECTION to the entry below:** the claim that `/catalog` was "ripped out
   and rebuilt as a plain PDF embed" and that the flipbook components + nav
   entry were deleted is **FALSE** — verified 2026-07-23 against both the repo
