@@ -9,7 +9,7 @@ import { WHATSAPP } from "@/lib/brand";
 import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 import { avifSrc } from "@/lib/avifSrc";
-import { createVideoScrub } from "@/lib/videoScrub";
+import { createFrameScrub, budgetFrames, type FrameScrubHandle } from "@/lib/frameScrub";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -159,6 +159,9 @@ export default function ConfiguratorScroll() {
     const section = sectionRef.current;
     const stage = stageRef.current;
     if (!section || !stage) return;
+    // Wait for the avif/webp probe. Building the stack before it resolves would
+    // download the webp set and then the avif set on top of it.
+    if (!frameExt) return;
 
     // Viewport height for the scrub math, measured from .cfg__sticky's own
     // rendered box (CSS: height:100svh). svh is stable while in-app browser
@@ -199,18 +202,23 @@ export default function ConfiguratorScroll() {
       return rect.top < window.innerHeight * 2 && rect.bottom > -window.innerHeight;
     };
 
-    const scrub = createVideoScrub({
-      container: stage,
-      src: "/evora/scrub/config-desktop.mp4",
-      srcMobile: "/evora/scrub/config-mobile.mp4",
-      mobileQuery: "(max-width: 768px)",
-      className: "cfg__video",
-      progress,
-      reduce: !!reduce,
-      shouldLoad: nearby,
-      onReady: () => setReady(true),
-      onFirstFrame: () => setPainted(true),
-    });
+    // Canvas frame scrub, same as the hero — see lib/frameScrub.ts for why the
+    // <video> scrub is gone and why a bounded frame budget is what keeps this
+    // from becoming the stack that crashed phones.
+    let scrub: FrameScrubHandle | null = null;
+    let gate = 0;
+    const startWhenNear = () => {
+      if (!nearby()) { gate = window.setTimeout(startWhenNear, 200); return; }
+      scrub = createFrameScrub({
+        container: stage,
+        frames: budgetFrames(TOTAL, frameSrc),
+        className: "cfg__canvas",
+        progress,
+        reduce: !!reduce,
+        onFirstFrame: () => { setReady(true); setPainted(true); },
+      });
+    };
+    startWhenNear();
 
     // Drives the configurator UI reveal from scroll position. Must run
     // regardless of the clip's state — the reveal is scroll-driven UI, not a
@@ -234,9 +242,12 @@ export default function ConfiguratorScroll() {
       cancelAnimationFrame(uiRaf);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      scrub.destroy();
+      window.clearTimeout(gate);
+      scrub?.destroy();
     };
-  }, [reduce]);
+    // frameExt/isMobile are inputs to frameSrc — without them the stack would
+    // be built once from the webp fallback and never upgrade.
+  }, [reduce, frameExt, isMobile, TOTAL]);
 
   // ---- handle a user-uploaded variant image (instant local preview) ----
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -495,7 +506,7 @@ const css = `
   .cfg__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
   .cfg__stage { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .35s ease; }
   .cfg__stage.is-painted { opacity: 1; }
-  .cfg__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cfg__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .cfg__canvas, .cfg__poster, .cfg__variant {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; display: block; z-index: 0;
@@ -546,8 +557,8 @@ const css = `
   .cfg__upload { display: grid; place-items: center; color: #fbf7f0;
     background: rgba(251,247,240,0.08); border-style: dashed; font-size: 1.3rem; }
   .cfg__upload:hover { background: rgba(251,247,240,0.16); }
-  .cfg__video { position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; display: block; z-index: 0; }
+    .cfg__canvas { position: absolute; inset: 0; width: 100%; height: 100%;
+    display: block; z-index: 0; }
 
   .cfg__cta { margin-top: 1.1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   .cfg__cta-1 { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }

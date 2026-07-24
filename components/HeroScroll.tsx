@@ -6,31 +6,34 @@ import { useT } from "@/lib/i18n";
 import { FOLLOWERS } from "@/lib/brand";
 import { preload } from "@/lib/preload";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
-import { createVideoScrub } from "@/lib/videoScrub";
+import { createFrameScrub, budgetFrames } from "@/lib/frameScrub";
 
 /* ============================================================
    EVORA — scroll-scrubbed hero
 
-   Scrubs a <video>'s currentTime on scroll. Previously this drew a
-   stack of individual frame images to a <canvas>, which was correct
-   in every way except the one that mattered: it retained a live
-   HTMLImageElement per frame for the page's whole life, and the
-   scrub force-decoded every one of them.
+   Draws a bounded stack of frame images to a <canvas> on scroll —
+   the technique from LILITH's site/scrubfilm.js, which scrubs
+   correctly on the phones this hero kept failing on. See
+   lib/frameScrub.ts.
 
-       phone   125 frames x 720x1280x4  =   439 MB decoded
-       desktop 181 frames x 1920x1080x4 = 1,431 MB decoded
+   This has now been all three ways round, so the history matters:
 
-   iOS Safari kills a tab somewhere around 200-400 MB, so the hero
-   alone blew the budget before the configurator's 594 MB landed on
-   top of it. That is the "works on some phones, not others" report.
-   The same bug class is already documented twice in evoraproj.md
-   (BookMode, CatalogBrowser) — it was fixed there and never here.
-
-   A <video> hands frame lifetime to the platform decoder, which
-   keeps a handful of frames alive instead of all of them, and turns
-   125-361 requests into one. Playback technique (blob source, seek
-   coalescing, poster-until-first-paint, iOS gesture priming) is
-   adapted from oso95/scroll-world — see lib/videoScrub.ts.
+   1. Canvas, UNBOUNDED (125 mobile / 361 desktop frames, plus the
+      configurator's own stack). ~1 GB of decoded bitmaps against
+      iOS Safari's few-hundred-MB ceiling — it evicted frames or
+      killed the tab. Same bug class as BookMode / CatalogBrowser
+      and /catalog. The technique was never the problem here; the
+      FRAME COUNT was.
+   2. <video> currentTime scrubbing. Fixed the memory, but made the
+      hero depend on iOS's media stack cooperating, and it did not:
+      autoplay refusal left the decoder asleep so the clip seeked
+      but never painted. None of that is observable in any browser
+      available for testing here, which is why several fixes in a
+      row missed on the real device.
+   3. Canvas again, BOUNDED to FRAME_BUDGET frames (60), drawing one
+      per tick so the browser decodes lazily. Nothing to wake, no
+      gesture to satisfy, no seek to hang — and a fraction of the
+      memory that broke (1), because the cap is the actual fix.
 
    UNCHANGED ON PURPOSE: the sticky/section DOM, the copy overlay,
    the scroll math read from the sticky element's own box (100svh is
@@ -100,19 +103,6 @@ function mobileStack(ext: FrameExt = SAFE_FRAME_EXT): Stack {
 const isMobileNow = () =>
   typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(MOBILE_QUERY).matches;
 
-// Scrub clips, encoded from the very same frame folders (no visuals were
-// regenerated): crf 20, -g 8 desktop / -g 4 mobile. The tight GOP is the whole
-// point — phone seek cost is dominated by how many frames must be decoded from
-// the nearest keyframe, so a short GOP is what makes scrubbing smooth.
-// Mobile is one shared portrait clip: the frame stack was shared across
-// variants too (/evora/hero-frames-mobile).
-const HERO_CLIP: Record<HeroVariant, string> = {
-  a: "/evora/scrub/hero-a-desktop.mp4",
-  b: "/evora/scrub/hero-b-desktop.mp4",
-  c: "/evora/scrub/hero-c-desktop.mp4",
-};
-const HERO_CLIP_MOBILE = "/evora/scrub/hero-shared-mobile.mp4";
-
 export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant }) {
   const { t, lang } = useT();
   const reduce = useReducedMotion();
@@ -136,7 +126,15 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   // upgrades to AVIF (~30-45% lighter) once the decode probe resolves, same
   // as the scrub frames already do.
   const [posterExt, setPosterExt] = useState<FrameExt>(SAFE_FRAME_EXT);
-  useEffect(() => { resolveFrameExt().then(setPosterExt); }, []);
+  // Separate, and null until the probe lands. The poster must render on the
+  // server (so it needs a value immediately), but the SCRUB must not start
+  // before the format is known — starting on the webp fallback and re-running
+  // when avif resolves downloads the entire stack twice. Measured: 122 requests
+  // for a 60-frame film.
+  const [scrubExt, setScrubExt] = useState<FrameExt | null>(null);
+  useEffect(() => {
+    resolveFrameExt().then((e) => { setPosterExt(e); setScrubExt(e); });
+  }, []);
 
   useEffect(() => {
     // NOTE: the scrub deliberately does NOT bail out under prefers-reduced-motion.
@@ -153,6 +151,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     const section = sectionRef.current;
     const stage = stageRef.current;
     if (!section || !stage) return;
+    if (!scrubExt) return;   // wait for the avif/webp probe — see scrubExt above
 
     // Viewport height used for the scrub math, measured from .hs__sticky's own
     // rendered box (CSS: height:100svh) rather than window.innerHeight. svh is
@@ -187,33 +186,38 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     const release = () => releaseTo(1);
     preload.add(UNITS);
 
-    const scrub = createVideoScrub({
+    // Canvas frame scrub (see lib/frameScrub.ts) — the <video> scrub is gone.
+    // Seeking a video is a request iOS is free to refuse, and it kept refusing
+    // in ways nothing available here could reproduce. Drawing an image is not.
+    const mobile = isMobileNow();
+    const stack = mobile ? mobileStack(scrubExt) : desktopStack(variant, scrubExt);
+    const frames = budgetFrames(stack.total, stack.src);
+
+    const scrub = createFrameScrub({
       container: stage,
-      src: HERO_CLIP[variant],
-      srcMobile: HERO_CLIP_MOBILE,
-      mobileQuery: MOBILE_QUERY,
-      className: "hs__video",
+      frames,
+      className: "hs__canvas",
       progress,
       reduce: !!reduce,
       onProgress: releaseTo,
-      onReady: () => { setReady(true); release(); },
-      onFirstFrame: () => setPainted(true),
-      // Never let a failed clip leave the branded loader up forever — the
-      // poster frame stays and the page reveals normally.
-      onError: release,
+      onFirstFrame: () => { setReady(true); setPainted(true); },
     });
+    // The reveal must never wait on the whole stack: the nearest-loaded-frame
+    // fallback means the hero is correct from the first frame that lands.
+    const revealTimer = window.setTimeout(release, 2500);
 
     const onResize = () => measureViewport();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
     return () => {
+      window.clearTimeout(revealTimer);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
       release();
       scrub.destroy();
     };
-  }, [variant, reduce]);
+  }, [variant, reduce, scrubExt]);
 
   return (
     <section id="top" ref={sectionRef} className={`hs hs--${variant}`}>
@@ -353,7 +357,7 @@ const heroCss = `
      underneath is never swapped out for a blank iOS video surface. */
   .hs__stage { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .35s ease; }
   .hs__stage.is-painted { opacity: 1; }
-  .hs__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hs__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .hs__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
   /* CSS decides which poster aspect is shown — both are in the DOM for SSR safety */
   .hs__poster--m { display: none; }
