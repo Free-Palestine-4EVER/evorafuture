@@ -10,6 +10,7 @@ import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 import { avifSrc } from "@/lib/avifSrc";
 import { createVideoScrub } from "@/lib/videoScrub";
+import { preload } from "@/lib/preload";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -181,44 +182,43 @@ export default function ConfiguratorScroll() {
     // final frame and brings up the configurator UI. Passed to the scrub.
     const progress = () => Math.min(1, sectionProgress() / 0.78);
 
-    // Lazy-load the clip only once the section is within ~2 viewports. The
-    // hero clip is what fills the screen first; if the configurator blob
-    // downloaded concurrently it would fight the hero for bandwidth (measured:
-    // first paint slipped to 30s on a cold 3Mbps mobile connection) and a
-    // phone would spend data on a clip the visitor may never scroll to. The
-    // scrub is created on approach, then the rest is identical.
-    let scrub: ReturnType<typeof createVideoScrub> | null = null;
-    const startScrub = () => {
-      if (scrub) return;
-      scrub = createVideoScrub({
-        container: stage,
-        src: "/evora/scrub/config-desktop.mp4",
-        srcMobile: "/evora/scrub/config-mobile.mp4",
-        mobileQuery: "(max-width: 768px)",
-        className: "cfg__video",
-        progress,
-        reduce: !!reduce,
-        onReady: () => setReady(true),
-        onFirstFrame: () => setPainted(true),
-      });
+    // Loaded EAGERLY and gated by the branded Loader, same as the hero. It was
+    // previously lazy (only on approach) to save bandwidth, but that is what
+    // left the kitchen film frozen for anyone who reached it before the clip
+    // had arrived. The product decision is now explicit: wait behind the
+    // curtain until every film is downloaded, then reveal a page where both
+    // scrub perfectly. Progress is reported in real bytes so the loader bar is
+    // honest about the wait.
+    const UNITS = 100;
+    let released = 0;
+    const releaseTo = (fraction: number) => {
+      const want = Math.min(UNITS, Math.round(fraction * UNITS));
+      if (want > released) { preload.done(want - released); released = want; }
     };
+    preload.add(UNITS);
 
-    // One always-on light rAF that (a) starts the scrub on approach and (b)
-    // drives the configurator UI reveal from scroll position. Both must run
-    // regardless of whether the clip has loaded — the reveal is scroll-driven
-    // UI, not a video event, so it can't live inside the scrub's progress()
-    // callback (which only fires once the blob is ready). Poll layout rather
-    // than IntersectionObserver, which misreports under Lenis on phones.
+    const scrub = createVideoScrub({
+      container: stage,
+      src: "/evora/scrub/config-desktop.mp4",
+      srcMobile: "/evora/scrub/config-mobile.mp4",
+      mobileQuery: "(max-width: 768px)",
+      className: "cfg__video",
+      progress,
+      reduce: !!reduce,
+      onProgress: releaseTo,
+      onReady: () => { setReady(true); releaseTo(1); },
+      onFirstFrame: () => setPainted(true),
+      onError: () => releaseTo(1),
+    });
+
+    // Drives the configurator UI reveal from scroll position. Must run
+    // regardless of the clip's state — the reveal is scroll-driven UI, not a
+    // video event, so it can't live inside the scrub's progress() callback
+    // (which only fires once the clip is ready). Poll layout rather than
+    // IntersectionObserver, which misreports under Lenis on phones.
     let uiRaf = 0;
     let revealedNow = false;
     const uiTick = () => {
-      const rect = section.getBoundingClientRect();
-      // 4 viewports, not 2. The hero above is 600vh tall, so this fires once the
-      // visitor is genuinely on their way down and still leaves several
-      // viewports of scrolling for the clip to buffer before they arrive. At 2
-      // viewports it started too late — measured 7.1s just to reach metadata,
-      // by which point the visitor was already scrolling through the section.
-      if (!scrub && rect.top < viewportH * 4) startScrub();
       const rev = sectionProgress() > 0.8;
       if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
       uiRaf = requestAnimationFrame(uiTick);
@@ -233,7 +233,7 @@ export default function ConfiguratorScroll() {
       cancelAnimationFrame(uiRaf);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      scrub?.destroy();
+      scrub.destroy();
     };
   }, [reduce]);
 

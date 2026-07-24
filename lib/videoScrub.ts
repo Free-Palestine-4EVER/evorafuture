@@ -68,6 +68,8 @@ export type VideoScrubOptions = {
   onError?: () => void;
   /** Honour reduced motion by disabling the easing lerp (default true). */
   reduce?: boolean;
+  /** Download progress 0..1 while the clip is fetched. Drives the Loader bar. */
+  onProgress?: (fraction: number) => void;
   /** Per-frame easing toward the scroll target. */
   lerp?: number;
   /**
@@ -104,7 +106,8 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     onError,
     reduce = false,
     lerp = 0.18,
-    useBlob = false,
+    useBlob = true,
+    onProgress,
   } = opts;
 
   const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(mobileQuery) : null;
@@ -241,14 +244,46 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   };
 
   if (useBlob) {
-    fetch(url)
-      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
-      .then((blob) => {
+    // Download the WHOLE clip, reporting real byte progress as it lands. The
+    // caller holds the branded Loader up on this, so the page is only revealed
+    // once the film can actually be scrubbed end to end. Streaming was tried
+    // and is smooth on a fast line, but on a slow phone it leaves the hero
+    // visibly frozen while the page is already on screen — which reads as
+    // broken. Waiting behind the curtain is the deliberate trade.
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(String(res.status));
+        const totalBytes = Number(res.headers.get("content-length") || 0);
+        let blob: Blob;
+
+        if (res.body && totalBytes > 0) {
+          const reader = res.body.getReader();
+          const chunks: BlobPart[] = [];
+          let received = 0;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (destroyed) { try { await reader.cancel(); } catch { /* ignore */ } return; }
+            chunks.push(value);
+            received += value.byteLength;
+            onProgress?.(Math.min(1, received / totalBytes));
+          }
+          blob = new Blob(chunks, { type: res.headers.get("content-type") || "video/mp4" });
+        } else {
+          // No content-length (or no streaming body) — fall back to a plain
+          // blob read and report completion in one step.
+          blob = await res.blob();
+        }
+
         if (destroyed) return;
+        onProgress?.(1);
         objectUrl = URL.createObjectURL(blob);
         attach(objectUrl);
-      })
-      .catch(() => { if (!destroyed) onError?.(); });
+      } catch {
+        if (!destroyed) { onProgress?.(1); onError?.(); }
+      }
+    })();
   } else {
     attach(url);
   }

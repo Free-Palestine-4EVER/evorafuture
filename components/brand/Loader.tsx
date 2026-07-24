@@ -22,7 +22,13 @@ const MIN_DWELL = 900; // hold the brand beat at least this long
 // should hit a still-buffering, glitchy hero mid-scroll. This is a last-resort
 // safety net for a genuinely broken connection, not the normal-case lift time;
 // real connections should still finish well under this.
-const HARD_CAP = 30000;
+// Deliberately very high. The curtain now gates on the scroll films being
+// FULLY downloaded, because revealing early is what produced the "hero is
+// frozen, nothing moves" report on a slow phone: the page appeared while the
+// clips were still arriving, so scrolling did nothing. Waiting is the explicit
+// product decision — a long load is acceptable, a dead hero is not. This is a
+// last-resort escape for a genuinely broken connection, not a normal lift path.
+const HARD_CAP = 600000; // 10 minutes
 // Soft ceiling. The full-stack gate holds the curtain until EVERY hero frame
 // has streamed in — great on a fast desktop, but on an older iPhone (slower
 // CPU, tighter Safari image-decode budget, slower network) a late frame's
@@ -30,7 +36,11 @@ const HARD_CAP = 30000;
 // reads as "stuck on the loader"). Past this soft cap we lift regardless: the
 // hero's nearest-loaded-frame fallback means the reveal is never blank/broken,
 // and the remaining frames keep streaming in behind the lifted curtain.
-const SOFT_CAP = 8000;
+// The old 8s soft cap is gone: it lifted the curtain onto a still-downloading
+// film, which is exactly the reported bug. A stalled asset is now handled by
+// the loaders' own error paths (each clip resolves its progress even on
+// failure), so there is no need to guess with a timer.
+const SOFT_CAP = HARD_CAP;
 const GRACE_MS = 700; // wait this long for a hero to register critical assets
 const LIFT_MS = 640; // curtain-lift duration
 
@@ -101,11 +111,12 @@ export default function Loader() {
       else window.setTimeout(lift, MIN_DWELL - elapsed);
     };
 
-    // Reduced motion: poster only, brief fade — no progress theatre.
-    if (reduce) {
-      const t = window.setTimeout(lift, Math.min(MIN_DWELL, HARD_CAP));
-      return () => window.clearTimeout(t);
-    }
+    // NOTE: reduced motion used to lift the curtain after ~900ms with NO asset
+    // gating at all. That was the single worst cause of the "hero is stuck"
+    // report on phones: iOS Low Power Mode (and Chrome's Battery Saver) force
+    // prefers-reduced-motion, so on a phone with power saving on, the page was
+    // revealed almost immediately onto completely unloaded film. Reduced motion
+    // now only means "don't animate the loader" — it never skips the wait.
 
     let sawAssets = false;
     let targetP = 0; // real progress (loaded/total)
@@ -216,7 +227,13 @@ export default function Loader() {
         <div
           style={{
             height: "100%",
-            width: `${Math.round((reduce ? 1 : progress) * 100)}%`,
+            // Always the REAL figure. This used to pin to 100% under reduced
+            // motion, which was harmless only while reduced motion also skipped
+            // the wait. It no longer does, so pinning it would show a full bar
+            // sitting still for the entire download — the clearest possible way
+            // to look frozen. Low Power Mode users get an honest bar like
+            // everyone else; `reduce` only removes the easing animation.
+            width: `${Math.round(progress * 100)}%`,
             background: "#fff",
             transition: "width 140ms linear",
             willChange: "width",

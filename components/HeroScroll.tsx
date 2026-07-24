@@ -175,11 +175,17 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       return scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
     };
 
-    // The Loader now gates on ONE thing (this clip) instead of 125-181 separate
-    // images, so it lifts as soon as the film can actually be scrubbed.
-    let released = false;
-    const release = () => { if (!released) { released = true; preload.done(); } };
-    preload.add(1);
+    // Hold the branded Loader until this clip is FULLY downloaded, reporting
+    // real byte progress so the bar reflects the actual wait. 100 units = 100
+    // percentage points, so the count-based preload bus gives a smooth bar.
+    const UNITS = 100;
+    let released = 0;
+    const releaseTo = (fraction: number) => {
+      const want = Math.min(UNITS, Math.round(fraction * UNITS));
+      if (want > released) { preload.done(want - released); released = want; }
+    };
+    const release = () => releaseTo(1);
+    preload.add(UNITS);
 
     const scrub = createVideoScrub({
       container: stage,
@@ -189,6 +195,7 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       className: "hs__video",
       progress,
       reduce: !!reduce,
+      onProgress: releaseTo,
       onReady: () => { setReady(true); release(); },
       onFirstFrame: () => setPainted(true),
       // Never let a failed clip leave the branded loader up forever — the
@@ -196,16 +203,11 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
       onError: release,
     });
 
-    // Safety net: if the clip stalls on a bad connection, reveal anyway rather
-    // than holding the whole page behind the loader.
-    const failsafe = window.setTimeout(release, 8000);
-
     const onResize = () => measureViewport();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
     return () => {
-      window.clearTimeout(failsafe);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
       release();
