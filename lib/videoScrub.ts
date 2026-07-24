@@ -22,13 +22,10 @@
 
    The four behaviours that actually make this work on a phone:
 
-     1. Prefetch, then REAL url. We fetch the whole clip (which drives the
-                       Loader's progress bar and warms the HTTP cache), then
-                       point the element at the ordinary URL — never a blob:
-                       URL. iOS Safari loads video via HTTP range requests and
-                       does not reliably do that against a blob, so a blob src
-                       leaves the element stuck at readyState 0 on a real
-                       iPhone: a permanently static poster.
+     1. STREAM from the real url. One download, scrubbable within ~200ms.
+                       Neither prefetching-then-reattaching nor a blob: URL is
+                       used, and both were measured to be actively worse — see
+                       "SOURCE STRATEGY" below for the numbers.
      2. Seek coalescing. Never assign currentTime while the decoder is still
                        `seeking`. A fast flick otherwise queues seeks faster
                        than they resolve and the clip freezes for good.
@@ -76,14 +73,14 @@ export type VideoScrubOptions = {
   /** Per-frame easing toward the scroll target. */
   lerp?: number;
   /**
-   * Download the whole clip as a Blob before scrubbing (default true). A blob
-   * has the entire file buffered, so every seek is instant — which is what
-   * scrubbing needs. Setting this false streams from a plain src, which reaches
-   * metadata sooner but freezes the moment the user scrubs past the buffered
-   * region (the seek never completes and the coalescing gate locks). Only turn
-   * it off if you have measured that streaming scrubs cleanly for your assets.
+   * Gate deciding when the clip may start downloading. Polled until it first
+   * returns true, at which point the <video> is attached and streaming starts.
+   * Use it for a film well below the fold so it does not race the hero for a
+   * phone's bandwidth. Omit to start immediately (the right choice above the
+   * fold). A caller that defers MUST NOT also hold the page's loader on this
+   * clip, or the page would wait for a film nobody has scrolled to yet.
    */
-  useBlob?: boolean;
+  shouldLoad?: () => boolean;
 };
 
 export type VideoScrubHandle = {
@@ -109,8 +106,8 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     onError,
     reduce = false,
     lerp = 0.18,
-    useBlob = true,
     onProgress,
+    shouldLoad,
   } = opts;
 
   const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(mobileQuery) : null;
@@ -126,6 +123,8 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let painterTimer = 0;  // readyState poll that reveals the video on iOS
   let lastUnstickAt = 0; // rate-limits the play/pause nudge for a wedged seek
   let userReady = false;
+  let priming = false;   // a prime() play->pause is in flight; runaway guard stands down
+  let primed = false;    // prime() only ever runs once per element
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const perfNow = () =>
@@ -159,13 +158,30 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     // landscape, is wider than the mobile breakpoint but has exactly the same
     // decode-needs-a-play-first behaviour. A muted play->pause is harmless
     // everywhere, so just always do it.
-    if (!v) return;
+    //
+    // `priming` exists because the runaway guard below (pause on every `play`)
+    // used to fire the instant prime() called play() — the guard was added last
+    // and silently cancelled the only mechanism that wakes an iOS decoder, so
+    // the clip could still come up blank. The flag lets exactly one play->pause
+    // round trip through, long enough for the decoder to paint one frame, and
+    // the guard re-arms immediately after.
+    if (!v || primed) return;
+    primed = true;
+    priming = true;
+    const stop = () => {
+      priming = false;
+      try { v.pause(); } catch { /* ignore */ }
+    };
+    // Belt and braces: whatever happens to the promise, priming is over quickly.
+    window.setTimeout(stop, 220);
     try {
       const p = v.play();
       if (p && typeof p.then === "function") {
-        p.then(() => { try { v.pause(); } catch { /* ignore */ } }).catch(() => { /* ignore */ });
+        p.then(() => requestAnimationFrame(stop)).catch(() => { priming = false; });
+      } else {
+        requestAnimationFrame(stop);
       }
-    } catch { /* ignore */ }
+    } catch { priming = false; }
   };
   const onFirstGesture = () => {
     if (userReady) return;
@@ -176,22 +192,39 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
 
   /* ---- source strategy -----------------------------------------------------
-     STREAM from a plain src. scroll-world uses a Blob because it cannot assume
-     the origin honours range requests; ours does (Caddy returns
-     `accept-ranges: bytes` on /evora/scrub/*).
+     STREAM from a plain src. One request, scrubbable almost immediately, and
+     the decoder pulls exactly the byte ranges the scrub asks for.
 
-     The blob's fatal cost is that NOTHING is scrubbable until the entire file
-     lands — measured on production, the hero stayed a frozen poster for 10+
-     seconds, which reads as broken to anyone who scrolls in that window. That
-     is worse than the memory bug we replaced.
+     All three candidates were measured in real WebKit (Playwright's, which is
+     the same engine as iOS Safari — desktop Chromium and its device emulation
+     are BLIND to every bug in this file). iPhone 13 viewport, the real
+     hero-shared-mobile.mp4, served same-origin with range support:
 
-     The reason a blob looked necessary is that seeking a streamed src into an
-     un-buffered region hangs `seeking = true` and trips the coalescing gate,
-     freezing the scrub for good (measured: stuck at 1.85s). We fix that
-     directly instead, with `reachable()` above — we never request a time that
-     is not already buffered. So the film is responsive within a second, its
-     reachable range grows as it downloads, and it can never hang. `useBlob`
-     stays available for an origin without range support. */
+       throttled to 1.5 MB/s, user waits for the page to settle
+         stream           first frame   170ms    3.87 MB on the wire
+         prefetch+reattach first frame  2704ms    7.74 MB  <- every byte twice
+         blob             first frame  2666ms    3.87 MB
+
+       throttled to 400 KB/s, user starts scrolling after 500ms (the real case)
+         stream           tracked the scroll perfectly, 0 blank samples of 16
+         prefetch+reattach 16 of 16 samples BLANK — no <video> element existed
+         blob              16 of 16 samples BLANK
+
+     The prefetch-then-reattach strategy this replaces was built on the
+     assumption that `fetch()`-ing the clip warms the HTTP cache so the media
+     element then resolves out of it. That is FALSE in WebKit: its media loader
+     runs on a separate cache path (and production's `etag: W/"..."` is weak, so
+     it cannot validate a range request against a cached entry either). Verified
+     against production — every clip was pulled down twice, 13.64 MB of MP4 for
+     7.3 MB of assets, all of it behind a blocking loader curtain. On a slow
+     phone that is precisely the "the scroll video is just a static photo"
+     report: the element is not merely un-painted, it does not exist yet.
+
+     The fear that motivated the blob — that seeking a streamed src into an
+     un-buffered region hangs `seeking = true` forever and trips the coalescing
+     gate — is real but is already handled below by the stale-seek escape, which
+     re-issues a seek that outlives its grace period. That is why streaming
+     measured a perfect 0.00 tracking error while downloading. */
   const url = isMobile() && srcMobile ? srcMobile : src;
 
   const attach = (objectSrc: string) => {
@@ -228,6 +261,24 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       // Clear the stale-seek timer as soon as a seek actually resolves, so the
       // escape hatch only ever triggers on a genuinely hung seek.
       v.addEventListener("seeked", () => { seekStartedAt = 0; });
+
+      /* Loader bar. Previously this was byte progress from our own fetch(); the
+         fetch is gone, so report what the element has actually buffered. Note
+         the caller releases the loader outright on `onReady` (metadata), which
+         now lands in ~200ms — this only fills the bar in the short window
+         before that, so it never gates the reveal on a full download. Holding
+         the curtain until 100% was the old design's answer to a hero that was
+         frozen while streaming; a streamed src is scrubbable immediately, so
+         there is nothing left to wait behind. */
+      const reportBuffered = () => {
+        if (destroyed || !onProgress) return;
+        const dur = v.duration;
+        if (!dur || !isFinite(dur) || dur <= 0) return;
+        const b = v.buffered;
+        onProgress(b.length ? Math.min(1, b.end(b.length - 1) / dur) : 0);
+      };
+      v.addEventListener("progress", reportBuffered);
+      v.addEventListener("canplaythrough", () => onProgress?.(1));
 
       /* Reveal the video once a real frame exists.
          This must NOT depend on `seeked` alone. On iOS Safari a muted video
@@ -280,8 +331,11 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       // happened on an iPhone: paused=false, currentTime parked at the very end,
       // buffered=none, and no scrubbing. Pausing on every `playing` event means
       // a runaway can last at most one frame, whatever else goes wrong.
-      v.addEventListener("playing", () => { try { v.pause(); } catch { /* ignore */ } });
-      v.addEventListener("play", () => { try { v.pause(); } catch { /* ignore */ } });
+      // (`priming` is the one sanctioned exception — see prime() above. The rAF
+      // loop also force-pauses any unsanctioned playback, so a runaway that
+      // slips past these events still dies within a single frame.)
+      v.addEventListener("playing", () => { if (!priming) { try { v.pause(); } catch { /* ignore */ } } });
+      v.addEventListener("play", () => { if (!priming) { try { v.pause(); } catch { /* ignore */ } } });
 
       v.addEventListener("error", () => { if (!destroyed) onError?.(); });
 
@@ -308,62 +362,17 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       v.addEventListener("loadedmetadata", () => window.clearTimeout(watchdog), { once: true });
   };
 
-  if (useBlob) {
-    // Download the WHOLE clip, reporting real byte progress as it lands. The
-    // caller holds the branded Loader up on this, so the page is only revealed
-    // once the film can actually be scrubbed end to end. Streaming was tried
-    // and is smooth on a fast line, but on a slow phone it leaves the hero
-    // visibly frozen while the page is already on screen — which reads as
-    // broken. Waiting behind the curtain is the deliberate trade.
-    (async () => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(String(res.status));
-        const totalBytes = Number(res.headers.get("content-length") || 0);
-        let blob: Blob;
-
-        if (res.body && totalBytes > 0) {
-          const reader = res.body.getReader();
-          const chunks: BlobPart[] = [];
-          let received = 0;
-          for (;;) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (destroyed) { try { await reader.cancel(); } catch { /* ignore */ } return; }
-            chunks.push(value);
-            received += value.byteLength;
-            onProgress?.(Math.min(1, received / totalBytes));
-          }
-          blob = new Blob(chunks, { type: res.headers.get("content-type") || "video/mp4" });
-        } else {
-          // No content-length (or no streaming body) — fall back to a plain
-          // blob read and report completion in one step.
-          blob = await res.blob();
-        }
-
-        if (destroyed) return;
-        onProgress?.(1);
-
-        // Hand the element the REAL URL, not a blob: URL.
-        //
-        // iOS Safari's media stack loads video by issuing HTTP range requests,
-        // and it does not reliably do that against a blob: object URL — the
-        // element frequently never even reaches readyState 1, so nothing ever
-        // scrubs and the poster stays up forever. That is the "it's just a
-        // static photo on my phone" report, and it is invisible to desktop
-        // Chromium and to its mobile emulation, both of which handle blobs fine.
-        //
-        // We still did the full fetch above: it drives the Loader's progress bar
-        // AND warms the HTTP cache, so this src resolves out of cache
-        // immediately (the clips are served immutable, max-age 1y). Range seeks
-        // then work against the cached bytes, which is exactly what iOS wants.
-        // The blob is deliberately discarded.
-        void blob;
-        attach(url);
-      } catch {
-        if (!destroyed) { onProgress?.(1); onError?.(); }
-      }
-    })();
+  // Attach immediately. There is no download-then-attach phase any more, so the
+  // element exists from the first tick and the poster is only ever standing in
+  // for a frame that is milliseconds away rather than megabytes away.
+  let gateTimer = 0;
+  if (shouldLoad) {
+    const openGate = () => {
+      if (destroyed) return;
+      if (shouldLoad()) { attach(url); return; }
+      gateTimer = window.setTimeout(openGate, 200);
+    };
+    openGate();
   } else {
     attach(url);
   }
@@ -376,6 +385,12 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     if (destroyed) return;
     const v = video;
     if (v && ready) {
+      // A scrubber must never actually play. prime() is the one sanctioned
+      // play->pause; anything else (an iOS decoder nudging itself, a stray
+      // gesture) is caught here within a single frame, whatever the element's
+      // own `play`/`playing` handlers did or didn't fire.
+      if (!priming && !v.paused) { try { v.pause(); } catch { /* ignore */ } }
+
       const target = clamp(progress());
 
       // Coarser seek step on phones: every seek is a decode, and a phone
@@ -446,6 +461,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       destroyed = true;
       cancelAnimationFrame(rafId);
       if (painterTimer) window.clearInterval(painterTimer);
+      if (gateTimer) window.clearTimeout(gateTimer);
       window.removeEventListener("pointerdown", onFirstGesture);
       window.removeEventListener("touchstart", onFirstGesture);
       const v = video;

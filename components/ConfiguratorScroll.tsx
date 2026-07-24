@@ -10,7 +10,6 @@ import { SURFACES, CONFIG_BASE, type SurfaceVariant } from "@/lib/configurator";
 import { resolveFrameExt, SAFE_FRAME_EXT, type FrameExt } from "@/lib/frameFormat";
 import { avifSrc } from "@/lib/avifSrc";
 import { createVideoScrub } from "@/lib/videoScrub";
-import { preload } from "@/lib/preload";
 
 // New, page-local strings (the DesignRequest.tsx pattern). Existing keys still
 // come from t(); only fresh copy lives here.
@@ -182,20 +181,23 @@ export default function ConfiguratorScroll() {
     // final frame and brings up the configurator UI. Passed to the scrub.
     const progress = () => Math.min(1, sectionProgress() / 0.78);
 
-    // Loaded EAGERLY and gated by the branded Loader, same as the hero. It was
-    // previously lazy (only on approach) to save bandwidth, but that is what
-    // left the kitchen film frozen for anyone who reached it before the clip
-    // had arrived. The product decision is now explicit: wait behind the
-    // curtain until every film is downloaded, then reveal a page where both
-    // scrub perfectly. Progress is reported in real bytes so the loader bar is
-    // honest about the wait.
-    const UNITS = 100;
-    let released = 0;
-    const releaseTo = (fraction: number) => {
-      const want = Math.min(UNITS, Math.round(fraction * UNITS));
-      if (want > released) { preload.done(want - released); released = want; }
+    /* This film does NOT gate the page reveal, and does not start downloading
+       until the visitor is within two viewports of it.
+
+       It used to do both the opposite things: eagerly downloaded, with the
+       branded Loader held up until it had fully landed. That was a reasonable
+       trade only while the clips were downloaded in full before they could be
+       scrubbed at all — under that constraint a film had to arrive early or it
+       arrived frozen. The scrub now STREAMS (see lib/videoScrub.ts), so a clip
+       is scrubbable within ~200ms of being asked for and there is nothing to
+       pre-buy. Keeping it eager just meant a phone spent its first ten seconds
+       splitting scarce bandwidth between this clip and the hero the visitor is
+       actually looking at — and held the whole page behind a loading bar to do
+       it. Two viewports of warning is far more than streaming needs. */
+    const nearby = () => {
+      const rect = section.getBoundingClientRect();
+      return rect.top < window.innerHeight * 2 && rect.bottom > -window.innerHeight;
     };
-    preload.add(UNITS);
 
     const scrub = createVideoScrub({
       container: stage,
@@ -205,10 +207,9 @@ export default function ConfiguratorScroll() {
       className: "cfg__video",
       progress,
       reduce: !!reduce,
-      onProgress: releaseTo,
-      onReady: () => { setReady(true); releaseTo(1); },
+      shouldLoad: nearby,
+      onReady: () => setReady(true),
       onFirstFrame: () => setPainted(true),
-      onError: () => releaseTo(1),
     });
 
     // Drives the configurator UI reveal from scroll position. Must run
