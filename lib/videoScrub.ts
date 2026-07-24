@@ -121,6 +121,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let painted = false;
   let cur = 0;
   let seekStartedAt = 0; // when the in-flight seek was issued (for the stale-seek escape)
+  let painterTimer = 0;  // readyState poll that reveals the video on iOS
   let userReady = false;
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -151,7 +152,11 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
      touch means the first seek paints a frame instead of black. Harmless
      elsewhere. */
   const prime = (v: HTMLVideoElement | null) => {
-    if (!v || !isMobile()) return;
+    // No longer gated to phone-width viewports: an iPad, or an iPhone held in
+    // landscape, is wider than the mobile breakpoint but has exactly the same
+    // decode-needs-a-play-first behaviour. A muted play->pause is harmless
+    // everywhere, so just always do it.
+    if (!v) return;
     try {
       const p = v.play();
       if (p && typeof p.then === "function") {
@@ -221,21 +226,50 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       // escape hatch only ever triggers on a genuinely hung seek.
       v.addEventListener("seeked", () => { seekStartedAt = 0; });
 
-      // Reveal only once a real frame has painted (see header note 3).
-      v.addEventListener(
-        "seeked",
-        () => {
-          if (destroyed || painted) return;
-          painted = true;
-          onFirstFrame?.();
-        },
-        { once: true },
-      );
+      /* Reveal the video once a real frame exists.
+         This must NOT depend on `seeked` alone. On iOS Safari a muted video
+         that has been seeked but never played frequently never fires `seeked`
+         at all — so the reveal never happened, the stage stayed at opacity 0,
+         and the visitor saw the poster forever: "the video is a static photo".
+         The film was often scrubbing correctly underneath, just invisible.
+         (Desktop Chromium — including its mobile emulation — does fire it, so
+         this is invisible to automated testing and only shows on real iOS.)
+
+         So we accept several independent signals, whichever arrives first:
+           - `seeked`      the ideal case
+           - `loadeddata`  readyState >= HAVE_CURRENT_DATA means, by spec, that
+                           data for the current position is available
+           - `timeupdate`  fires once the decoder actually moves
+           - a poll        last resort, purely on readyState */
+      const markPainted = () => {
+        if (destroyed || painted) return;
+        painted = true;
+        onFirstFrame?.();
+      };
+      const markIfDecoded = () => { if (v.readyState >= 2) markPainted(); };
+
+      v.addEventListener("seeked", markPainted, { once: true });
+      v.addEventListener("timeupdate", markIfDecoded);
+      v.addEventListener("canplay", markIfDecoded);
 
       v.addEventListener("loadeddata", () => {
         try { v.pause(); } catch { /* ignore */ }
-        if (userReady) prime(v);
+        // Prime unconditionally on iOS, not just after a gesture: a muted,
+        // playsinline video is allowed to autoplay, and the play->pause round
+        // trip is what forces the decoder to actually paint a frame. If Low
+        // Power Mode refuses it, the promise rejects harmlessly and the
+        // readyState checks below still reveal the video.
+        prime(v);
+        markIfDecoded();
       });
+
+      // Belt and braces: if none of the events above land (older iOS), poll
+      // readyState briefly and reveal as soon as a frame is decodable.
+      let polls = 0;
+      painterTimer = window.setInterval(() => {
+        if (destroyed || painted || polls++ > 40) { window.clearInterval(painterTimer); return; }
+        markIfDecoded();
+      }, 250);
 
       v.addEventListener("error", () => { if (!destroyed) onError?.(); });
 
@@ -337,6 +371,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     destroy: () => {
       destroyed = true;
       cancelAnimationFrame(rafId);
+      if (painterTimer) window.clearInterval(painterTimer);
       window.removeEventListener("pointerdown", onFirstGesture);
       window.removeEventListener("touchstart", onFirstGesture);
       const v = video;
