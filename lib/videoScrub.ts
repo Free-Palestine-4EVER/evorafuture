@@ -104,7 +104,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     onError,
     reduce = false,
     lerp = 0.18,
-    useBlob = true,
+    useBlob = false,
   } = opts;
 
   const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(mobileQuery) : null;
@@ -123,6 +123,28 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const perfNow = () =>
     typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+
+  /* Clamp a desired time to what the decoder can actually reach right now.
+     This is what makes STREAMING safe for scrubbing. Seeking into an
+     un-buffered region leaves the element stuck in `seeking = true` until that
+     byte range arrives, which freezes the scrub. Instead we never ask for more
+     than is buffered: early on the film simply stops at the buffered edge and
+     the reachable range grows as it downloads, which is far better than a dead
+     hero while a whole blob lands. */
+  const reachable = (v: HTMLVideoElement, t: number) => {
+    const b = v.buffered;
+    if (!b || b.length === 0) return t;
+    for (let i = 0; i < b.length; i++) {
+      if (t >= b.start(i) && t <= b.end(i)) return t; // already buffered
+    }
+    // Not buffered: fall back to the furthest buffered edge at or below t.
+    let best = -1;
+    for (let i = 0; i < b.length; i++) {
+      if (b.end(i) <= t) best = Math.max(best, b.end(i));
+    }
+    // Sit just inside the edge so the seek resolves against real data.
+    return best > 0 ? Math.max(0, best - 0.08) : t;
+  };
 
   /* ---- iOS gesture priming -------------------------------------------------
      A muted video on iOS will not reliably decode until the page has seen a
@@ -147,21 +169,22 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
 
   /* ---- source strategy -----------------------------------------------------
-     Load the clip as a Blob, which scroll-world does for a reason that turns
-     out to be essential, not incidental: a blob has the WHOLE file buffered, so
-     every seek resolves instantly. A streamed src only has part of the file
-     buffered, and seeking to an un-buffered region leaves the element stuck in
-     `seeking = true` until that region downloads — which permanently trips the
-     seek-coalescing gate below (we never issue a seek while one is pending), so
-     the scrub freezes on the last completed frame. Measured live: streaming
-     froze the hero at currentTime 1.85s while the scroll ran to the end.
+     STREAM from a plain src. scroll-world uses a Blob because it cannot assume
+     the origin honours range requests; ours does (Caddy returns
+     `accept-ranges: bytes` on /evora/scrub/*).
 
-     The cost of the blob is the up-front download before anything can scrub.
-     We pay it two ways: the clips were re-encoded small (hero-c 16MB -> 7.6MB,
-     everything else 3-6MB) and immutably cached, so after the first visit it is
-     instant; and the page never waits on it — the poster <img> (the film's
-     first frame) stays up until the blob is ready, and the caller reveals on
-     onFirstFrame. Nothing is blocked; only the scrub animation itself waits. */
+     The blob's fatal cost is that NOTHING is scrubbable until the entire file
+     lands — measured on production, the hero stayed a frozen poster for 10+
+     seconds, which reads as broken to anyone who scrolls in that window. That
+     is worse than the memory bug we replaced.
+
+     The reason a blob looked necessary is that seeking a streamed src into an
+     un-buffered region hangs `seeking = true` and trips the coalescing gate,
+     freezing the scrub for good (measured: stuck at 1.85s). We fix that
+     directly instead, with `reachable()` above — we never request a time that
+     is not already buffered. So the film is responsive within a second, its
+     reachable range grows as it downloads, and it can never hang. `useBlob`
+     stays available for an origin without range support. */
   const url = isMobile() && srcMobile ? srcMobile : src;
 
   const attach = (objectSrc: string) => {
@@ -266,7 +289,8 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
         if (dur && isFinite(dur) && dur > 0) {
           // 0.999 not 1: seeking to exactly duration can land past the last
           // decodable frame and paint nothing on some decoders.
-          const t = clamp(cur, 0, 0.999) * dur;
+          const want = clamp(cur, 0, 0.999) * dur;
+          const t = reachable(v, want);
           if (Math.abs(v.currentTime - t) > eps) {
             try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
           }
