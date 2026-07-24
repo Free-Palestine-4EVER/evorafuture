@@ -100,7 +100,9 @@ export default function Visit() {
             {t("visit_eyebrow")}
           </Rise>
           <Rise as="span" delay={0.06} className="vst__coords">
-            31.99° N · 35.84° E
+            {/* Matches the map embed above (ll=31.9929926,35.8638714) — this
+                printed 35.84° E, which is a different spot in Amman. */}
+            31.99° N · 35.86° E
           </Rise>
         </div>
 

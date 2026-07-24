@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import ConfiguratorScroll from "@/components/ConfiguratorScroll";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Evora — Design Studio | Configure your kitchen island",
   description:
     "Scroll through an Evora kitchen and configure the island stone live — Patagonia, Calacatta, Emperador and more. Khalda, Amman.",

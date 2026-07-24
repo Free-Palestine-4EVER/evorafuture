@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import SiteShell from "@/components/SiteShell";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Evora — Future Home (Film III) | Khalda, Amman",
   description:
     "Evora Future Home — version III, with a 60fps scroll-scrubbed hero film walking through Evora's living and bedroom collections. Premium home furnishing in Khalda, Amman.",

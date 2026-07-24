@@ -4,6 +4,7 @@ import ClientExample from "@/components/ClientExample";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Featured Pieces in 3D — Evora",
   description:
     "Two of Evora's featured pieces — the Cream Chesterfield and the Bold Orange Lounge — shown in photograph and in interactive 3D.",
