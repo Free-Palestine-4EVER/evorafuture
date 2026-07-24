@@ -77,6 +77,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
   if (head === "me") return session ? json({ uid: session.uid, role: session.role }) : deny();
   if (head === "clients") return isAdmin ? json(await db.listClients()) : deny();
   if (head === "leads") return isAdmin ? json(await db.listLeads()) : deny();
+  if (head === "subscribers") return isAdmin ? json(await db.listSubscribers()) : deny();
   if (head === "registered") return json({ registered: await db.isPhoneRegistered(req.nextUrl.searchParams.get("phone") || "") });
   if (head === "projects") {
     const uid = req.nextUrl.searchParams.get("uid");
@@ -120,6 +121,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return json(u, 200, { "Set-Cookie": sessionCookie(token) });
   }
   if (head === "signout") return json({ ok: true }, 200, { "Set-Cookie": clearCookie() });
+  // Public on purpose — the newsletter form on the marketing site, same as
+  // POST /leads. Validation + de-duplication happen in addSubscriber.
+  if (head === "subscribe") {
+    const r = await db.addSubscriber(String(body.email || ""));
+    return r.ok ? json(r) : json({ error: "invalid_email" }, 400);
+  }
   if (head === "register") {
     try {
       const u = await db.registerCustomer(String(body.phone), String(body.name || ""), String(body.password || ""));

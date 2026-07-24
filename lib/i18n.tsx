@@ -170,6 +170,7 @@ export const STR = {
   stat_followers: { en: "community", ar: "متابع" },
   stat_rating: { en: "showroom rating", ar: "تقييم المعرض" },
   stat_delivery: { en: "delivery across Jordan", ar: "توصيل في كل الأردن" },
+  stat_pieces: { en: "pieces in the collection", ar: "قطعة في المجموعة" },
 
   process_eyebrow: { en: "How We Work", ar: "كيف نعمل" },
   process_title: { en: "Four steps to a finished home", ar: "أربع خطوات لمنزل مكتمل" },

@@ -130,11 +130,16 @@ export const testimonials: { quote: Bi; name: string; role: Bi }[] = [
 
 // HOMES + FOLLOWERS are single-sourced from lib/brand so the proof ribbon, the
 // hero meta and the marquee can never drift to different figures.
-export const stats: { value: string; label: "stat_homes" | "stat_followers" | "stat_rating" | "stat_delivery" }[] = [
+// The fourth stat was "100% delivery across Jordan". A percentage with no
+// denominator reads as filler next to three real figures, so it now carries the
+// true catalogue size instead. The delivery promise still appears in its own
+// right in the services copy ("White-glove delivery across Jordan") and the
+// marquee, where it reads as a service rather than a fake metric.
+export const stats: { value: string; label: "stat_homes" | "stat_followers" | "stat_rating" | "stat_pieces" }[] = [
   { value: HOMES, label: "stat_homes" },
   { value: FOLLOWERS, label: "stat_followers" },
   { value: "4.9★", label: "stat_rating" },
-  { value: "100%", label: "stat_delivery" },
+  { value: "346", label: "stat_pieces" },
 ];
 
 export const processSteps: { n: string; title: Bi; body: Bi }[] = [

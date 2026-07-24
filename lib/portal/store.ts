@@ -191,6 +191,13 @@ export async function uploadFile(file: File): Promise<string> {
 }
 
 export async function listLeads(): Promise<Lead[]> { return getJSON("leads"); }
+
+// Newsletter signup from the public marketing footer. Throws on a rejected
+// address so the form can show a real error instead of a fake success.
+export async function subscribeEmail(email: string): Promise<void> {
+  const r = await post("subscribe", { email });
+  if (!r.ok) throw new Error("INVALID_EMAIL");
+}
 export async function createLead(name: string, phone: string, message?: string, planUrl?: string, email?: string): Promise<Lead> {
   return (await post("leads", { name, phone, message, planUrl, email })).json();
 }

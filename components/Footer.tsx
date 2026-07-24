@@ -4,11 +4,19 @@ import { useState } from "react";
 import Logo from "./Logo";
 import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
+import { subscribeEmail } from "@/lib/portal/store";
 
 export default function Footer() {
   const { t, lang } = useT();
   const en = lang === "en";
   const [subscribed, setSubscribed] = useState(false);
+  // The email input used to be uncontrolled and the submit handler just set
+  // `subscribed` — so the address was never read, nothing was ever sent, and
+  // every visitor got a "you're on the list" message for an address that went
+  // nowhere. Now it actually posts, and failures say so.
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const explore: { href: string; en: string; ar: string }[] = [
     { href: "/shop", en: "Shop", ar: "تسوّق" },
@@ -172,9 +180,19 @@ export default function Footer() {
           ) : (
             <form
               className="ft__form"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                setSubscribed(true);
+                if (sending) return;
+                setSending(true);
+                setFailed(false);
+                try {
+                  await subscribeEmail(email);
+                  setSubscribed(true);
+                } catch {
+                  setFailed(true);
+                } finally {
+                  setSending(false);
+                }
               }}
             >
               <input
@@ -182,10 +200,20 @@ export default function Footer() {
                 type="email"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setFailed(false); }}
+                disabled={sending}
                 placeholder={t("news_placeholder")}
                 aria-label={t("news_placeholder")}
               />
-              <button className="ft__btn" type="submit">{t("news_cta")}</button>
+              <button className="ft__btn" type="submit" disabled={sending}>
+                {sending ? (en ? "Sending…" : "جارٍ الإرسال…") : t("news_cta")}
+              </button>
+              {failed && (
+                <span role="alert" style={{ flexBasis: "100%", fontSize: "0.82rem", color: "var(--clay, #C0492F)" }}>
+                  {en ? "That email didn't look right — please check it." : "يبدو أنّ البريد غير صحيح — تحقّق منه من فضلك."}
+                </span>
+              )}
             </form>
           )}
         </Rise>

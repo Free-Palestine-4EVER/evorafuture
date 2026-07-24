@@ -25,7 +25,15 @@ export function notifyUsers(uids: string[], title: string, message: string, url 
   return send({ target_channel: "push", include_aliases: { external_id: ids }, headings: { en: title }, contents: { en: message }, url });
 }
 
-// Notify the staff (anyone tagged role=admin / in the "Admins" segment).
+// Notify the staff. Targets the role=admin tag directly (OneSignalInit sets
+// `addTag("role", "admin")` on every admin device) rather than a named segment,
+// so it works the moment the two env keys are set — with no manual "create an
+// Admins segment" step in the OneSignal dashboard.
 export function notifyAdmins(title: string, message: string, url = "/admindashboard") {
-  return send({ included_segments: ["Admins"], headings: { en: title }, contents: { en: message }, url });
+  return send({
+    filters: [{ field: "tag", key: "role", relation: "=", value: "admin" }],
+    headings: { en: title },
+    contents: { en: message },
+    url,
+  });
 }

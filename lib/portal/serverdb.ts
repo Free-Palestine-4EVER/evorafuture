@@ -228,6 +228,28 @@ export async function listLeads(): Promise<Lead[]> {
   return (Object.values(snap.val() || {}) as Lead[]).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
+// Newsletter subscribers. Keyed by a hash of the email so re-subscribing the
+// same address is idempotent (no duplicate rows) rather than piling up.
+export async function addSubscriber(email: string): Promise<{ ok: boolean }> {
+  const e = (email || "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { ok: false };
+  const key = scryptSync(e, "evora-sub", 8).toString("hex");
+  const existing = (await rtdb().ref(`subscribers/${key}`).get()).val();
+  await rtdb().ref(`subscribers/${key}`).set(clean({
+    email: e,
+    createdAt: (existing as { createdAt?: number } | null)?.createdAt || Date.now(),
+  }));
+  touched();
+  if (!existing) notifyStaff("New newsletter subscriber ✉️", e);
+  return { ok: true };
+}
+
+export async function listSubscribers(): Promise<{ email: string; createdAt: number }[]> {
+  const snap = await rtdb().ref("subscribers").get();
+  return (Object.values(snap.val() || {}) as { email: string; createdAt: number }[])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
   await rtdb().ref(`leads/${id}`).update({ status, updatedAt: Date.now() });
   touched();
