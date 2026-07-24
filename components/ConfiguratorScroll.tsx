@@ -213,7 +213,12 @@ export default function ConfiguratorScroll() {
     let revealedNow = false;
     const uiTick = () => {
       const rect = section.getBoundingClientRect();
-      if (!scrub && rect.top < viewportH * 2) startScrub();
+      // 4 viewports, not 2. The hero above is 600vh tall, so this fires once the
+      // visitor is genuinely on their way down and still leaves several
+      // viewports of scrolling for the clip to buffer before they arrive. At 2
+      // viewports it started too late — measured 7.1s just to reach metadata,
+      // by which point the visitor was already scrolling through the section.
+      if (!scrub && rect.top < viewportH * 4) startScrub();
       const rev = sectionProgress() > 0.8;
       if (rev !== revealedNow) { revealedNow = rev; setRevealed(rev); }
       uiRaf = requestAnimationFrame(uiTick);

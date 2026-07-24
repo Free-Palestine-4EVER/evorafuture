@@ -124,26 +124,22 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   const perfNow = () =>
     typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
 
-  /* Clamp a desired time to what the decoder can actually reach right now.
-     This is what makes STREAMING safe for scrubbing. Seeking into an
-     un-buffered region leaves the element stuck in `seeking = true` until that
-     byte range arrives, which freezes the scrub. Instead we never ask for more
-     than is buffered: early on the film simply stops at the buffered edge and
-     the reachable range grows as it downloads, which is far better than a dead
-     hero while a whole blob lands. */
-  const reachable = (v: HTMLVideoElement, t: number) => {
+  /* Is `t` already buffered? Used only to decide how patient to be with a
+     pending seek — NOT to clamp the target.
+
+     Clamping to the buffered edge was tried and is wrong here: the origin
+     supports range requests (`accept-ranges: bytes`), so seeking ahead makes
+     the browser fetch exactly that byte range and land on the right frame.
+     Clamping defeats that and makes the film crawl behind the scroll —
+     measured: the kitchen reached only 0.73s of a 5.63s clip across its whole
+     section. We let the seek through and rely on the stale-seek escape below
+     so a slow one can never lock the scrub. */
+  const isBuffered = (v: HTMLVideoElement, t: number) => {
     const b = v.buffered;
-    if (!b || b.length === 0) return t;
-    for (let i = 0; i < b.length; i++) {
-      if (t >= b.start(i) && t <= b.end(i)) return t; // already buffered
+    for (let i = 0; i < (b?.length || 0); i++) {
+      if (t >= b.start(i) && t <= b.end(i)) return true;
     }
-    // Not buffered: fall back to the furthest buffered edge at or below t.
-    let best = -1;
-    for (let i = 0; i < b.length; i++) {
-      if (b.end(i) <= t) best = Math.max(best, b.end(i));
-    }
-    // Sit just inside the edge so the seek resolves against real data.
-    return best > 0 ? Math.max(0, best - 0.08) : t;
+    return false;
   };
 
   /* ---- iOS gesture priming -------------------------------------------------
@@ -278,22 +274,21 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       cur += (target - cur) * (reduce ? 1 : lerp);
 
       // Normally we never issue a seek while one is pending (coalescing — a
-      // phone decoder can't service a pile-up). But if a seek has been pending
-      // too long it has effectively hung (e.g. a seek into an un-buffered
-      // region), and blindly waiting would freeze the scrub. After a stall we
-      // let a fresh seek through; the browser supersedes the stuck one.
+      // phone decoder can't service a pile-up). But a seek into an un-buffered
+      // region waits on a network round-trip, and blindly waiting for it would
+      // freeze the scrub. So a pending seek is allowed to be superseded once it
+      // has been outstanding too long. Un-buffered targets get a longer grace
+      // period, since they legitimately need a range request to arrive.
       const now = perfNow();
-      const stalled = v.seeking && seekStartedAt && now - seekStartedAt > 400;
-      if (!v.seeking || stalled) {
-        const dur = v.duration;
-        if (dur && isFinite(dur) && dur > 0) {
-          // 0.999 not 1: seeking to exactly duration can land past the last
-          // decodable frame and paint nothing on some decoders.
-          const want = clamp(cur, 0, 0.999) * dur;
-          const t = reachable(v, want);
-          if (Math.abs(v.currentTime - t) > eps) {
-            try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
-          }
+      const dur = v.duration;
+      if (dur && isFinite(dur) && dur > 0) {
+        // 0.999 not 1: seeking to exactly duration can land past the last
+        // decodable frame and paint nothing on some decoders.
+        const t = clamp(cur, 0, 0.999) * dur;
+        const grace = isBuffered(v, t) ? 250 : 900;
+        const stalled = !!seekStartedAt && now - seekStartedAt > grace;
+        if ((!v.seeking || stalled) && Math.abs(v.currentTime - t) > eps) {
+          try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
         }
       }
     }
