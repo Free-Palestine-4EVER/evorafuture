@@ -393,7 +393,10 @@ const heroCss = `
 
   .hs__copy { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; will-change: transform, opacity; }
   .hs--static .hero__content { position: relative; z-index: 3; }
-  .hero__content, .hs__content { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); padding-block: clamp(8rem, 14vh, 11rem) clamp(3rem, 8vh, 5rem); }
+  /* Bottom padding must clear the vertical SCROLL indicator pinned at
+     bottom:1.8rem — at the old clamp(3rem,8vh,5rem) the meta line ("103K+
+     following · Khalda · Amman") ran straight through it, in both LTR and RTL. */
+  .hero__content, .hs__content { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); padding-block: clamp(8rem, 14vh, 11rem) clamp(4rem, 9vh, 6rem); }
   .hero__title { color: var(--paper); font-size: clamp(3rem, 8vw, 7rem); margin: 1.5rem 0 0; font-weight: 360; max-width: 16ch; text-shadow: 0 2px 30px rgba(8,6,4,0.4); }
   .hero__sub { color: rgba(251,247,240,0.86); font-size: clamp(1rem, 1.3vw, 1.25rem); line-height: 1.6; max-width: 42ch; margin: 1.8rem 0 0; font-weight: 300; text-shadow: 0 1px 20px rgba(8,6,4,0.45); }
   .hero__cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
@@ -406,7 +409,13 @@ const heroCss = `
 
   .hs__tag { position: absolute; bottom: 1.7rem; inset-inline-end: clamp(1.25rem, 5vw, 6rem); z-index: 4; display: inline-flex; align-items: center; gap: 0.7rem; background: rgba(251,247,240,0.92); backdrop-filter: blur(8px); color: var(--ink); padding: 0.6rem 1rem 0.6rem 0.7rem; border-radius: 100px; font-size: 0.84rem; font-family: var(--font-display); }
   .hs__tag-k { background: #0d0b09; color: var(--paper); font-family: var(--font-sans); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0.3em 0.7em; border-radius: 100px; }
-  .hero__scroll { position: absolute; bottom: 1.8rem; inset-inline-start: clamp(1.25rem, 5vw, 6rem); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(251,247,240,0.9); }
+  /* Bottom-CENTRE, not bottom-start. Pinned to the inline-start gutter it sat
+     in the same column as the hero copy and ran through the meta line
+     ("103K+ following · Khalda · Amman") — in LTR and RTL, and at some viewport
+     heights no amount of bottom padding cleared it. Centre is free (the "Now
+     showing" tag holds bottom-end) and is direction-neutral, so it needs no RTL
+     variant. */
+  .hero__scroll { position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(251,247,240,0.9); }
   .hero__scroll span:first-child { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; writing-mode: vertical-rl; }
   html[dir="rtl"] .hero__scroll span:first-child { letter-spacing: 0.1em; }
   .hero__scroll-line { width: 1px; height: 40px; background: linear-gradient(rgba(251,247,240,0.85), transparent); animation: bob 2.4s ease-in-out infinite; }
