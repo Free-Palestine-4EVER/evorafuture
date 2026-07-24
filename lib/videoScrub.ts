@@ -124,7 +124,8 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
   let lastUnstickAt = 0; // rate-limits the play/pause nudge for a wedged seek
   let userReady = false;
   let priming = false;   // a prime() play->pause is in flight; runaway guard stands down
-  let primed = false;    // prime() only ever runs once per element
+  let primed = false;    // set only once a play() has actually been ALLOWED
+  let primeTries = 0;    // reported via ?vdebug=1 — how many attempts iOS refused
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const perfNow = () =>
@@ -166,30 +167,56 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
     // round trip through, long enough for the decoder to paint one frame, and
     // the guard re-arms immediately after.
     if (!v || primed) return;
-    primed = true;
     priming = true;
-    const stop = () => {
+    // `primed` is set ONLY on success. This matters more than it looks: the
+    // first prime() attempt happens on `loadeddata`, which on a real iPhone is
+    // usually BEFORE any user gesture. iOS may reject that play() outright
+    // (Low Power Mode, or Settings > Safari auto-play). Marking primed
+    // up-front would then permanently disable the gesture retry below — i.e.
+    // the one mechanism that wakes an iOS decoder would be dead, and the clip
+    // stays a static poster forever. Desktop WebKit (including Playwright's,
+    // which is otherwise the best proxy for iOS available) permits muted
+    // autoplay with no gesture, so it always succeeds there and never exposes
+    // this. Retry on every gesture until one actually takes.
+    primeTries++;
+    const settle = (ok: boolean) => {
       priming = false;
+      if (ok) { primed = true; detachGestures(); }
+      // Surfaced on the element so the ?vdebug=1 panel can report, from a real
+      // phone, whether the decoder was ever successfully woken. Costs nothing.
+      try { v.dataset.prime = `${ok ? "ok" : "refused"}:${primeTries}:${userReady ? "gesture" : "auto"}`; }
+      catch { /* ignore */ }
       try { v.pause(); } catch { /* ignore */ }
     };
-    // Belt and braces: whatever happens to the promise, priming is over quickly.
-    window.setTimeout(stop, 220);
+    // Belt and braces: however the promise behaves, priming is over quickly.
+    window.setTimeout(() => { if (priming) settle(!v.paused); }, 220);
     try {
       const p = v.play();
       if (p && typeof p.then === "function") {
-        p.then(() => requestAnimationFrame(stop)).catch(() => { priming = false; });
+        p.then(() => requestAnimationFrame(() => settle(true))).catch(() => settle(false));
       } else {
-        requestAnimationFrame(stop);
+        // Legacy no-promise play(): if it took, the element is no longer paused.
+        requestAnimationFrame(() => settle(!v.paused));
       }
-    } catch { priming = false; }
+    } catch { settle(false); }
   };
-  const onFirstGesture = () => {
-    if (userReady) return;
+  // NOT `{ once: true }`. A single attempt is not enough — the first gesture can
+  // land while the element is still loading, or iOS can refuse it once and allow
+  // it a moment later. Keep trying on every gesture until one succeeds, then
+  // unbind. `userReady` still gates priming a clip that attaches later (the
+  // deferred configurator film), which must not be primed before any gesture.
+  const onGesture = () => {
     userReady = true;
     prime(video);
   };
-  window.addEventListener("pointerdown", onFirstGesture, { once: true, passive: true });
-  window.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
+  function detachGestures() {
+    window.removeEventListener("pointerdown", onGesture);
+    window.removeEventListener("touchstart", onGesture);
+    window.removeEventListener("touchend", onGesture);
+  }
+  window.addEventListener("pointerdown", onGesture, { passive: true });
+  window.addEventListener("touchstart", onGesture, { passive: true });
+  window.addEventListener("touchend", onGesture, { passive: true });
 
   /* ---- source strategy -----------------------------------------------------
      STREAM from a plain src. One request, scrubbable almost immediately, and
@@ -462,8 +489,7 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
       cancelAnimationFrame(rafId);
       if (painterTimer) window.clearInterval(painterTimer);
       if (gateTimer) window.clearTimeout(gateTimer);
-      window.removeEventListener("pointerdown", onFirstGesture);
-      window.removeEventListener("touchstart", onFirstGesture);
+      detachGestures();
       const v = video;
       if (v) {
         try { v.pause(); } catch { /* ignore */ }

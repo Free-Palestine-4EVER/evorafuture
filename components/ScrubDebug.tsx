@@ -29,16 +29,44 @@ type Snap = {
   seeking: boolean;
   painted: boolean;
   size: string;
+  /* The scrub's OWN input. If this stays 0.00 while you scroll, the bug is in
+     the scroll math (sticky / svh / Lenis), not in the video at all — and no
+     amount of decoder fixing will help. Reported first for that reason. */
+  prog: string;
+  geom: string;
+  opacity: string;
+  prime: string;
 };
 
-const read = (label: string, stageSel: string): Snap => {
+/* Recomputed exactly the way HeroScroll/ConfiguratorScroll compute it, from the
+   section box and the sticky element's own height. */
+const readProgress = (sectionSel: string, stickySel: string) => {
+  const section = document.querySelector(sectionSel) as HTMLElement | null;
+  if (!section) return { prog: "no-section", geom: "-" };
+  const sticky = document.querySelector(stickySel) as HTMLElement | null;
+  const vh = sticky && sticky.getBoundingClientRect().height > 0
+    ? sticky.getBoundingClientRect().height
+    : window.innerHeight;
+  const rect = section.getBoundingClientRect();
+  const scrollable = section.offsetHeight - vh;
+  const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+  return {
+    prog: p.toFixed(3),
+    geom: `top=${Math.round(rect.top)} secH=${section.offsetHeight} vh=${Math.round(vh)} scrollable=${Math.round(scrollable)}`,
+  };
+};
+
+const read = (label: string, stageSel: string, sectionSel: string, stickySel: string): Snap => {
   const stage = document.querySelector(stageSel);
   const v = stage?.querySelector("video") as HTMLVideoElement | null;
+  const { prog, geom } = readProgress(sectionSel, stickySel);
+  const opacity = stage ? getComputedStyle(stage as HTMLElement).opacity : "-";
   if (!v) {
     return {
       label, exists: false, src: "-", readyState: -1, networkState: -1, errorCode: null,
       duration: "-", currentTime: "-", buffered: "-", paused: true, seeking: false,
       painted: !!stage?.classList.contains("is-painted"), size: "-",
+      prog, geom, opacity, prime: "-",
     };
   }
   let buffered = "none";
@@ -60,6 +88,8 @@ const read = (label: string, stageSel: string): Snap => {
     seeking: v.seeking,
     painted: !!stage?.classList.contains("is-painted"),
     size: `${v.videoWidth}x${v.videoHeight}`,
+    prog, geom, opacity,
+    prime: v.dataset.prime || "not-attempted",
   };
 };
 
@@ -72,7 +102,10 @@ export default function ScrubDebug() {
     if (!new URLSearchParams(window.location.search).has("vdebug")) return;
     setOn(true);
     setUa(navigator.userAgent.slice(0, 80));
-    const tick = () => setSnaps([read("HERO", ".hs__stage"), read("KITCHEN", ".cfg__stage")]);
+    const tick = () => setSnaps([
+      read("HERO", ".hs__stage", ".hs", ".hs__sticky"),
+      read("KITCHEN", ".cfg__stage", ".cfg", ".cfg__sticky"),
+    ]);
     tick();
     const id = window.setInterval(tick, 400);
     return () => window.clearInterval(id);
@@ -97,6 +130,14 @@ export default function ScrubDebug() {
       {snaps.map((s) => (
         <div key={s.label} style={{ marginTop: 6, borderTop: "1px solid #333", paddingTop: 4 }}>
           <b style={{ color: "#fff" }}>{s.label}</b> exists={String(s.exists)} painted={String(s.painted)}
+          {/* scrollProg is the scrub's INPUT — if it does not move as you
+              scroll, the video is not the problem. */}
+          <br /><span style={{ color: "#0ff" }}>scrollProg={s.prog} videoFrac=
+            {s.duration !== "-" && Number(s.duration) > 0
+              ? (Number(s.currentTime) / Number(s.duration)).toFixed(3)
+              : "-"}</span>
+          <br /><span style={{ color: "#f90" }}>prime={s.prime} stageOpacity={s.opacity}</span>
+          <br />{s.geom}
           <br />src={s.src}
           <br />readyState={s.readyState} networkState={s.networkState} err={String(s.errorCode)}
           <br />dur={s.duration} t={s.currentTime} size={s.size}
