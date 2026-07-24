@@ -274,6 +274,15 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
         markIfDecoded();
       }, 250);
 
+      // HARD GUARD: this element must never actually play. Priming it (a muted
+      // play->pause) is the only reliable way to wake an iOS decoder, but if the
+      // pause half fails the clip runs away on its own — which is exactly what
+      // happened on an iPhone: paused=false, currentTime parked at the very end,
+      // buffered=none, and no scrubbing. Pausing on every `playing` event means
+      // a runaway can last at most one frame, whatever else goes wrong.
+      v.addEventListener("playing", () => { try { v.pause(); } catch { /* ignore */ } });
+      v.addEventListener("play", () => { try { v.pause(); } catch { /* ignore */ } });
+
       v.addEventListener("error", () => { if (!destroyed) onError?.(); });
 
       container.appendChild(v);
@@ -411,13 +420,17 @@ export function createVideoScrub(opts: VideoScrubOptions): VideoScrubHandle {
           try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
         }
 
-        // Last resort: a seek wedged for seconds means the decoder never woke
-        // up. On iOS that happens when the video has never played — and Low
-        // Power Mode refuses the muted autoplay we use to prime it. Nudge it
-        // with a play/pause, then re-issue. Rate-limited so it can't spin.
+        // Last resort for a seek wedged for seconds: just re-issue it.
+        //
+        // This deliberately does NOT call play() any more. Nudging the decoder
+        // with play/pause backfired badly on iOS: the play() took effect, the
+        // follow-up pause() did not, and the clip ran through to the end on its
+        // own — reported as "the video isn't playing [with the scroll]", with
+        // the device showing paused=false, t=8.33 (the very end) and
+        // buffered=none. A scrubber must never actually play; the `playing`
+        // guard on the element enforces that now.
         if (stuckFor > 2500 && now - lastUnstickAt > 3000) {
           lastUnstickAt = now;
-          prime(v);
           try { v.currentTime = t; seekStartedAt = now; } catch { /* ignore */ }
         }
       }
