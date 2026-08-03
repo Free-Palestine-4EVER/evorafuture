@@ -91,7 +91,16 @@ export default function StartProjectModal({ initialOpen = false }: { initialOpen
         served = await uploadFile(file);
       }
       setPhase("sending");
-      await createLead(name.trim(), phone.trim(), message.trim(), served, email.trim());
+      // createLead() in lib/portal/store.ts does `(await post(...)).json()` and
+      // never checks res.ok — so a 4xx/5xx whose body happens to be JSON (the
+      // API's own `{"error":"not_found"}` 404, a 401, a proxy error page) would
+      // resolve and this modal would show "we'll call you soon" for a lead that
+      // was never stored. A real lead always comes back with a server-minted
+      // `id` (db.createLead in lib/portal/serverdb.ts), so verify that instead
+      // of trusting the promise resolving. Same per-caller check VisitBooking.tsx
+      // uses; the shared helper is left alone because DesignRequest uses it too.
+      const lead = await createLead(name.trim(), phone.trim(), message.trim(), served, email.trim());
+      if (!lead || typeof lead.id !== "string" || !lead.id) throw new Error("LEAD_NOT_CREATED");
       setDone(true);
     } catch {
       setError(true);

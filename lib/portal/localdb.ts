@@ -29,15 +29,23 @@ function root(): Record<string, Json> {
   return cache!;
 }
 
+/* This used to end in `.catch(() => {})`, which swallowed the failure: a full
+   disk or a permissions problem meant the record existed only in the in-memory
+   cache until the next restart, while the API happily answered 200 and the
+   customer was told their request had been sent. The rejection is now handed to
+   the CALLER (so the route can return a real 500), while the chain itself is
+   kept alive with a separate, non-observed catch — otherwise one bad write
+   would poison every write for the rest of the process's life. */
 function flush(): Promise<void> {
   const snapshot = JSON.stringify(cache ?? {});
-  writeChain = writeChain.then(() => {
+  const done = writeChain.then(() => {
     mkdirSync(path.dirname(FILE), { recursive: true });
     const tmp = `${FILE}.tmp`;
     writeFileSync(tmp, snapshot);
     renameSync(tmp, FILE);
-  }).catch(() => { /* keep the chain alive on a failed flush */ });
-  return writeChain;
+  });
+  writeChain = done.catch(() => { /* keep the chain alive on a failed flush */ });
+  return done;
 }
 
 const segs = (p: string): string[] => p.split("/").filter(Boolean);

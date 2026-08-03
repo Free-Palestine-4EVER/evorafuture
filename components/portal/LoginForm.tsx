@@ -122,11 +122,14 @@ export default function LoginForm({
               </motion.div>
             )}
 
+            {/* The staff placeholder used to read bakri@evorafuture.com — a domain
+                this studio has never owned, so the field was suggesting an address
+                that cannot sign in. The real staff account lives on evorahome.online. */}
             <motion.div variants={item} className="lf-field-wrap">
               <label style={label}>{admin ? tp("admin_id_label", lang) : tp("phone", lang)}</label>
               <input className="lf-field" value={identifier} onChange={(e) => setIdentifier(e.target.value)}
                 type="text" inputMode={admin ? "email" : "tel"} autoCapitalize="none" autoCorrect="off" spellCheck={false}
-                autoComplete="username" placeholder={admin ? "bakri@evorafuture.com" : "07_ _______"} required />
+                autoComplete="username" placeholder={admin ? "name@evorahome.online" : "07_ _______"} required />
             </motion.div>
 
             <motion.div variants={item} className="lf-field-wrap">

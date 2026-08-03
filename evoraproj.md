@@ -148,15 +148,25 @@ zero cross-imports. Don't assume a fix in one applies to the other.
 ## Admin / login credentials
 
 **One consolidated admin account** (old ones removed):
-- Email: `bakri@evorahome.online`, password: `bakri123`
-- This is **baked into server code**, not just the database — see
-  `lib/portal/serverdb.ts`'s `bootstrap()` function. It checks for a user
-  with that exact email and re-creates it if missing. **If you ever need to
-  change the admin password, edit `bootstrap()` in serverdb.ts and redeploy
-  — do NOT just hand-edit the database file**, the next bootstrap() call
-  (which runs on every sign-in) will silently overwrite a direct DB edit
-  back to whatever's hardcoded in the source. This bit us once already.
-- Demo client: phone `0790000000`, password `evora123`.
+- Email: `bakri@evorahome.online`. **The password is NOT written down here or
+  anywhere else in this repo.** It has been rotated and is held out of band
+  (password manager / handover envelope). This repo is public on GitHub — the
+  previous plaintext value in this file was world-readable and authenticated
+  straight against production, so it is gone and must never come back.
+- `lib/portal/serverdb.ts`'s `bootstrap()` no longer contains a literal
+  password. On a **fresh** database only, it seeds the account from
+  `EVORA_ADMIN_BOOTSTRAP_PASSWORD`, or — if that is unset — generates a random
+  one and prints it to the server log **once**
+  (`journalctl -u evora -n 100 | grep ONE-TIME`).
+- bootstrap() runs on every sign-in but **only creates the account when it does
+  not already exist**, so it can never reset a live password. To change an
+  existing password use `node scripts/rotate-admin-password.mjs` with the
+  service stopped — a direct hand-edit of `data/evora-db.json` while the server
+  is running is still useless, because localdb.ts caches the whole store in
+  memory (that part of the old warning still stands).
+- Demo client `0790000000` / `evora123`: **offline mock backend only**
+  (`lib/portal/mock.ts`), never the real server. Harmless, but do not confuse
+  it with a real account.
 
 ## Known gotchas (learned the hard way this session)
 
@@ -401,8 +411,9 @@ zero cross-imports. Don't assume a fix in one applies to the other.
   client-assignment: saving a room now lets staff pick which client it
   belongs to, and every scan/saved-room row has an "Assign" control to
   (re)point ownership at a client.
-- Consolidated admin credentials to `bakri@evorahome.online` / `bakri123`
-  (fixed at the bootstrap() source, see above).
+- Consolidated admin credentials to a single `bakri@evorahome.online` account
+  (see "Admin / login credentials" above — the password is deliberately not
+  recorded in this repo).
 - Fixed EvoraScan iOS app's stale default backend URL.
 
 ## Not done yet / good next steps

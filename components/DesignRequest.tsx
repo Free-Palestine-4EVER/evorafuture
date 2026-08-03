@@ -18,6 +18,7 @@ const T = {
   remove: { en: "Remove file", ar: "إزالة الملف" },
   send: { en: "Request my 3D design", ar: "اطلب تصميمي ثلاثي الأبعاد" },
   sending: { en: "Sending…", ar: "جارٍ الإرسال…" },
+  err: { en: "We couldn't send your request. Please try again, or message us on WhatsApp.", ar: "تعذّر إرسال طلبك. الرجاء المحاولة مرة أخرى أو مراسلتنا عبر واتساب." },
   done_t: { en: "Got it — we'll call you soon.", ar: "تم — سنتصل بك قريبًا." },
   done_s: { en: "Our team will review your plan and reach out on the number you gave us.", ar: "سيراجع فريقنا مخططك ويتواصل معك على الرقم الذي أدخلته." },
   trust1: { en: "2,400+ homes designed", ar: "أكثر من 2,400 منزل صُمّم" },
@@ -35,6 +36,7 @@ export default function DesignRequest() {
   const [planName, setPlanName] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -61,12 +63,29 @@ export default function DesignRequest() {
     e.preventDefault();
     setPhoneTouched(true);
     if (!phoneValid) return;
+    setError(false);
     setBusy(true);
     try {
       // Upload the plan so it's a served URL (a data-URL link is blocked by browsers).
       const served = planUrl.startsWith("data:") ? await uploadDataUrl(planUrl) : planUrl;
-      await createLead(name.trim(), phone.trim(), message.trim(), served);
+      // uploadDataUrl() returns the ORIGINAL data-URL when the POST fails, so a
+      // rejected upload would otherwise be stored verbatim — megabytes of base64
+      // inside data/evora-db.json, and a link the studio can't open. Treat it as
+      // the failure it is (same as StartProjectModal, whose uploadFile throws).
+      if (served.startsWith("data:")) throw new Error("PLAN_UPLOAD_FAILED");
+      // createLead() in lib/portal/store.ts does `(await post(...)).json()` and
+      // never checks res.ok — a 4xx/5xx with a JSON body (the API's own
+      // `{"error":"not_found"}`, a 401, a proxy error page) resolves happily and
+      // this form would show "we'll call you soon" for a lead that was never
+      // stored. A real lead always carries a server-minted `id`
+      // (db.createLead in lib/portal/serverdb.ts) — verify that instead. Same
+      // per-caller check as VisitBooking.tsx and StartProjectModal.tsx; the
+      // shared helper's signature is deliberately left alone.
+      const lead = await createLead(name.trim(), phone.trim(), message.trim(), served);
+      if (!lead || typeof lead.id !== "string" || !lead.id) throw new Error("LEAD_NOT_CREATED");
       setDone(true);
+    } catch {
+      setError(true);
     } finally { setBusy(false); }
   }
 
@@ -187,6 +206,21 @@ export default function DesignRequest() {
                         </button>
                       </span>
                     </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence initial={false}>
+                  {error && (
+                    <motion.p
+                      role="alert"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: EASE }}
+                      style={{ margin: 0, overflow: "hidden", fontSize: "0.86rem", lineHeight: 1.5, color: "#C0492F" }}
+                    >
+                      {t("err")}
+                    </motion.p>
                   )}
                 </AnimatePresence>
 

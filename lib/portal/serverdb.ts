@@ -82,14 +82,51 @@ function ensureWatch() {
 
 // ---- bootstrap ------------------------------------------------------------
 
+const ADMIN_EMAIL = "bakri@evorahome.online";
+const ADMIN_UID = "staff-bakri";
+
+/* First-run seed of the studio's admin account.
+   This used to bake a literal password into source. The GitHub repo is public,
+   so that string was world-readable AND authenticated against production —
+   anyone who read the file owned the dashboard. It is gone; there is no
+   fallback literal on purpose.
+
+   Now:
+     - `EVORA_ADMIN_BOOTSTRAP_PASSWORD` (>= 8 chars) is used if set;
+     - otherwise a strong random password is generated and printed to the
+       server console ONCE, for the operator to copy out of the service log.
+
+   The seed still only fires when no account with ADMIN_EMAIL exists, so a
+   deployment that already has the account (i.e. production) is never touched
+   and nobody is locked out. Rotating an EXISTING password is a separate,
+   deliberate act — see scripts/rotate-admin-password.mjs. */
 export async function bootstrap(): Promise<void> {
   ensureWatch();
   const users = await allUsers();
-  if (!users.some((u) => emailNorm(u.email || "") === "bakri@evorahome.online")) {
-    const uid = "staff-bakri";
-    await rtdb().ref(`users/${uid}`).set(clean({
-      uid, phone: "", email: "bakri@evorahome.online", name: "Bakri", role: "admin", password: hashPw("bakri123"),
-    }));
+  // Account already exists → leave it completely alone. Never reset a live
+  // password as a side effect of a process start.
+  if (users.some((u) => emailNorm(u.email || "") === ADMIN_EMAIL)) return;
+
+  const fromEnv = (process.env.EVORA_ADMIN_BOOTSTRAP_PASSWORD || "").trim();
+  const useEnv = fromEnv.length >= 8;
+  const pw = useEnv ? fromEnv : randomBytes(18).toString("base64url");
+
+  await rtdb().ref(`users/${ADMIN_UID}`).set(clean({
+    uid: ADMIN_UID, phone: "", email: ADMIN_EMAIL, name: "Bakri", role: "admin", password: hashPw(pw),
+  }));
+
+  if (useEnv) {
+    console.warn(`[evora] Seeded admin ${ADMIN_EMAIL} from EVORA_ADMIN_BOOTSTRAP_PASSWORD.`);
+  } else {
+    if (fromEnv.length) console.warn("[evora] EVORA_ADMIN_BOOTSTRAP_PASSWORD is set but shorter than 8 characters — ignored.");
+    console.warn(
+      `\n[evora] ================= ONE-TIME ADMIN PASSWORD =================\n` +
+      `[evora]   ${ADMIN_EMAIL}\n` +
+      `[evora]   ${pw}\n` +
+      `[evora] Shown ONCE. Store it in a password manager, then rotate it.\n` +
+      `[evora] Set EVORA_ADMIN_BOOTSTRAP_PASSWORD to choose it yourself.\n` +
+      `[evora] ===========================================================\n`
+    );
   }
 }
 
@@ -173,43 +210,75 @@ export async function upsertProject(p: Project): Promise<Project> {
   return stamped;
 }
 
-export async function deleteProject(id: string): Promise<void> {
-  await rtdb().ref(`projects/${id}`).remove();
-  touched();
+export async function getProject(id: string): Promise<Project | null> {
+  if (!id) return null;
+  return ((await rtdb().ref(`projects/${id}`).get()).val() as Project | null) || null;
 }
 
-export async function approve(id: string): Promise<void> {
-  await rtdb().ref(`projects/${id}`).update({ approvedByClient: true, updatedAt: Date.now() });
-  touched();
+/* Does this (non-admin) user own the project? Mirrors listForUser: a project is
+   theirs by ownerUid, or by phone number when staff assigned it before the
+   customer registered. Used to gate the one mutation a customer is allowed to
+   make on their own record — approving a design. */
+export async function userOwnsProject(uid: string, p: Project): Promise<boolean> {
+  if (p.ownerUid && p.ownerUid === uid) return true;
+  if (!p.ownerPhone) return false;
+  const me = (await allUsers()).find((u) => u.uid === uid);
+  return !!(me?.phone && norm(me.phone) === norm(p.ownerPhone));
 }
 
-export async function setStage(id: string, stage: string): Promise<void> {
-  const proj = (await rtdb().ref(`projects/${id}`).get()).val() as Project | null;
-  await rtdb().ref(`projects/${id}`).update({ stage, updatedAt: Date.now() });
+export async function deleteProject(id: string): Promise<boolean> {
+  const ref = rtdb().ref(`projects/${id}`);
+  if (!(await ref.get()).val()) return false;
+  await ref.remove();
   touched();
-  if (proj?.ownerUid) {
+  return true;
+}
+
+/* NOTE on the `false` returns below: `update()` on a path that does not exist
+   CREATES it (both in RTDB and in localdb.ts). Without a read first, a request
+   naming a bogus id minted a phantom `projects/NOPE` / `leads/NOPE` row that
+   then rendered as a ghost card in the dashboard. Every one of these now reads
+   before it writes and the route turns `false` into a 404. */
+export async function approve(id: string): Promise<boolean> {
+  const ref = rtdb().ref(`projects/${id}`);
+  if (!(await ref.get()).val()) return false;
+  await ref.update({ approvedByClient: true, updatedAt: Date.now() });
+  touched();
+  return true;
+}
+
+export async function setStage(id: string, stage: string): Promise<boolean> {
+  const ref = rtdb().ref(`projects/${id}`);
+  const proj = (await ref.get()).val() as Project | null;
+  if (!proj) return false;
+  await ref.update({ stage, updatedAt: Date.now() });
+  touched();
+  if (proj.ownerUid) {
     const label = stageByIndex(stageIndex(stage)).en;
     notifyUsers([proj.ownerUid], proj.title || "Your Evora project", `Moved to: ${label}`);
   }
+  return true;
 }
 
-export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">): Promise<void> {
+export async function addUpdate(id: string, u: Omit<ProjectUpdate, "id" | "at">): Promise<boolean> {
   const ref = rtdb().ref(`projects/${id}`);
   const proj = (await ref.get()).val() as Project | null;
-  if (!proj) return;
+  if (!proj) return false;
   const updates = proj.updates || [];
   updates.unshift({ id: randomBytes(5).toString("hex"), at: Date.now(), ...u });
   await ref.update(clean({ updates, updatedAt: Date.now() }));
   touched();
   if (proj.ownerUid) notifyUsers([proj.ownerUid], proj.title || "Your Evora project", u.text || "New update", "/dashboard");
+  return true;
 }
 
-export async function deleteUpdate(id: string, updateId: string): Promise<void> {
+export async function deleteUpdate(id: string, updateId: string): Promise<boolean> {
   const ref = rtdb().ref(`projects/${id}`);
   const proj = (await ref.get()).val() as Project | null;
-  if (!proj) return;
+  if (!proj) return false;
   await ref.update(clean({ updates: (proj.updates || []).filter((u) => u.id !== updateId), updatedAt: Date.now() }));
   touched();
+  return true;
 }
 
 // ---- leads ----------------------------------------------------------------
@@ -250,15 +319,29 @@ export async function listSubscribers(): Promise<{ email: string; createdAt: num
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
-  await rtdb().ref(`leads/${id}`).update({ status, updatedAt: Date.now() });
+// Remove a request for good. The studio needs this to clear out spam and the
+// junk rows left by testing — without it the leads board is unusable as a
+// to-do list, because "New" never goes away and the badge always lies.
+export async function deleteLead(id: string): Promise<void> {
+  await rtdb().ref(`leads/${id}`).remove();
   touched();
 }
 
-export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
-  await rtdb().ref(`leads/${id}`).update({ sentToPuffer: on, updatedAt: Date.now() });
+export async function setLeadStatus(id: string, status: LeadStatus): Promise<boolean> {
+  const ref = rtdb().ref(`leads/${id}`);
+  if (!(await ref.get()).val()) return false;
+  await ref.update({ status, updatedAt: Date.now() });
+  touched();
+  return true;
+}
+
+export async function sendLeadToPuffer(id: string, on = true): Promise<boolean> {
+  const ref = rtdb().ref(`leads/${id}`);
+  if (!(await ref.get()).val()) return false;
+  await ref.update({ sentToPuffer: on, updatedAt: Date.now() });
   touched();
   if (on) notifyStaff("2D plan queued for Puffer", "A design request is ready to import in /evora3dstudio");
+  return true;
 }
 
 // ---- realtime -------------------------------------------------------------

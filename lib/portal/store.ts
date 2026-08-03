@@ -151,9 +151,14 @@ export async function saveProject(p: Project): Promise<Project> {
   if ((await mode()) === "mock") return mockBackend.saveProject(p);
   return (await post("projects", p)).json();
 }
+// Admin-only and irreversible server-side. Throws on a rejected delete (401 /
+// 403 / 404) so the dashboard shows its "delete failed" banner instead of
+// silently no-op'ing and leaving the row to reappear on the next load — same
+// contract as deleteLead below.
 export async function deleteProject(id: string): Promise<void> {
   if ((await mode()) === "mock") return mockBackend.deleteProject(id);
-  await fetch(api(`projects/${id}`), { method: "DELETE" });
+  const r = await fetch(api(`projects/${encodeURIComponent(id)}`), { method: "DELETE" });
+  if (!r.ok) throw new Error("FAILED");
 }
 export async function approveProject(id: string): Promise<void> {
   if ((await mode()) === "mock") return mockBackend.approve(id);
@@ -214,6 +219,12 @@ export async function createLead(name: string, phone: string, message?: string, 
 }
 export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
   await post("lead-status", { id, status });
+}
+// Admin-only, irreversible. Throws on a rejected delete so the dashboard shows
+// the failure banner instead of optimistically dropping the row from the UI.
+export async function deleteLead(id: string): Promise<void> {
+  const r = await fetch(api(`leads/${encodeURIComponent(id)}`), { method: "DELETE" });
+  if (!r.ok) throw new Error("FAILED");
 }
 export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
   await post("lead-to-puffer", { id, on });

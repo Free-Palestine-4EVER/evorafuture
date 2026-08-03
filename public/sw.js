@@ -21,7 +21,11 @@
  */
 
 const CACHE = "evora-portal-v3";
-const PRECACHE = ["/portal.webmanifest", "/icon.svg"];
+// Every entry must actually exist: cache.addAll() is all-or-nothing, so one
+// 404 threw away the whole precache. "/icon.svg" was such a 404 (the icons live
+// under /icons/), which meant NOTHING was ever precached — including the
+// manifest this list exists to guarantee offline.
+const PRECACHE = ["/portal.webmanifest", "/admin.webmanifest", "/icons/evora-192.png", "/icons/evora-512.png"];
 
 // The only paths this worker is allowed to touch.
 const PORTAL_PREFIXES = ["/dashboard", "/admindashboard", "/portal", "/login", "/join"];
