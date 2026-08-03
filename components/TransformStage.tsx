@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import ResponsiveVideo from "@/components/ResponsiveVideo";
 import { avifSrc } from "@/lib/avifSrc";
 
 /* ------------------------------------------------------------------ *
@@ -13,12 +12,12 @@ import { avifSrc } from "@/lib/avifSrc";
  *   0  2D blueprint    – the bare architectural floor plan
  *   1  Furnished 2D    – the plan filled with cabinets, island, dining
  *   2  Built in 3D     – the same plan as a 3D cut-away model
- *   3  Photoreal       – the finished kitchen (a live reveal video)
+ *   3  Photoreal       – the finished kitchen (a still render, sign-off ready)
  *
  * Driven by scroll: the parent passes `step` (0–3) from the swap-column
  * mechanic in ProcessJourney and the stages cross-dissolve with a slow
- * Ken-Burns push. Bilingual captions. The final stage plays a Seedance
- * reveal video (with the still as poster / fallback).
+ * Ken-Burns push. Bilingual captions. The final stage carries the
+ * "Approved" badge over its still image.
  * ------------------------------------------------------------------ */
 
 const STAGES = [
@@ -28,7 +27,6 @@ const STAGES = [
   { src: "/evora/kitchen/stage-4.jpg", en: "Photoreal — approved", ar: "واقعي — معتمد" },
 ] as const;
 
-const REVEAL_VIDEO = "/evora/kitchen/reveal.mp4";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export default function TransformStage({ step, ar }: { step: number; ar: boolean }) {
@@ -69,7 +67,7 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
         );
       })}
 
-      {/* photoreal reveal video on the final stage (still is the poster/fallback) */}
+      {/* approval badge over the photoreal still on the final stage */}
       <AnimatePresence>
         {isRender && (
           <motion.div
@@ -80,12 +78,6 @@ export default function TransformStage({ step, ar }: { step: number; ar: boolean
             transition={{ duration: 0.8, ease: "easeOut" }}
             style={{ zIndex: 3 }}
           >
-            <ResponsiveVideo
-              className="ts-img"
-              src={REVEAL_VIDEO}
-              poster={STAGES[3].src}
-              preload="auto"
-            />
             <ApprovedBadge ar={ar} reduced={!!reduced} />
           </motion.div>
         )}

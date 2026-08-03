@@ -7,11 +7,11 @@ import { Magnetic, motion, useReducedMotion } from "./motion";
 import { useT } from "@/lib/i18n";
 import { openStartProject } from "@/lib/startProject";
 
-const LINKS: { id: string; key: "nav_shop" | "nav_catalog" | "nav_studio" | "nav_showroom" | "nav_visit" }[] = [
+const LINKS: { id: string; key: "nav_home" | "nav_shop" | "nav_kitchen" | "nav_catalog" | "nav_visit" }[] = [
+  { id: "/", key: "nav_home" },
   { id: "/shop", key: "nav_shop" },
+  { id: "/kitchen", key: "nav_kitchen" },
   { id: "/catalog", key: "nav_catalog" },
-  { id: "/studio", key: "nav_studio" },
-  { id: "/showroom", key: "nav_showroom" },
   { id: "/visit", key: "nav_visit" },
 ];
 
@@ -144,9 +144,24 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
             ))}
             <li>
               <Magnetic strength={0.2}>
-                <button type="button" onClick={openStartProject} className="nav-link">
+                {/* A real href, not a bare <button>. The modal is still what
+                    normally opens (preventDefault below), but /start renders the
+                    same request form as a page — so this now survives a failed
+                    modal chunk, works on middle-click / "open in new tab", and
+                    gives the site's main conversion CTA something crawlable to
+                    point at. Modified-clicks are left to the browser. */}
+                <a
+                  href="/start"
+                  className="nav-link"
+                  data-active={isActive("/start") || undefined}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    openStartProject();
+                  }}
+                >
                   {lang === "ar" ? "صمّم منزلي" : "Design my home"}
-                </button>
+                </a>
               </Magnetic>
             </li>
             <li>
@@ -216,7 +231,15 @@ export default function Nav({ pinnedSolid = false }: { pinnedSolid?: boolean }) 
         </ul>
         <div style={{ marginTop: "2.5rem", display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
           <a href="/visit" onClick={() => setOpen(false)} className="btn" style={{ background: "var(--ink)", color: "var(--paper)" }}>{t("nav_book")} <span className="arrow">→</span></a>
-          <button type="button" onClick={() => { setOpen(false); openStartProject(); }} className="btn" style={{ background: "var(--clay)", color: "#fff", border: "none", cursor: "pointer" }}>{lang === "ar" ? "صمّم منزلي" : "Design my home"} <span className="arrow">→</span></button>
+          {/* Same as the desktop item: a real /start href underneath, so the CTA
+              still leads somewhere if the modal's chunk never arrives. */}
+          <a href="/start" className="btn" style={{ background: "var(--clay)", color: "#fff", border: "none", cursor: "pointer" }}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault();
+              setOpen(false);
+              openStartProject();
+            }}>{lang === "ar" ? "صمّم منزلي" : "Design my home"} <span className="arrow">→</span></a>
           <a href="/login" onClick={() => setOpen(false)} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)" }}>{lang === "ar" ? "بوابة العملاء" : "Client Portal"}</a>
           <button onClick={toggle} className="btn" style={{ border: "1px solid var(--line)", color: "var(--ink)", fontFamily: lang === "en" ? "var(--f-ar)" : "var(--font-sans)" }}>
             {lang === "en" ? "العربية" : "English"}

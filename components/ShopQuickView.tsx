@@ -175,7 +175,7 @@ export default function ShopQuickView({
         .qv-close:hover { background: var(--ink, #1c1815); color: var(--paper, #fbf9f4); transform: rotate(90deg); }
 
         .qv-stage { position: relative; background: linear-gradient(165deg, #fff, var(--bone, #efe9dd)); border-inline-end: 1px solid var(--line-soft, rgba(0,0,0,0.07)); min-height: 340px; overflow: hidden; }
-        .qv-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .qv-stage-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 1.4rem; box-sizing: border-box; }
         .qv-wm { position: absolute; bottom: 1rem; inset-inline-end: 1rem; width: 26px; height: 26px; background-color: rgba(255,255,255,0.94); -webkit-mask: url('/brand/evora-monogram.svg') center / contain no-repeat; mask: url('/brand/evora-monogram.svg') center / contain no-repeat; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4)); pointer-events: none; }
 
         .qv-info { display: flex; flex-direction: column; min-height: 0; }

@@ -52,6 +52,18 @@ const cornerPicks: ShopProduct[] = (() => {
 
 type Bi = { en: string; ar: string };
 
+/* AVIF <source> + WebP <img> fallback, the same convention KitchenTeaser.tsx
+   uses. `base` is an extension-less path — /evora/rooms/<slug> — because every
+   room ships as both .avif and .webp. */
+function RoomPicture({ base, alt, className }: { base: string; alt: string; className: string }) {
+  return (
+    <picture>
+      <source srcSet={`${base}.avif`} type="image/avif" />
+      <img src={`${base}.webp`} alt={alt} className={className} loading="lazy" />
+    </picture>
+  );
+}
+
 /* ── The six rooms — carried over 1:1 from the original Evora site
  *    (Living / Dining / Bedroom / Guest / Tables & Accessories / Chandeliers),
  *    re-staged as a cinematic image-swap gallery. No prices: each room
@@ -61,6 +73,14 @@ type Room = {
   num: string;
   name: Bi;
   note: Bi;          // the kind of room / its feeling — never a price
+  /* Extension-less base path into /public/evora/rooms/ — RoomPicture appends
+     .avif / .webp. The originals are three different shapes on disk (1.75:1
+     landscape renders, 0.67:1 and 0.52:1 portrait shots), which is why a
+     single frame could only ever crop one family or pillarbox the other.
+     scripts/normalise-room-images.mjs bakes all six onto the SAME 7:4 canvas
+     — landscapes pass through untouched, portraits get a blurred-fill mat of
+     their own photo — so the frame below is one fixed ratio with plain
+     object-fit: cover, and nothing here has to know about shape any more. */
   img: string;
   href: string;
   pieces: Bi[];      // the product types found in this room
@@ -72,7 +92,7 @@ const rooms: Room[] = [
     num: "01",
     name: { en: "Living Room", ar: "غرفة المعيشة" },
     note: { en: "Where the home gathers", ar: "حيث يجتمع البيت" },
-    img: "/evora/room-living.jpg",
+    img: "/evora/rooms/living",
     href: "/shop/living",
     pieces: [
       { en: "Sofas", ar: "كنب" },
@@ -86,7 +106,7 @@ const rooms: Room[] = [
     num: "02",
     name: { en: "Dining Room", ar: "غرفة الطعام" },
     note: { en: "Long evenings, well set", ar: "أمسياتٌ طويلة وسفرةٌ أنيقة" },
-    img: "/evora/room-dining.jpg",
+    img: "/evora/rooms/dining",
     href: "/shop/dining",
     pieces: [
       { en: "Dining Tables", ar: "طاولات طعام" },
@@ -100,7 +120,7 @@ const rooms: Room[] = [
     num: "03",
     name: { en: "Bedroom", ar: "غرفة النوم" },
     note: { en: "The quiet end of the day", ar: "نهاية اليوم الهادئة" },
-    img: "/evora/room-bedrooms.jpg",
+    img: "/evora/rooms/bedroom",
     href: "/shop/bedroom",
     pieces: [
       { en: "Beds", ar: "أسرّة" },
@@ -114,7 +134,7 @@ const rooms: Room[] = [
     num: "04",
     name: { en: "Guest Room", ar: "غرفة الضيوف" },
     note: { en: "Where guests see your taste first", ar: "حيث يرى ضيوفك ذوقك أوّلًا" },
-    img: "/evora/ig-lounge.jpg",
+    img: "/evora/rooms/guest-v2",
     href: "/shop/guest",
     pieces: [
       { en: "Majlis Seating", ar: "جلسات مجلس" },
@@ -128,7 +148,7 @@ const rooms: Room[] = [
     num: "05",
     name: { en: "Tables & Accessories", ar: "طاولات وإكسسوارات" },
     note: { en: "The finishing details", ar: "اللمسات الأخيرة" },
-    img: "/evora/p11.jpg",
+    img: "/evora/rooms/tables-v2",
     href: "/shop/tables",
     pieces: [
       { en: "Console Tables", ar: "طاولات كونسول" },
@@ -142,7 +162,7 @@ const rooms: Room[] = [
     num: "06",
     name: { en: "Chandeliers", ar: "الثريات" },
     note: { en: "Light, made an occasion", ar: "ضوءٌ يصنع المناسبة" },
-    img: "/evora/p10.jpg",
+    img: "/evora/rooms/chandeliers-v2",
     href: "/shop/chandeliers",
     pieces: [
       { en: "Chandeliers", ar: "ثريات" },
@@ -256,17 +276,19 @@ export default function Rooms() {
       <div className="container rm__scrollarea">
         <a className="rm__stage" href={room.href} aria-label={room.name[lang]}>
           <AnimatePresence initial={false} mode="popLayout">
-            <motion.img
+            {/* the crossfade rides a wrapper, not the <img> itself: the img
+                carries the CSS hover zoom, and an inline transform written by
+                framer would out-specify it. */}
+            <motion.div
               key={room.id}
-              src={room.img}
-              alt={room.name[lang]}
-              className="rm__img"
+              className="rm__pic"
               initial={reduce ? false : { opacity: 0, scale: 1.06 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.02 }}
               transition={{ duration: 0.7, ease: EASE }}
-              loading="lazy"
-            />
+            >
+              <RoomPicture base={room.img} alt={room.name[lang]} className="rm__img" />
+            </motion.div>
           </AnimatePresence>
           <div className="rm__stageveil" aria-hidden />
           <div className="rm__stagecap">
@@ -332,7 +354,7 @@ export default function Rooms() {
             transition={{ duration: 0.6, ease: EASE, delay: reduce ? 0 : (i % 3) * 0.05 }}
           >
             <div className="rm__mimgwrap">
-              <img src={r.img} alt={r.name[lang]} className="rm__mimg" loading="lazy" />
+              <RoomPicture base={r.img} alt={r.name[lang]} className="rm__mimg" />
               <div className="rm__mveil" aria-hidden />
               <div className="rm__mpieces" aria-hidden>
                 {r.pieces.slice(0, 3).map((p) => (
@@ -446,7 +468,11 @@ export default function Rooms() {
 
       <style>{`
         .rm { padding-block: clamp(4rem, 9vw, 7.5rem); background: var(--paper); color: var(--ink); }
-        .rm__head { max-width: 60ch; }
+        /* editorial header: start-aligned, runs the container's full measure
+           (like .rm__scrollarea/.rm__tax/.rm__shop below it) instead of being
+           clamped to a narrow ch-width that .container's margin-inline: auto
+           then floats in the middle of the page. */
+        .rm__head { text-align: start; }
         .rm__kicker {
           display: inline-flex; align-items: center; gap: 0.85rem;
           font-family: var(--f-sans); font-size: 0.72rem; font-weight: 600;
@@ -462,7 +488,7 @@ export default function Rooms() {
           letter-spacing: -0.022em; margin: 1.1rem 0 0; text-wrap: balance;
         }
         .rm__title em { font-style: italic; font-variation-settings: "opsz" 140,"SOFT" 60,"WONK" 1; color: var(--ever, #2f5d4a); }
-        .rm__lede { max-width: 52ch; margin: 1.3rem 0 0; font-family: var(--f-sans);
+        .rm__lede { max-width: 70ch; margin: 1.3rem 0 0; font-family: var(--f-sans);
           color: var(--ink-soft); font-size: clamp(1rem,1.3vw,1.14rem); line-height: 1.7; text-wrap: pretty; }
 
         /* ---- stage + list: sticky image pinned left, scroll-driven rows
@@ -473,12 +499,25 @@ export default function Rooms() {
           gap: clamp(1.5rem, 4vw, 3.5rem);
           margin-top: clamp(2.5rem, 5vw, 4rem);
         }
+        /* ONE frame ratio for every room. The photos used to be three shapes
+           on disk (1.75:1 renders, 0.67:1 and 0.52:1 verticals) and this
+           frame used to change shape per room to suit them, which is what
+           produced the huge pillarbox voids. They are now all baked to the
+           same 7:4 canvas by scripts/normalise-room-images.mjs, so the frame
+           is fixed and object-fit: cover just fills it — no --stage-ratio, no
+           max-height clamp, no explicit width to work around Chromium
+           re-deriving a grid item's width from a clamped height.
+           Background stays --ink (not the bone/paper page surface) because
+           it is what shows for the instant before a photo decodes, and the
+           caption + piece badges sitting on top of it are white. */
         .rm__stage {
           position: sticky; top: clamp(84px, 10vh, 112px); align-self: start;
           display: block; overflow: hidden;
-          border-radius: 4px; aspect-ratio: 16 / 11; background: var(--ink);
+          border-radius: 4px; aspect-ratio: 7 / 4;
+          background: var(--ink);
           text-decoration: none; isolation: isolate;
         }
+        .rm__pic { position: absolute; inset: 0; }
         .rm__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .rm__stageveil { position: absolute; inset: 0; z-index: 1;
           background: linear-gradient(to top, rgba(20,18,15,0.72) 0%, rgba(20,18,15,0.05) 42%, transparent 70%); }
@@ -533,8 +572,12 @@ export default function Rooms() {
         /* ---- mobile stacked cards (own image per room, no sticky/scroll-link) ---- */
         .rm__mobile { display: none; }
         .rm__mcard { display: block; text-decoration: none; color: var(--ink); }
+        /* same fixed 7:4 as .rm__stage above — the normalised assets mean one
+           shape serves every card, so the stack reads as a consistent grid
+           instead of alternating tall/wide. --ink is the pre-decode ground
+           under the white piece badges. */
         .rm__mimgwrap { position: relative; overflow: hidden; border-radius: 4px;
-          aspect-ratio: 4 / 3.1; background: var(--ink); isolation: isolate; }
+          aspect-ratio: 7 / 4; background: var(--ink); isolation: isolate; }
         .rm__mimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .rm__mveil { position: absolute; inset: 0; z-index: 1;
           background: linear-gradient(to top, rgba(20,18,15,0.5) 0%, transparent 55%); }
@@ -565,8 +608,13 @@ export default function Rooms() {
         .rm__catall:hover { color: var(--brass, #9a7b4f); border-bottom-color: currentColor; }
         .rm__catall .rm__parrow { transition: transform .3s; }
         .rm__catall:hover .rm__parrow { transform: translateX(4px); }
+        /* All 346 catalogue photos are a uniform 1600x1194 (1.3400:1) —
+           0.5% off this frame's 4:3 (1.3333:1). cover trims ~6px of a 1194px
+           image; contain would leave a sub-pixel mat that rounds into a
+           visible hairline at some widths, so cover it is. --bone is the
+           pre-decode ground (the badge pill is opaque on its own). */
         .rm__cat-imgwrap { position: relative; overflow: hidden; border-radius: 4px; aspect-ratio: 4 / 3;
-          background: var(--surface, #efece6); border: 1px solid var(--line); isolation: isolate; }
+          background: var(--bone); border: 1px solid var(--line); isolation: isolate; }
         .rm__cat-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
           transition: transform 1s var(--ease); }
         .rm__cat-item:hover .rm__cat-img, .rm__cat-item:focus-visible .rm__cat-img { transform: scale(1.05); }
@@ -587,8 +635,14 @@ export default function Rooms() {
           margin: 0.5rem 0 0; color: var(--ink); }
         .rm__products { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(1.2rem, 3vw, 2.4rem); }
         .rm__product { display: block; text-decoration: none; color: var(--ink); }
+        /* 600/700 Heaven renders are all 1:1 square on disk and the frame is
+           1:1 too (it was 4:3, which pillarboxed them), so cover and contain
+           show the identical picture — cover just can't be caught out by
+           sub-pixel rounding on a fractional column width. No text overlays
+           the image (name/note live below it), so --bone is the placeholder
+           ground rather than --ink. */
         .rm__pimgwrap { position: relative; overflow: hidden; border-radius: 4px;
-          aspect-ratio: 4 / 3; background: var(--ink); isolation: isolate; }
+          aspect-ratio: 1 / 1; background: var(--bone); isolation: isolate; }
         .rm__pimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
           transition: transform 1.2s var(--ease); }
         .rm__product:hover .rm__pimg, .rm__product:focus-visible .rm__pimg { transform: scale(1.04); }
@@ -599,6 +653,7 @@ export default function Rooms() {
           transition: opacity .4s var(--ease), transform .4s var(--ease); }
         .rm__product:hover .rm__pthumbs, .rm__product:focus-visible .rm__pthumbs { opacity: 1; transform: none; }
         .rm__pthumb { width: clamp(40px,5vw,58px); aspect-ratio: 1; object-fit: cover; border-radius: 3px;
+          background: var(--bone);
           border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
         .rm__pmeta { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.9rem 0.2rem 0; }
         .rm__pname { font-family: var(--f-display), Georgia, serif; font-weight: 360;

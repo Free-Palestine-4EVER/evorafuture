@@ -139,8 +139,10 @@ html[dir="rtl"] .eyebrow { letter-spacing: 0.14em; }
 
 .wordmark { font-family: var(--font-sans); font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; }
 
-.serif-i { font-family: var(--font-display); font-style: normal; font-weight: 500; color: var(--clay); }
-html[dir="rtl"] .serif-i { font-style: normal; }
+.serif-i { font-family: var(--f-serif-accent), var(--font-display); font-style: italic; font-weight: 500; letter-spacing: -0.01em; color: var(--clay); }
+/* Arabic has no equivalent italic-serif accent font loaded, so it stays on
+   the display grotesk rather than falling through to a Latin-only serif. */
+html[dir="rtl"] .serif-i { font-family: var(--font-ar); font-style: normal; }
 
 /* ---- Layout helpers ---- */
 .container { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); }

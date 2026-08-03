@@ -19,8 +19,15 @@ import {
 
 const SITE = "https://evorahome.online";
 
-// From the Google Maps embed on the Visit page (ll=31.9929926,35.8638714).
-const GEO = { lat: 31.9929926, lng: 35.8638714 };
+// The showroom's real pin. Verified 2026-08-03 against two independent sources
+// (see the long note on EVORA_GEO in components/Visit.tsx):
+//   • Google's own embed payload for "Evora Future Home, Wasfi Al-Tal St,
+//     Khalda, Amman" resolves to [31.9969638, 35.8434571].
+//   • OpenStreetMap puts "Paradise Bakery" — the landmark the written address
+//     names — ~140 m away on the same street, in الخالدين / Khalda.
+// The previous value (31.9929926, 35.8638714) sat ~2.1 km further east on
+// Wasfi Al-Tal St, in Tla' Al-Ali. Keep this in sync with Visit.tsx.
+const GEO = { lat: 31.9969638, lng: 35.8434571 };
 
 export default function LocalBusinessSchema() {
   const schema = {

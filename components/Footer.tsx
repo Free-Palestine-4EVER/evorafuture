@@ -1,27 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import Logo from "./Logo";
 import { useT } from "@/lib/i18n";
 import { Rise } from "@/components/motion";
-import { subscribeEmail } from "@/lib/portal/store";
+import SocialFollow from "@/components/SocialFollow";
 
 export default function Footer() {
   const { t, lang } = useT();
   const en = lang === "en";
-  const [subscribed, setSubscribed] = useState(false);
-  // The email input used to be uncontrolled and the submit handler just set
-  // `subscribed` — so the address was never read, nothing was ever sent, and
-  // every visitor got a "you're on the list" message for an address that went
-  // nowhere. Now it actually posts, and failures say so.
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [failed, setFailed] = useState(false);
 
   const explore: { href: string; en: string; ar: string }[] = [
     { href: "/shop", en: "Shop", ar: "تسوّق" },
     { href: "/shop/rooms", en: "Shop by Room", ar: "تسوّق حسب الغرفة" },
     { href: "/showroom", en: "Virtual Showroom", ar: "المعرض الافتراضي" },
+    { href: "/kitchen", en: "Kitchen Islands", ar: "جزر المطبخ" },
     { href: "/how-it-works", en: "Design Service", ar: "خدمة التصميم" },
     { href: "/visit", en: "Visit Us", ar: "زورونا" },
   ];
@@ -41,63 +33,6 @@ export default function Footer() {
           padding-top: clamp(3.5rem, 7vw, 6rem);
           border-top: 1px solid var(--line);
         }
-
-        /* ---- newsletter band ---- */
-        .ft__news {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: clamp(1.5rem, 5vw, 4rem);
-          padding-bottom: clamp(2.5rem, 5vw, 3.5rem);
-          border-bottom: 1px solid var(--line);
-        }
-        .ft__news-title {
-          margin: 0;
-          font-family: var(--font-display);
-          font-weight: 400;
-          font-size: clamp(1.5rem, 3vw, 2.1rem);
-          line-height: 1.15;
-          color: var(--ink);
-        }
-        .ft__news-sub {
-          margin: 0.7rem 0 0;
-          max-width: 44ch;
-          color: var(--ink-faint);
-          font-size: 0.92rem;
-          line-height: 1.6;
-        }
-        .ft__form { display: flex; align-items: stretch; gap: 0.75rem; flex: 0 0 auto; min-width: min(360px, 100%); }
-        .ft__input {
-          flex: 1 1 auto;
-          min-width: 0;
-          background: transparent;
-          border: 1px solid var(--line);
-          border-radius: 2px;
-          color: var(--ink);
-          font-family: var(--font-sans);
-          font-size: 0.95rem;
-          padding: 0.7em 0.9em;
-          outline: none;
-          transition: border-color 0.3s var(--ease);
-        }
-        .ft__input::placeholder { color: var(--ink-faint); }
-        .ft__input:focus { border-color: var(--brass); }
-        .ft__input:-webkit-autofill { -webkit-text-fill-color: var(--ink); transition: background-color 9999s ease 0s; }
-        .ft__btn {
-          flex: 0 0 auto;
-          background: var(--ink);
-          color: var(--paper);
-          border: 1px solid var(--ink);
-          border-radius: 2px;
-          font-size: 0.9rem;
-          font-weight: 500;
-          padding: 0 1.4em;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
-        }
-        .ft__btn:hover { background: var(--ever); border-color: var(--ever); }
-        .ft__thanks { color: var(--brass); font-family: var(--font-display); font-size: 1rem; }
 
         /* ---- link columns ---- */
         .ft__cols {
@@ -146,77 +81,27 @@ export default function Footer() {
         }
 
         @media (max-width: 860px) {
-          .ft__news { flex-direction: column; align-items: flex-start; }
-          .ft__form { width: 100%; min-width: 0; }
           .ft__cols { grid-template-columns: 1fr 1fr; }
           .ft__brand { grid-column: 1 / -1; }
         }
         @media (max-width: 520px) {
           .ft__cols { grid-template-columns: 1fr; }
         }
-        /* phone: stack the newsletter input + button, and make every link a
-           comfortable 44px tap target (incl. the tel: numbers) */
+        /* phone: make every link a comfortable 44px tap target (incl. the
+           tel: numbers) */
         @media (max-width: 640px) {
-          .ft__form { flex-direction: column; }
-          .ft__btn { min-height: 46px; padding: 0.85em 1.4em; }
           .ft__list { gap: 0.15rem; }
           .ft__link { display: inline-flex; align-items: center; min-height: 44px; }
           .ft__addr a.ft__link { min-height: 40px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .ft__input, .ft__btn, .ft__link { transition: none; }
+          .ft__link { transition: none; }
         }
       `}</style>
 
       <div className="container">
-        {/* newsletter — first look at new pieces each month */}
-        <Rise as="div" className="ft__news">
-          <div className="ft__news-text">
-            <h2 className="ft__news-title">{t("news_title")}</h2>
-            <p className="ft__news-sub">{t("news_body")}</p>
-          </div>
-          {subscribed ? (
-            <span className="ft__thanks" role="status" aria-live="polite">{t("news_thanks")}</span>
-          ) : (
-            <form
-              className="ft__form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (sending) return;
-                setSending(true);
-                setFailed(false);
-                try {
-                  await subscribeEmail(email);
-                  setSubscribed(true);
-                } catch {
-                  setFailed(true);
-                } finally {
-                  setSending(false);
-                }
-              }}
-            >
-              <input
-                className="ft__input"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setFailed(false); }}
-                disabled={sending}
-                placeholder={t("news_placeholder")}
-                aria-label={t("news_placeholder")}
-              />
-              <button className="ft__btn" type="submit" disabled={sending}>
-                {sending ? (en ? "Sending…" : "جارٍ الإرسال…") : t("news_cta")}
-              </button>
-              {failed && (
-                <span role="alert" style={{ flexBasis: "100%", fontSize: "0.82rem", color: "var(--clay, #C0492F)" }}>
-                  {en ? "That email didn't look right — please check it." : "يبدو أنّ البريد غير صحيح — تحقّق منه من فضلك."}
-                </span>
-              )}
-            </form>
-          )}
-        </Rise>
+        {/* follow band — replaces the old email-capture band. See SocialFollow.tsx. */}
+        <SocialFollow />
 
         {/* columns */}
         <div className="ft__cols">

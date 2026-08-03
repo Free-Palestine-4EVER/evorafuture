@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Schibsted_Grotesk, Hanken_Grotesk, IBM_Plex_Sans_Arabic, Fraunces } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -11,8 +11,10 @@ import Loader from "@/components/brand/Loader";
 import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 import LocalBusinessSchema from "@/components/LocalBusinessSchema";
 
-// Bold modern luxury — a confident display grotesk for headlines.
-const display = Bricolage_Grotesque({
+// Clean, architectural neo-grotesk for headlines — chosen over the previous
+// Bricolage Grotesque, whose quirkier geometry read as loud rather than
+// restrained against the showroom photography.
+const display = Schibsted_Grotesk({
   variable: "--f-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -30,6 +32,17 @@ const arabic = IBM_Plex_Sans_Arabic({
   variable: "--f-ar",
   subsets: ["arabic"],
   weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+// Quiet, editorial serif italic — reserved for a single accent word in the
+// hero headline (the brass "beautifully"), for a touch of print-luxury
+// contrast against the grotesk. Not used anywhere else.
+const serifAccent = Fraunces({
+  variable: "--f-serif-accent",
+  subsets: ["latin"],
+  weight: ["500"],
+  style: ["italic"],
   display: "swap",
 });
 
@@ -63,7 +76,7 @@ export const metadata: Metadata = {
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable}`}>
+    <html lang="en" dir="ltr" className={`${display.variable} ${sans.variable} ${arabic.variable} ${serifAccent.variable}`}>
       <head>
         {/* Set dir/lang from the persisted choice BEFORE first paint, so an
             Arabic visitor doesn't see the layout flash LTR then flip to RTL on

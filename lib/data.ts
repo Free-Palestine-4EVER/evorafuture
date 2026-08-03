@@ -89,13 +89,13 @@ export const tourHotspots: Hotspot[] = [
 ];
 
 // Every token carries a proof or benefit — not a generic tag. A passive ribbon
-// becomes a stack of trust signals (free design, halal-friendly 36mo, white-glove
+// becomes a stack of trust signals (free design, halal-friendly 24mo, white-glove
 // delivery, since 2017). Edited per the Marquee sectionCopy.
 export const marqueeItems: Bi[] = [
   { en: "Your Future Home", ar: "بيت المستقبل" },
   { en: "Built-in Closets", ar: "خزائن حسب القياس" },
   { en: "Interior Design — Complimentary", ar: "تصميم داخلي — هديّة" },
-  { en: "Up to 36 Months, No Interest", ar: "حتى ٣٦ شهرًا بدون فوائد" },
+  { en: "Up to 24 Months, No Interest", ar: "حتى ٢٤ شهرًا بدون فوائد" },
   { en: "White-Glove Delivery Across Jordan", ar: "توصيلٌ بعناية في كل الأردن" },
   { en: "New Pieces Monthly", ar: "قطعٌ جديدة شهريًا" },
   { en: "Since 2017", ar: "منذ ٢٠١٧" },
@@ -196,7 +196,7 @@ export const materials: { name: Bi; note: Bi; img: string }[] = [
 ];
 
 export const financingPoints: Bi[] = [
-  { en: "Up to 36 months", ar: "حتى ٣٦ شهرًا" },
+  { en: "Up to 24 months", ar: "حتى ٢٤ شهرًا" },
   { en: "Same cash price", ar: "بنفس سعر الكاش" },
   { en: "Fast in-showroom approval", ar: "موافقة سريعة في المعرض" },
 ];
@@ -252,8 +252,8 @@ export const services: { icon: string; title: Bi; body: Bi }[] = [
     icon: "installment",
     title: { en: "Pay Your Way", ar: "ادفع بطريقتك" },
     body: {
-      en: "Buy at the cash price with the comfort of installments up to 3 years through Safwa Islamic Bank.",
-      ar: "اشترِ بسعر الكاش مع راحة التقسيط حتى ٣ سنوات عبر بنك صفوة الإسلامي.",
+      en: "Buy at the cash price with the comfort of installments up to 2 years through Safwa Islamic Bank.",
+      ar: "اشترِ بسعر الكاش مع راحة التقسيط حتى سنتين عبر بنك صفوة الإسلامي.",
     },
   },
   {

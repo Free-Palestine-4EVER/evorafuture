@@ -63,8 +63,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 export const STR = {
   nav_collections: { en: "Collections", ar: "المجموعات" },
   nav_tour: { en: "Virtual Showroom", ar: "الجولة الافتراضية" },
+  nav_home: { en: "Home", ar: "الرئيسية" },
   nav_shop: { en: "Shop", ar: "تسوّق" },
   nav_catalog: { en: "Lookbook", ar: "الكتالوج" },
+  nav_kitchen: { en: "Kitchens", ar: "المطابخ" },
   nav_showroom: { en: "AR Showroom", ar: "معرض الواقع المعزّز" },
   nav_design: { en: "Design Studio", ar: "استوديو التصميم" },
   nav_studio: { en: "The Studio", ar: "الاستوديو" },
@@ -102,8 +104,8 @@ export const STR = {
   hero_l2: { en: "beautifully", ar: "بكل" },
   hero_l3: { en: "furnished.", ar: "تفاصيله." },
   hero_sub: {
-    en: "See every room of your home in 3D before a single piece is made — then approve it, and we design, craft and deliver it. All under one roof in Amman.",
-    ar: "شاهد كل غرفة في بيتك بالأبعاد الثلاثية قبل أن تُصنع أيّ قطعة — ثم وافِق عليها، ونحن نصمّم ونصنع ونوصّل. كل ذلك تحت سقف واحد في عمّان.",
+    en: "The home you approve is the home you live in — under one roof, in Amman.",
+    ar: "توافق على بيتك، فتسكنه كما أردته — تحت سقف واحد في عمّان.",
   },
   hero_cta1: { en: "Explore the Collection", ar: "اكتشف المجموعة" },
   hero_cta2: { en: "Enter the Showroom", ar: "ادخل المعرض" },
@@ -187,10 +189,10 @@ export const STR = {
   },
 
   fin_eyebrow: { en: "Pay Your Way", ar: "ادفع بطريقتك" },
-  fin_title: { en: "Cash price. Up to 3 years to pay.", ar: "بسعر الكاش. وتقسيط حتى ٣ سنوات." },
+  fin_title: { en: "Cash price. Up to 2 years to pay.", ar: "بسعر الكاش. وتقسيط حتى سنتين." },
   fin_body: {
-    en: "Furnish now and spread the cost over up to 36 months through Safwa Islamic Bank — the same cash price, no interest, no hidden cost.",
-    ar: "بدون فوائد ولا ربا، عبر بنك صفوة الإسلامي — أثّث الآن وقسّط التكلفة على مدى ٣٦ شهرًا، بنفس سعر الكاش، وبدون أيّ تكلفة خفية.",
+    en: "Furnish now and spread the cost over up to 24 months through Safwa Islamic Bank — the same cash price, no interest, no hidden cost.",
+    ar: "بدون فوائد ولا ربا، عبر بنك صفوة الإسلامي — أثّث الآن وقسّط التكلفة على مدى ٢٤ شهرًا، بنفس سعر الكاش، وبدون أيّ تكلفة خفية.",
   },
 
   faq_eyebrow: { en: "Good to Know", ar: "أسئلة شائعة" },

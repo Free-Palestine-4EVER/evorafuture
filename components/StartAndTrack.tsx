@@ -188,7 +188,11 @@ export default function StartAndTrack() {
         .st__inner { position: relative; z-index: 1; }
 
         /* Header */
-        .st__head { max-width: 62ch; }
+        /* editorial header: start-aligned, runs the container's full measure
+           instead of being clamped to a narrow ch-width that then floats in
+           the middle of the section — same fix as Rooms.tsx's .rm__head and
+           ProcessJourney.tsx's .pj-head. */
+        .st__head { text-align: start; }
         .st__eyebrow { font-family: var(--f-sans); font-size: 0.72rem; font-weight: 600;
           letter-spacing: 0.26em; text-transform: uppercase; color: var(--brass-2); }
         .st__title { font-family: var(--f-display), Georgia, serif; font-optical-sizing: auto;
@@ -198,7 +202,7 @@ export default function StartAndTrack() {
         .st__title em { font-style: italic; font-variation-settings: "opsz" 140, "SOFT" 60, "WONK" 1;
           color: var(--brass); }
         .st__lead { font-family: var(--f-sans); color: rgba(251,247,240,0.74);
-          font-size: clamp(1rem, 1.25vw, 1.14rem); line-height: 1.7; max-width: 56ch; margin: 1.3rem 0 0; }
+          font-size: clamp(1rem, 1.25vw, 1.14rem); line-height: 1.7; max-width: 70ch; margin: 1.3rem 0 0; }
 
         /* Grid */
         .st__grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);

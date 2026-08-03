@@ -69,6 +69,12 @@ const MOBILE_STRIDE = 2;
 const DESKTOP_CRITICAL = 12;
 const MOBILE_CRITICAL = 10;
 
+// The copy is fully set on first paint and then dissolves as the walk starts:
+// solid until COPY_HOLD, gone by COPY_OUT, so the visitor reads the promise
+// first and is then handed the room with nothing on top of it.
+const COPY_HOLD = 0.06;
+const COPY_OUT = 0.42;
+
 type Stack = {
   total: number;            // number of LOGICAL (fetched) frames, 1..total
   critical: number;
@@ -112,7 +118,6 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
   const stickyRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
-  const hintRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   // `painted` flips only once the video has actually rendered a frame (its
   // first `seeked`). On iOS a muted video that has been seeked but never played
@@ -168,11 +173,16 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     // Progress is read from layout every frame rather than from scroll events,
     // so it is input-agnostic (wheel, touch, Lenis momentum). Scroll events and
     // IntersectionObserver both misreport under Lenis on phones.
-    const progress = () => {
+    const sectionProgress = () => {
       const rect = section.getBoundingClientRect();
       const scrollable = section.offsetHeight - viewportH;
       return scrollable > 0 ? Math.min(Math.max(-rect.top / scrollable, 0), 1) : 0;
     };
+    // The film runs the WHOLE section — no held tail at the end. A hold was
+    // tried and removed: with the copy now dissolving at the START of the walk
+    // there was nothing left to hold FOR, so the tail just read as the page
+    // refusing to move on.
+    const progress = sectionProgress;
 
     // Hold the branded Loader until this clip is FULLY downloaded, reporting
     // real byte progress so the bar reflects the actual wait. 100 units = 100
@@ -206,11 +216,37 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
     // fallback means the hero is correct from the first frame that lands.
     const revealTimer = window.setTimeout(release, 2500);
 
+    // Copy DISSOLVE, driven from the same scroll position as the film: the
+    // headline is fully set on arrival, then lifts and fades out as the walk
+    // gets going, handing the visitor the room with nothing written over it.
+    // Written straight to the node's style rather than through state — this
+    // runs every frame, and a setState per frame would re-render the whole
+    // hero (and its canvas) 60 times a second. Polled off layout in rAF for
+    // the same reason the scrub is: scroll events and IntersectionObserver
+    // both misreport under Lenis on phones.
+    let uiRaf = 0;
+    const copyEl = copyRef.current;
+    const uiTick = () => {
+      if (copyEl) {
+        const p = sectionProgress();
+        const t = Math.min(1, Math.max(0, (p - COPY_HOLD) / (COPY_OUT - COPY_HOLD)));
+        // ease-out cubic, so it holds its presence a beat then leaves cleanly
+        const e = 1 - Math.pow(1 - t, 3);
+        copyEl.style.opacity = String(1 - e);
+        copyEl.style.transform = `translate3d(0, ${-e * 6}vh, 0)`;
+        // once invisible it must not eat clicks meant for the film/section
+        copyEl.style.pointerEvents = e > 0.98 ? "none" : "";
+      }
+      uiRaf = requestAnimationFrame(uiTick);
+    };
+    uiRaf = requestAnimationFrame(uiTick);
+
     const onResize = () => measureViewport();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
     return () => {
+      cancelAnimationFrame(uiRaf);
       window.clearTimeout(revealTimer);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
@@ -250,17 +286,6 @@ export default function HeroScroll({ variant = "a" }: { variant?: HeroVariant })
           <HeroCopy t={t} lang={lang} ease={ease} staticMode={!!reduce} />
         </div>
 
-        <motion.div
-          ref={hintRef}
-          className="hero__scroll hs__scroll"
-          initial={{ opacity: reduce ? 1 : 0 }}
-          animate={{ opacity: 1 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.9, ease, delay: 1.3 }}
-        >
-          <span>{t("scroll")}</span>
-          <span className="hero__scroll-line" />
-        </motion.div>
-
         <div className="hs__tag">
           <span className="hs__tag-k">{lang === "en" ? "Now showing" : "يُعرض الآن"}</span>
           {lang === "en" ? "A walk through Evora · Khalda" : "جولة داخل إيفورا · خلدا"}
@@ -284,22 +309,23 @@ function HeroCopy({
   ease: readonly [number, number, number, number];
   staticMode?: boolean;
 }) {
-  // staticMode = the visitor prefers reduced motion. The scroll-driven film
-  // still scrubs (it only moves when they move), but the copy stops performing
-  // its own entrance: it is simply there, already in place, on first paint.
+  // staticMode = the visitor prefers reduced motion. The copy is simply there,
+  // already in place, on first paint. (The scroll dissolve in HeroScroll still
+  // applies — it only moves when the visitor moves, which is not the
+  // autoplaying motion reduced-motion protects against.)
   const up = staticMode
     ? { hidden: { y: "0%" }, show: () => ({ y: "0%", transition: { duration: 0 } }) }
     : {
-        hidden: { y: "108%" },
-        show: (i: number) => ({ y: "0%", transition: { duration: 1.0, ease, delay: 0.35 + i * 0.1 } }),
+        hidden: { y: "115%" },
+        show: (i: number) => ({ y: "0%", transition: { duration: 1.25, ease, delay: 0.25 + i * 0.13 } }),
       };
   const fade = (delay: number) =>
     staticMode
       ? { initial: { opacity: 1, y: 0 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
       : {
-          initial: { opacity: 0, y: 18 },
+          initial: { opacity: 0, y: 20 },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.9, ease, delay },
+          transition: { duration: 1.0, ease, delay },
         };
 
   const heroTitleLines = [t("hero_l1" as never), t("hero_l2" as never), t("hero_l3" as never)];
@@ -345,6 +371,8 @@ function HeroCopy({
 }
 
 const heroCss = `
+  /* section height drives the scrub length — set by CSS per breakpoint so the
+     phone gets the portrait scrub length without any JS/hydration branch */
   /* section height drives the scrub length — set by CSS per breakpoint so the
      phone gets the portrait scrub length without any JS/hydration branch */
   .hs { position: relative; background: #0d0b09; height: 600vh; }
@@ -401,14 +429,34 @@ const heroCss = `
      bottom:1.8rem — at the old clamp(3rem,8vh,5rem) the meta line ("103K+
      following · Khalda · Amman") ran straight through it, in both LTR and RTL. */
   .hero__content, .hs__content { width: 100%; max-width: 1480px; margin-inline: auto; padding-inline: var(--gut); padding-block: clamp(8rem, 14vh, 11rem) clamp(4rem, 9vh, 6rem); }
-  .hero__title { color: var(--paper); font-size: clamp(3rem, 8vw, 7rem); margin: 1.5rem 0 0; font-weight: 360; max-width: 16ch; text-shadow: 0 2px 30px rgba(8,6,4,0.4); }
-  .hero__sub { color: rgba(251,247,240,0.86); font-size: clamp(1rem, 1.3vw, 1.25rem); line-height: 1.6; max-width: 42ch; margin: 1.8rem 0 0; font-weight: 300; text-shadow: 0 1px 20px rgba(8,6,4,0.45); }
-  .hero__cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
-  .hero__cta-1 { background: var(--paper); color: var(--ink); }
-  .hero__cta-1:hover { background: var(--brass-2); transform: translateY(-2px); }
-  .hero__cta-2 { border: 1px solid rgba(251,247,240,0.5); color: var(--paper); backdrop-filter: blur(4px); }
-  .hero__cta-2:hover { background: rgba(251,247,240,0.12); border-color: var(--paper); }
-  .hero__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.85rem; margin-top: 2.6rem; color: rgba(251,247,240,0.72); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; }
+  /* Headline: bigger and tighter than the old 7rem/400. The film behind it is
+     busy, so the type has to hold its own — heavier weight, negative tracking
+     and a sub-1 line-height stack the three lines into one solid block. */
+  /* Sized against the viewport's HEIGHT as well as its width. The copy block is
+     vertically centred in the sticky pane, so a width-only clamp overflowed a
+     short laptop window — pushing the eyebrow up under the fixed nav and
+     cutting the meta line off the bottom. min(vw, vh) keeps the three lines,
+     the sub, the buttons and the meta row inside the pane at any aspect. */
+  .hero__title { color: var(--paper); font-size: clamp(2.9rem, min(8.4vw, 10.4vh), 7.4rem); line-height: 0.92; margin: 1.4rem 0 0; font-weight: 500; letter-spacing: -0.042em; max-width: 13ch;
+    text-shadow: 0 2px 30px rgba(8,6,4,0.45), 0 1px 3px rgba(8,6,4,0.35); }
+  /* The one accent word carries the contrast: lighter, italic, brass. */
+  .hero__title .serif-i { font-weight: 400; letter-spacing: -0.022em; }
+  .hero__sub { color: rgba(251,247,240,0.9); font-size: clamp(1rem, min(1.4vw, 2.2vh), 1.32rem); line-height: 1.55; max-width: 44ch; margin: clamp(1.1rem, 2.4vh, 1.9rem) 0 0; font-weight: 300; letter-spacing: -0.004em; text-shadow: 0 1px 20px rgba(8,6,4,0.5); }
+  .hero__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: clamp(1.4rem, 3.2vh, 2.4rem); }
+  /* Buttons sized up to sit under a much larger headline without looking like
+     leftovers, and given a real hover lift. */
+  .hero__cta-1, .hero__cta-2 { padding: 1.05em 2.1em; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.01em;
+    transition: background .45s var(--ease), border-color .45s var(--ease), color .45s var(--ease), transform .45s var(--ease); }
+  .hero__cta-1 { background: var(--paper); color: var(--ink); box-shadow: 0 14px 40px -18px rgba(0,0,0,0.7); }
+  .hero__cta-1:hover { background: var(--brass-2); color: var(--ink); transform: translateY(-3px); }
+  .hero__cta-2 { border: 1px solid rgba(251,247,240,0.45); color: var(--paper); backdrop-filter: blur(6px); background: rgba(251,247,240,0.04); }
+  .hero__cta-2:hover { background: rgba(251,247,240,0.14); border-color: var(--paper); transform: translateY(-3px); }
+  @media (max-width: 768px) {
+    .hero__title { max-width: 11ch; letter-spacing: -0.038em; }
+    .hero__cta { gap: 0.6rem; }
+    .hero__cta-1, .hero__cta-2 { padding: 1em 1.6em; }
+  }
+  .hero__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.85rem; margin-top: clamp(1.5rem, 3.4vh, 2.6rem); color: rgba(251,247,240,0.72); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; }
   .hero__dot { width: 4px; height: 4px; border-radius: 50%; background: var(--brass-2); }
 
   .hs__tag { position: absolute; bottom: 1.7rem; inset-inline-end: clamp(1.25rem, 5vw, 6rem); z-index: 4; display: inline-flex; align-items: center; gap: 0.7rem; background: rgba(251,247,240,0.92); backdrop-filter: blur(8px); color: var(--ink); padding: 0.6rem 1rem 0.6rem 0.7rem; border-radius: 100px; font-size: 0.84rem; font-family: var(--font-display); }
@@ -419,10 +467,6 @@ const heroCss = `
      heights no amount of bottom padding cleared it. Centre is free (the "Now
      showing" tag holds bottom-end) and is direction-neutral, so it needs no RTL
      variant. */
-  .hero__scroll { position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; color: rgba(251,247,240,0.9); }
-  .hero__scroll span:first-child { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; writing-mode: vertical-rl; }
-  html[dir="rtl"] .hero__scroll span:first-child { letter-spacing: 0.1em; }
-  .hero__scroll-line { width: 1px; height: 40px; background: linear-gradient(rgba(251,247,240,0.85), transparent); animation: bob 2.4s ease-in-out infinite; }
 
   @media (max-width: 860px) {
     .hs__content { padding-block: clamp(7rem, 18vh, 9rem) clamp(4rem, 12vh, 6rem); }
@@ -432,7 +476,6 @@ const heroCss = `
     .hero__cta .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; align-items: center; }
     .hero__meta { margin-top: 2rem; gap: 0.6rem; font-size: 0.66rem; }
     .hs__tag { display: none; }
-    .hero__scroll { display: none; }
   }
 
   @media (max-width: 640px) {

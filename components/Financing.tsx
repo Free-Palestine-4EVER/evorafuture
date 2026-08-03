@@ -66,7 +66,7 @@ export default function Financing() {
               <Rise delay={0.3}>
                 <div className="fin-stat">
                   <span className="fin-stat-upto">{ar ? "حتى" : "up to"}</span>
-                  <CountUp value="36" className="fin-stat-num" />
+                  <CountUp value="24" className="fin-stat-num" />
                   <span className="fin-stat-unit">
                     {ar ? "شهرًا" : "months"}
                   </span>

@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 import { tp } from "@/lib/portal/strings";
 import { useDialogClose } from "@/components/portal/useDialogClose";
 import { usePortalAuth } from "@/lib/portal/auth";
-import { createClient, deleteProject, listAllProjects, listClients, listLeads, saveProject, sendLeadToPuffer, setLeadStatus, subscribe } from "@/lib/portal/store";
+import { createClient, deleteLead, deleteProject, listAllProjects, listClients, listLeads, saveProject, sendLeadToPuffer, setLeadStatus, subscribe } from "@/lib/portal/store";
 import { type Lead, type LeadStatus, type PortalUser, type Project } from "@/lib/portal/types";
 import { JOURNEY, stageIndex } from "@/lib/portal/journey";
 import LoginForm from "@/components/portal/LoginForm";
@@ -29,11 +29,36 @@ function StudioLockup({ label }: { label: string }) {
   );
 }
 
+/* A lead's phone as a wa.me link, so the studio can answer a request in the one
+   channel Amman customers actually reply on. Jordanian numbers arrive as
+   "0791234567" far more often than "+962…", so a local 0-prefixed 10-digit
+   number is promoted to its international form; anything already carrying a
+   country code is passed through. Junk rows (a phone field full of letters)
+   yield "" and simply get no WhatsApp button. */
+function waLink(phone?: string): string {
+  const d = (phone || "").replace(/\D/g, "");
+  if (!d) return "";
+  const intl = d.startsWith("00") ? d.slice(2)
+    : d.startsWith("962") ? d
+    : d.startsWith("0") ? "962" + d.slice(1)
+    : d;
+  return intl.length >= 10 && intl.length <= 15 ? `https://wa.me/${intl}` : "";
+}
+
 // Small line phone glyph (stroke = currentColor) — replaces the 📞 emoji
 // affordance the rebrand bans on branded surfaces.
 const PhoneIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
+
+// Line WhatsApp glyph, drawn to match PhoneIcon's stroke weight (no emoji, no
+// brand-logo fill — the rebrand bans both on branded surfaces).
+const WhatsappIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.44L3 20.5l1.62-5.28A8.5 8.5 0 1 1 21 11.5z" />
+    <path d="M8.6 9.1c.2 1 .77 2.1 1.6 2.93.83.83 1.93 1.4 2.93 1.6l.87-1.06 1.7.86-.3 1.3c-1.9.35-4-.7-5.5-2.2s-2.55-3.6-2.2-5.5l1.3-.3.86 1.7z" />
   </svg>
 );
 
@@ -74,6 +99,7 @@ export default function AdminPage() {
   const [viewPlan, setViewPlan] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [convertLead, setConvertLead] = useState<string | null>(null);
+  const [confirmDelLead, setConfirmDelLead] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -98,6 +124,10 @@ export default function AdminPage() {
   async function onDelete(id: string) {
     setConfirmDel(null);
     try { await deleteProject(id); load(); } catch { setBanner(tp("delete_failed", lang)); }
+  }
+  async function onDeleteLead(id: string) {
+    setConfirmDelLead(null);
+    try { await deleteLead(id); load(); } catch { setBanner(tp("delete_failed", lang)); }
   }
   const newLeads = leads.filter((l) => l.status === "new").length;
   const inProd = projects.filter((p) => JOURNEY[stageIndex(p.stage || "blueprint")].phase === "production").length;
@@ -189,7 +219,7 @@ export default function AdminPage() {
               <p style={sectTitle}>{t("New requests", "طلبات جديدة")}</p>
               {leads.filter((l) => l.status === "new").slice(0, 5).map((l) => (
                 <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.6rem", padding: "0.6rem 0", borderTop: "1px solid var(--line-soft)" }}>
-                  <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem" }}>{l.name || "—"}</span><span style={{ fontSize: "0.76rem", color: "var(--ink-faint)" }}>{l.phone}</span></span>
+                  <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 600, color: "var(--ink)", fontSize: "0.88rem" }}>{l.name || "—"}</span><span dir="ltr" style={{ ...ltrNum, fontSize: "0.76rem", color: "var(--ink-faint)" }}>{l.phone}</span></span>
                   <a href={`tel:${l.phone}`} style={{ ...miniBtn, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}><PhoneIcon /> {t("Call", "اتصال")}</a>
                 </div>
               ))}
@@ -252,7 +282,7 @@ export default function AdminPage() {
               <button key={c.uid} onClick={() => setViewClient(c)} style={{ width: "100%", textAlign: "start", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", padding: "1rem 1.3rem", borderTop: i ? "1px solid var(--line-soft)" : "none", borderInline: "none", borderBottom: "none", background: "transparent", cursor: "pointer" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
                   <span style={{ width: 42, height: 42, borderRadius: 999, background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", fontFamily: "var(--f-display)", fontSize: "1.1rem" }}>{(c.name || "?").trim().charAt(0).toUpperCase()}</span>
-                  <span><span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{c.name || "—"}</span><span style={{ display: "block", color: "var(--ink-faint)", fontSize: "0.82rem" }}>{c.phone}</span></span>
+                  <span><span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{c.name || "—"}</span><span dir="ltr" style={{ ...ltrNum, display: "block", color: "var(--ink-faint)", fontSize: "0.82rem" }}>{c.phone}</span></span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: "0.8rem", color: "var(--ink-faint)", fontSize: "0.8rem" }}>{count} {lang === "ar" ? "مشروع" : count === 1 ? "project" : "projects"} <span style={{ color: "var(--clay)" }}>→</span></span>
               </button>
@@ -272,7 +302,18 @@ export default function AdminPage() {
                   <h3 className="display" style={{ fontSize: "1.15rem", color: "var(--ink)", margin: 0 }}>{l.name || "—"}</h3>
                   <span style={{ fontSize: "0.62rem", padding: "0.2em 0.6em", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.06em", background: l.status === "new" ? "var(--ink)" : l.status === "qualified" ? "var(--clay)" : "var(--line)", color: l.status === "new" || l.status === "qualified" ? "#fff" : "var(--ink-soft)" }}>{LEAD_STATUS[l.status]?.[lang] ?? l.status}</span>
                 </div>
-                <a href={`tel:${l.phone}`} style={{ color: "var(--clay-text)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
+                {/* dir="ltr" + isolate, or the Arabic dashboard reorders the
+                    number: "079 555 0142" was rendering as "0142 555 079" and
+                    "+962…" as "962…+" — a studio reading that off the screen
+                    dials the wrong customer. */}
+                <a href={`tel:${l.phone}`} dir="ltr" style={{ ...ltrNum, color: "var(--clay-text)", fontWeight: 600, fontSize: "0.95rem" }}>{l.phone}</a>
+                {/* The public forms capture an email address that this board
+                    never showed — so half of a request's contact details were
+                    being collected and then quietly lost. */}
+                {l.email && (
+                  <a href={`mailto:${l.email}`} dir="ltr" style={{ ...ltrNum, display: "block", color: "var(--ink-soft)", fontSize: "0.84rem", marginTop: "0.15rem" }}>{l.email}</a>
+                )}
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "var(--ink-faint)" }}>{timeAgo(l.createdAt, lang === "ar")}</p>
                 {l.message && <p style={{ margin: "0.35rem 0 0", color: "var(--ink-soft)", fontSize: "0.88rem" }}>{l.message}</p>}
                 {l.planUrl && !l.planUrl.endsWith(".pdf") && (
                   <button onClick={() => setViewPlan(l.planUrl!)} title={t("Open plan", "افتح المخطط")} style={{ display: "inline-block", marginTop: "0.5rem", padding: 0, border: "none", background: "transparent", cursor: "zoom-in" }}>
@@ -282,6 +323,12 @@ export default function AdminPage() {
                 {l.planUrl && l.planUrl.endsWith(".pdf") && <a href={l.planUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "var(--clay-text)", display: "inline-block", marginTop: "0.4rem" }}>{t("View plan (PDF) →", "عرض المخطط →")}</a>}
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                {waLink(l.phone) && (
+                  <a href={waLink(l.phone)} target="_blank" rel="noreferrer"
+                    style={{ ...miniBtn, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", borderColor: "rgba(37,211,102,0.45)", color: "#1E7A45" }}>
+                    <WhatsappIcon /> {t("WhatsApp", "واتساب")}
+                  </a>
+                )}
                 {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
                   <button key={s} aria-pressed={l.status === s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{LEAD_STATUS[s]?.[lang] ?? s}</button>
                 ))}
@@ -292,6 +339,19 @@ export default function AdminPage() {
                   </button>
                 )}
                 <button onClick={() => { setConvertLead(l.id); setPrefillOwner({ uid: "", phone: l.phone, name: l.name, role: "client" }); setAdding(true); }} style={{ ...miniBtn, background: "var(--ink)", color: "#fff", border: "none" }}>→ {t("Create project", "إنشاء مشروع")}</button>
+                {/* Spam and old test rows had no way out of this board, so the
+                    "New" count could never be trusted. Two-step confirm, same
+                    pattern as the project card. */}
+                {confirmDelLead === l.id ? (
+                  <>
+                    <button autoFocus onClick={() => onDeleteLead(l.id)} title={t("Delete this request? This cannot be undone.", "حذف هذا الطلب؟ لا يمكن التراجع عن ذلك.")}
+                      style={{ ...miniBtn, background: "var(--clay)", color: "#fff", border: "none" }}>{tp("yes_delete", lang)}</button>
+                    <button onClick={() => setConfirmDelLead(null)} style={miniBtn}>{tp("cancel", lang)}</button>
+                  </>
+                ) : (
+                  <button onClick={() => setConfirmDelLead(l.id)} aria-label={`${tp("del", lang)} — ${l.name || l.phone}`}
+                    style={{ ...miniBtn, color: "var(--clay)", borderColor: "rgba(178,116,87,0.4)" }}>{tp("del", lang)}</button>
+                )}
               </div>
             </div>
           ))}
@@ -358,6 +418,12 @@ function AddClient({ onClose, onDone }: { onClose: () => void; onDone: () => voi
     </div>
   );
 }
+
+/* Phone numbers and email addresses are LTR runs. Dropped raw into the Arabic
+   (RTL) dashboard the bidi algorithm reorders their segments and moves a
+   leading "+" to the end, so the studio reads a number that does not exist.
+   `isolate` keeps the run out of the surrounding paragraph's ordering. */
+const ltrNum: React.CSSProperties = { unicodeBidi: "isolate", textAlign: "start" };
 
 const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--line)", borderRadius: 16 };
 const sectTitle: React.CSSProperties = { fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-faint)", margin: 0, fontWeight: 600 };

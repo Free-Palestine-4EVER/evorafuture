@@ -147,7 +147,11 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
 
       <style>{`
         /* ---------- Header ---------- */
-        .pj-head { max-width: 64ch; margin-inline: auto; text-align: center; }
+        /* editorial header: start-aligned, runs the container's full measure
+           (like .pj-swap below it) instead of being clamped to a narrow
+           ch-width that .container's margin-inline: auto then floats in the
+           middle of the page — same fix as Rooms.tsx's .rm__head. */
+        .pj-head { text-align: start; }
         .pj-kicker {
           display: inline-flex; align-items: center; gap: 0.85rem;
           font-family: var(--f-sans);
@@ -175,13 +179,14 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
           color: var(--ever, #2f5d4a);
         }
         .pj-lede {
-          max-width: 54ch; margin: 1.4rem auto 0;
+          max-width: 70ch; margin: 1.4rem 0 0;
           font-family: var(--f-sans); color: var(--ink-soft);
           font-size: clamp(1.02rem, 1.35vw, 1.16rem); line-height: 1.7;
           text-wrap: pretty;
         }
         .pj-free {
           display: inline-flex; align-items: center; gap: 0.6rem;
+          width: fit-content;
           margin-top: 1.5rem; padding: 0.55rem 1.1rem;
           font-family: var(--f-sans); font-size: 0.8rem; font-weight: 600;
           letter-spacing: 0.04em; color: var(--ever, #2f5d4a);
@@ -191,7 +196,7 @@ export default function ProcessJourney({ showFinale = true }: { showFinale?: boo
         }
         .pj-free-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--ever, #2f5d4a); flex: 0 0 auto; }
         .pj-loss {
-          max-width: 56ch; margin: 1.1rem auto 0;
+          max-width: 70ch; margin: 1.1rem 0 0;
           font-family: var(--f-display), Georgia, serif; font-style: italic;
           font-optical-sizing: auto; font-variation-settings: "opsz" 40, "SOFT" 60;
           font-size: clamp(1.04rem, 1.5vw, 1.26rem); line-height: 1.5;
