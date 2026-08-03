@@ -67,6 +67,33 @@ export interface Project {
   updatedAt?: number;
 }
 
+// A desktop-app licence key: one key, one machine. Minted by an admin in
+// /admindashboard, redeemed by the Evora Studio .exe / .dmg on first launch.
+// See lib/portal/licenses.ts — the key gates the app shell only, the studio
+// page inside still requires a normal staff sign-in.
+export interface License {
+  key: string;             // canonical EVRA-XXXXX-XXXXX-XXXXX-XXXXX
+  label: string;           // who it's for, e.g. "Bakri — showroom PC"
+  note?: string;
+  createdAt: number;
+  createdBy?: string;      // admin uid
+  updatedAt?: number;
+  expiresAt?: number;      // optional hard expiry
+  revoked?: boolean;
+  machineHash?: string | null;   // sha256 of the machine fingerprint (never the raw MAC)
+  machineName?: string | null;   // hostname, for the admin's benefit
+  activatedAt?: number | null;
+  lastSeenAt?: number;
+  appVersion?: string;
+}
+
+// The signed blob the desktop app stores and replays on every launch.
+export interface LicenseTokenPayload {
+  kid: string;   // licence key
+  mid: string;   // machine hash
+  exp: number;   // unix seconds
+}
+
 export const STATUS_LABEL: Record<ProjectStatus, { en: string; ar: string }> = {
   draft: { en: "Awaiting your approval", ar: "بانتظار موافقتك" },
   approved: { en: "Approved", ar: "تمت الموافقة" },

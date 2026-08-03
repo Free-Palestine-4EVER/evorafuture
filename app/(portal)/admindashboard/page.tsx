@@ -12,6 +12,7 @@ import LoginForm from "@/components/portal/LoginForm";
 import ProjectForm from "@/components/portal/ProjectForm";
 import ProjectManage from "@/components/portal/ProjectManage";
 import ClientDetail from "@/components/portal/ClientDetail";
+import LicensesPanel from "@/components/portal/LicensesPanel";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
 import PortalShell, { Icons } from "@/components/portal/PortalShell";
 import Monogram from "@/components/brand/Monogram";
@@ -107,12 +108,14 @@ export default function AdminPage() {
     { key: "projects", label: t("Projects", "المشاريع"), icon: Icons.projects },
     { key: "clients", label: t("Clients", "العملاء"), icon: Icons.clients },
     { key: "leads", label: t("Leads", "الطلبات"), icon: Icons.leads, badge: newLeads || undefined },
+    { key: "licenses", label: t("Licences", "التراخيص"), icon: Icons.key },
   ];
   const titles: Record<string, [string, string]> = {
     overview: [t("Studio overview", "نظرة عامة على الاستوديو"), `${t("Welcome back", "أهلًا بعودتك")}، ${user.name}`],
     projects: [t("Projects", "المشاريع"), `${projects.length} ${t("total", "إجمالي")}`],
     clients: [t("Clients", "العملاء"), `${clients.length} ${t("total", "إجمالي")}`],
     leads: [t("Design requests", "طلبات التصميم"), `${newLeads} ${t("new", "جديد")}`],
+    licenses: [t("Studio licences", "تراخيص الاستوديو"), t("Keys for the Evora Studio desktop app", "مفاتيح تطبيق إيفورا ستوديو للكمبيوتر")],
   };
   const actions = (section === "overview" || section === "projects")
     ? <button onClick={() => setAdding(true)} style={primaryBtn}>+ {tp("add_project", lang)}</button>
@@ -294,6 +297,8 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+
+      {section === "licenses" && <LicensesPanel />}
 
       {(adding || editing) && (
         <ProjectForm initial={editing} clients={clients} prefillOwner={prefillOwner}

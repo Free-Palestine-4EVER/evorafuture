@@ -12,10 +12,20 @@
 //   DELETE /api/portal/projects/:id
 //   POST   /api/portal/approve           { id }
 //   GET    /api/portal/events            (text/event-stream — realtime)
+//
+//   Desktop-app licences (Evora Studio .exe / .dmg) — see lib/portal/licenses.ts
+//   GET    /api/portal/licenses                    (admin)
+//   POST   /api/portal/licenses          { label, note, expiresAt }   (admin)
+//   POST   /api/portal/license-revoke    { key, on }                  (admin)
+//   POST   /api/portal/license-unbind    { key }                      (admin)
+//   DELETE /api/portal/licenses/:key                                  (admin)
+//   POST   /api/portal/license-activate  { key, machineId, machineName, appVersion }
+//   POST   /api/portal/license-verify    { token, machineId }
 
 import { NextRequest } from "next/server";
 import { randomBytes } from "crypto";
 import * as db from "@/lib/portal/serverdb";
+import * as lic from "@/lib/portal/licenses";
 import { uploadToStorage } from "@/lib/portal/admin";
 import { scanDataToGLB } from "@/lib/portal/roomglb";
 import { sessionFromRequest, issueToken, sessionCookie, clearCookie } from "@/lib/portal/session";
@@ -61,6 +71,39 @@ const clientOrigin = (req: NextRequest): string => {
   return `${proto}://${host}`;
 };
 
+/* ---- licence activation throttle -----------------------------------------
+   `license-activate` is necessarily unauthenticated — it IS the front door of
+   the desktop app. A 100-bit key space makes guessing hopeless, but an
+   unbounded endpoint is still free CPU for anyone who finds it, so failures
+   are capped per client IP over a rolling window. Successes don't count, so a
+   real machine re-activating never gets locked out. In-memory on purpose:
+   this is a single Node process (see localdb.ts) and losing the counters on
+   restart is not a meaningful weakening. */
+const FAILS = new Map<string, { n: number; until: number }>();
+const FAIL_LIMIT = 10;
+const FAIL_WINDOW_MS = 10 * 60 * 1000;
+
+const clientIp = (req: NextRequest) =>
+  (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+  req.headers.get("x-real-ip") ||
+  "unknown";
+
+function throttled(ip: string): boolean {
+  const e = FAILS.get(ip);
+  if (!e) return false;
+  if (e.until < Date.now()) { FAILS.delete(ip); return false; }
+  return e.n >= FAIL_LIMIT;
+}
+function noteFailure(ip: string) {
+  const now = Date.now();
+  const e = FAILS.get(ip);
+  if (!e || e.until < now) FAILS.set(ip, { n: 1, until: now + FAIL_WINDOW_MS });
+  else e.n += 1;
+  // Bound the map so a spray of spoofed X-Forwarded-For values can't grow it
+  // without limit.
+  if (FAILS.size > 5000) for (const [k, v] of FAILS) if (v.until < now) FAILS.delete(k);
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
@@ -76,6 +119,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
 
   if (head === "me") return session ? json({ uid: session.uid, role: session.role }) : deny();
   if (head === "clients") return isAdmin ? json(await db.listClients()) : deny();
+  if (head === "licenses") return isAdmin ? json(await lic.listLicenses()) : deny();
   if (head === "leads") return isAdmin ? json(await db.listLeads()) : deny();
   if (head === "subscribers") return isAdmin ? json(await db.listSubscribers()) : deny();
   if (head === "registered") return json({ registered: await db.isPhoneRegistered(req.nextUrl.searchParams.get("phone") || "") });
@@ -146,6 +190,46 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     try { return json(await db.createClient(String(body.phone), String(body.name || ""), String(body.password || ""))); }
     catch (e) { return json({ error: (e as Error).message }, 409); }
   }
+  // ---- desktop-app licences ---------------------------------------------
+  // Minting, revoking and unbinding are admin-only. Activation and
+  // verification are open (the app has no staff session — it has a key), and
+  // are throttled above.
+  if (head === "licenses") {
+    const s = await sessionFromRequest(req);
+    if (s?.role !== "admin") return deny();
+    if (!String(body.label || "").trim()) return json({ error: "label_required" }, 400);
+    return json(await lic.createLicense({
+      label: String(body.label),
+      note: body.note ? String(body.note) : undefined,
+      expiresAt: body.expiresAt ? Number(body.expiresAt) : null,
+      by: s.uid,
+    }));
+  }
+  if (head === "license-revoke") {
+    if ((await sessionFromRequest(req))?.role !== "admin") return deny();
+    const ok = await lic.setRevoked(String(body.key || ""), body.on !== false);
+    return ok ? json({ ok: true }) : json({ error: "not_found" }, 404);
+  }
+  if (head === "license-unbind") {
+    if ((await sessionFromRequest(req))?.role !== "admin") return deny();
+    const ok = await lic.unbind(String(body.key || ""));
+    return ok ? json({ ok: true }) : json({ error: "not_found" }, 404);
+  }
+  if (head === "license-activate" || head === "license-verify") {
+    const ip = clientIp(req);
+    if (throttled(ip)) return json({ ok: false, reason: "too_many_attempts" }, 429);
+    const r = head === "license-activate"
+      ? await lic.activate({
+          key: String(body.key || ""),
+          machineId: String(body.machineId || ""),
+          machineName: body.machineName ? String(body.machineName) : undefined,
+          appVersion: body.appVersion ? String(body.appVersion) : undefined,
+        })
+      : await lic.verify({ token: String(body.token || ""), machineId: String(body.machineId || "") });
+    if (!r.ok) { noteFailure(ip); return json(r, 403); }
+    return json(r);
+  }
+
   if (head === "upload") {
     // body: { ext, dataBase64 } → stores in Firebase Storage, returns a public URL.
     // Deliberately unauthenticated: the shipped EvoraScan iOS app POSTs here and
@@ -194,8 +278,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   return json({ error: "not_found" }, 404);
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   if (path[0] === "projects" && path[1]) { await db.deleteProject(path[1]); return json({ ok: true }); }
+  if (path[0] === "licenses" && path[1]) {
+    if ((await sessionFromRequest(req))?.role !== "admin") return deny();
+    const ok = await lic.deleteLicense(decodeURIComponent(path[1]));
+    return ok ? json({ ok: true }) : json({ error: "not_found" }, 404);
+  }
   return json({ error: "not_found" }, 404);
 }

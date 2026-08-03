@@ -2,7 +2,7 @@
 // is backed by Firebase Realtime Database server-side. Falls back to the
 // localStorage mock only when the API is unreachable (fully offline).
 
-import type { Lead, LeadStatus, PortalUser, Project } from "./types";
+import type { Lead, LeadStatus, License, PortalUser, Project } from "./types";
 import { mockBackend } from "./mock";
 import { onRev, realtimeConfigured } from "./realtime";
 
@@ -217,6 +217,30 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<voi
 }
 export async function sendLeadToPuffer(id: string, on = true): Promise<void> {
   await post("lead-to-puffer", { id, on });
+}
+
+/* ---- desktop-app licences (admin only) ----------------------------------
+   Keys for the Evora Studio desktop app (.exe / .dmg). No mock fallback: an
+   offline dashboard must not pretend to mint a key that the server has never
+   seen, because the number it showed would never work in the app. */
+export async function listLicenses(): Promise<License[]> { return getJSON("licenses"); }
+
+export async function createLicense(label: string, note?: string, expiresAt?: number | null): Promise<License> {
+  const r = await post("licenses", { label, note, expiresAt });
+  if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error || "FAILED");
+  return r.json();
+}
+export async function setLicenseRevoked(key: string, on: boolean): Promise<void> {
+  const r = await post("license-revoke", { key, on });
+  if (!r.ok) throw new Error("FAILED");
+}
+export async function unbindLicense(key: string): Promise<void> {
+  const r = await post("license-unbind", { key });
+  if (!r.ok) throw new Error("FAILED");
+}
+export async function deleteLicense(key: string): Promise<void> {
+  const r = await fetch(api(`licenses/${encodeURIComponent(key)}`), { method: "DELETE" });
+  if (!r.ok) throw new Error("FAILED");
 }
 
 export function newId() { return mockBackend.newId(); }
