@@ -6,35 +6,47 @@ Where the two disagree, THIS file wins — a lot changed today.
 
 ---
 
-## 🔴 The one thing that is not done: DNS
+## ✅ The site is LIVE — DNS and HTTPS are done
 
-`evorahome.online` A records still point at **`3.69.106.150`** — the OLD AWS box,
-which **no longer exists** (see below). The site is fully built, deployed and
-serving on the new server, but the domain does not point at it yet.
+`evorahome.online` and `www.evorahome.online` both resolve to **`34.159.201.110`**
+(A records, set at Namecheap 2026-08-03). Let's Encrypt issued certificates for
+both hostnames at 14:03 UTC that day, valid to **1 Nov 2026**; Caddy auto-renews.
+Every route returns 200. The old AWS IP `3.69.106.150` is dead — see below.
 
-The user must set, at Namecheap → Domain List → evorahome.online → Advanced DNS:
+## 🔴 What is still open
 
-| Host | Type | Value | TTL |
-| --- | --- | --- | --- |
-| `@` | A Record | `34.159.201.110` | Automatic |
-| `www` | A Record | `34.159.201.110` | Automatic |
-
-Edit the two EXISTING A records in place. If a CNAME or URL-Redirect record
-exists on `www`, delete it — both hosts must be plain A records or the TLS cert
-will not issue.
-
-**After DNS is saved, run this** — do not skip it:
+**1. Rotate the admin password.** `bakri123` was committed to a **public** GitHub
+repo and authenticated against production. The literal is gone from the working
+tree, but **it is still in git history**, so treat it as burned:
 
 ```bash
-ssh -i ~/.ssh/evora-server-key.pem ubuntu@34.159.201.110 'sudo systemctl restart caddy'
+ssh -i ~/.ssh/evora-server-key.pem ubuntu@34.159.201.110
+sudo systemctl stop evora
+cd /var/www/evora && node scripts/rotate-admin-password.mjs bakri@evorahome.online 'new-password'
+sudo systemctl start evora
 ```
+Un-publishing it properly needs the repo made private AND a `git filter-repo`
+history rewrite + force push. The user chose to defer the repo-visibility change.
 
-Caddy currently holds **zero certificates**. Every ACME challenge has failed with
-`3.69.106.150: Timeout during connect` — Let's Encrypt is resolving the domain to
-the dead AWS IP. After enough failures CertMagic fell back to the LE *staging*
-endpoint to protect the production rate limit, so it will not retry against the
-real CA promptly on its own. The restart forces a fresh production attempt.
-Nothing is misconfigured; `caddy validate` passes and it is listening on :80/:443.
+**2. Bakri is never told a lead arrived.** `notifyStaff()` calls OneSignal, which
+is disabled (`NEXT_PUBLIC_ONESIGNAL_APP_ID` unset), and there is no email or SMS
+path anywhere. A design request lands in `data/evora-db.json` and waits until
+someone opens the dashboard. **This is the highest-value remaining fix** — a
+WhatsApp or email ping on `createLead` would change how the tool actually works
+for him day to day.
+
+**3. Offsite backups are gone.** The daily job still tars `data/` +
+`public/uploads/` to `/var/backups/evora/` (keeps 15), but the S3 upload died
+with the AWS account. Backups are now **on the same disk as the data** — a single
+point of failure. A GCS bucket is the natural replacement.
+
+### What happened on 2026-08-03 that these exist because of
+
+The public API was reachable without a session and `DELETE /api/portal/projects/:id`
+was ungated. **15 real client projects were deleted from production** while the
+site was live. They were restored from the 13:05 backup (`projects` went 1 → 17).
+The API is gated now — but that is why the backup job and the password rotation
+matter, not theory.
 
 ---
 
