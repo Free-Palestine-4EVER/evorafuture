@@ -13,6 +13,7 @@ import ProjectForm from "@/components/portal/ProjectForm";
 import ProjectManage from "@/components/portal/ProjectManage";
 import ClientDetail from "@/components/portal/ClientDetail";
 import LicensesPanel from "@/components/portal/LicensesPanel";
+import UploadsPanel from "@/components/portal/UploadsPanel";
 import NotifyPrompt from "@/components/portal/NotifyPrompt";
 import PortalShell, { Icons } from "@/components/portal/PortalShell";
 import Monogram from "@/components/brand/Monogram";
@@ -138,6 +139,10 @@ export default function AdminPage() {
     { key: "projects", label: t("Projects", "المشاريع"), icon: Icons.projects },
     { key: "clients", label: t("Clients", "العملاء"), icon: Icons.clients },
     { key: "leads", label: t("Leads", "الطلبات"), icon: Icons.leads, badge: newLeads || undefined },
+    // The studio's own file drawer — anything Bakri wants to keep or hand to a
+    // customer as a link. Sits before Licences because he opens it far more
+    // often than he mints a key.
+    { key: "uploads", label: t("Files", "الملفات"), icon: Icons.files },
     { key: "licenses", label: t("Licences", "التراخيص"), icon: Icons.key },
   ];
   const titles: Record<string, [string, string]> = {
@@ -145,6 +150,7 @@ export default function AdminPage() {
     projects: [t("Projects", "المشاريع"), `${projects.length} ${t("total", "إجمالي")}`],
     clients: [t("Clients", "العملاء"), `${clients.length} ${t("total", "إجمالي")}`],
     leads: [t("Design requests", "طلبات التصميم"), `${newLeads} ${t("new", "جديد")}`],
+    uploads: [t("Files", "الملفات"), t("Everything you keep or send — one link away", "كل ما تحتفظ به أو ترسله — على بُعد رابط واحد")],
     licenses: [t("Studio licences", "تراخيص الاستوديو"), t("Keys for the Evora Studio desktop app", "مفاتيح تطبيق إيفورا ستوديو للكمبيوتر")],
   };
   const actions = (section === "overview" || section === "projects")
@@ -330,10 +336,25 @@ export default function AdminPage() {
                   </a>
                 )}
                 {(["called", "qualified", "rejected"] as LeadStatus[]).map((s) => (
-                  <button key={s} aria-pressed={l.status === s} onClick={async () => { await setLeadStatus(l.id, s); load(); }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{LEAD_STATUS[s]?.[lang] ?? s}</button>
+                  <button key={s} aria-pressed={l.status === s} onClick={async () => {
+                    try { setBanner(null); await setLeadStatus(l.id, s); }
+                    catch (e) { setBanner(t(`Couldn't update the lead — ${(e as Error).message}`, `تعذّر تحديث الطلب — ${(e as Error).message}`)); }
+                    finally { load(); }
+                  }} style={{ ...miniBtn, ...(l.status === s ? { background: "var(--ink)", color: "#fff", border: "none" } : {}) }}>{LEAD_STATUS[s]?.[lang] ?? s}</button>
                 ))}
+                {/* These used to fail silently: the store helper swallowed a
+                    non-2xx, load() re-rendered the unchanged row, and the
+                    button just looked dead. It throws now, so catch it and say
+                    so rather than leaving Bakri clicking a no-op. */}
                 {l.planUrl && (
-                  <button onClick={async () => { await sendLeadToPuffer(l.id, !l.sentToPuffer); load(); }}
+                  <button onClick={async () => {
+                    try {
+                      setBanner(null);
+                      await sendLeadToPuffer(l.id, !l.sentToPuffer);
+                    } catch (e) {
+                      setBanner(t(`Couldn't send to the Studio — ${(e as Error).message}`, `تعذّر الإرسال إلى الاستوديو — ${(e as Error).message}`));
+                    } finally { load(); }
+                  }}
                     style={{ ...miniBtn, ...(l.sentToPuffer ? { background: "var(--clay)", color: "#fff", border: "none" } : { borderColor: "var(--clay)", color: "var(--clay)" }) }}>
                     {l.sentToPuffer ? `✓ ${t("In the Studio", "في الاستوديو")}` : `↗ ${t("Send to Studio", "أرسل إلى الاستوديو")}`}
                   </button>
@@ -357,6 +378,10 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+
+      {/* Mounted only when its tab is open — the panel loads its own list and
+          the quick view mounts media for exactly one file at a time. */}
+      {section === "uploads" && <UploadsPanel />}
 
       {section === "licenses" && <LicensesPanel />}
 

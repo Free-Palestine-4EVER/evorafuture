@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(homestudio)/layout,_N_T_/(homestudio)/evora3dstudio/layout,_N_T_/(homestudio)/evora3dstudio/page,_N_T_/evora3dstudio"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KGhvbWVzdHVkaW8p/evora3dstudio/__PAGE__",
+    "/!KGhvbWVzdHVkaW8p/evora3dstudio",
+    "/!KGhvbWVzdHVkaW8p",
+    "/_index",
+    "/_head"
+  ]
+}

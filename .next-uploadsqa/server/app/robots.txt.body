@@ -1,0 +1,17 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /admindashboard
+Disallow: /portal
+Disallow: /login
+Disallow: /join
+Disallow: /evora3dstudio
+Disallow: /v2
+Disallow: /v3
+Disallow: /clientexample
+Disallow: /configurator
+Disallow: /start
+
+Host: https://evorahome.online
+Sitemap: https://evorahome.online/sitemap.xml

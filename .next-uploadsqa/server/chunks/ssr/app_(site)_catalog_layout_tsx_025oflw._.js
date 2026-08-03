@@ -1,0 +1,3 @@
+module.exports=[560322,a=>{"use strict";a.s(["default",0,function({children:a}){return a},"metadata",0,{title:"The Lookbook — Evora Future Home | Khalda, Amman",description:"Browse the ARGOS · Interior Design by Evora lookbook — 31 pages of bedrooms, dressing rooms, majlis, dining and lounges.",alternates:{canonical:"/catalog"}}])},485081,a=>{a.n(a.i(560322))}];
+
+//# sourceMappingURL=app_%28site%29_catalog_layout_tsx_025oflw._.js.map

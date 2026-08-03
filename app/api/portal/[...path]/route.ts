@@ -21,6 +21,11 @@
 //   POST   /api/portal/upload            { ext, dataBase64 }  open — EvoraScan
 //   GET    /api/portal/events            (text/event-stream — realtime)
 //
+//   The studio's file drawer (/admindashboard → Files)
+//   GET    /api/portal/uploads                                        (admin)
+//   POST   /api/portal/uploads           { url, name, type }          (admin)
+//   DELETE /api/portal/uploads/:id       (also unlinks public/uploads) (admin)
+//
 //   Desktop-app licences (Evora Studio .exe / .dmg) — see lib/portal/licenses.ts
 //   GET    /api/portal/licenses                    (admin)
 //   POST   /api/portal/licenses          { label, note, expiresAt }   (admin)
@@ -44,6 +49,16 @@ export const dynamic = "force-dynamic";
 const MIME: Record<string, string> = {
   glb: "model/gltf-binary", usdz: "model/vnd.usdz+zip", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml", gif: "image/gif", pdf: "application/pdf",
 };
+
+/* Ceiling for a file posted by a signed-in admin (the /admindashboard Files
+   drawer). Generous enough for a showroom walkthrough video or a full CAD
+   package, and bounded by what the box can actually hold in RAM: the body is
+   base64 JSON, so 100 MB of file is ~134 MB of string that Buffer.from then
+   decodes — call it ~300 MB peak on a 2 vCPU / 8 GB VM whose disk is 30 GB with
+   618 MB already used. The dashboard uploads one file at a time for the same
+   reason, and refuses an oversized file before reading it so nothing is sent
+   only to be rejected. */
+const MAX_ADMIN_UPLOAD = 100 * 1024 * 1024;
 
 /* ---- CORS ------------------------------------------------------------------
    This handler used to answer every request with `Access-Control-Allow-Origin:
@@ -222,6 +237,12 @@ async function handleGet(req: NextRequest, ctx: Ctx) {
   if (head === "clients") return isAdmin ? json(await db.listClients()) : deny();
   if (head === "licenses") return isAdmin ? json(await lic.listLicenses()) : deny();
   if (head === "leads") return isAdmin ? json(await db.listLeads()) : deny();
+  // The studio's own file drawer. Staff-only even though the files themselves
+  // sit under a public /uploads/ path: the LIST is the private part — it is an
+  // index of every contract, price sheet and customer document Bakri has ever
+  // put there, and a random hex filename is the only thing keeping an
+  // un-shared one unguessable.
+  if (head === "uploads") return isAdmin ? json(await db.listUploads()) : deny();
   if (head === "subscribers") return isAdmin ? json(await db.listSubscribers()) : deny();
   if (head === "registered") return json({ registered: await db.isPhoneRegistered(req.nextUrl.searchParams.get("phone") || "") });
   if (head === "projects") {
@@ -332,23 +353,62 @@ async function handlePost(req: NextRequest, ctx: Ctx) {
   }
 
   if (head === "upload") {
-    // body: { ext, dataBase64 } → stores in Firebase Storage, returns a public URL.
-    // Deliberately unauthenticated: the shipped EvoraScan iOS app POSTs here and
-    // can only be changed via an App Store resubmit. Bounded instead by a size
-    // and type limit, which evoraproj.md lists as an open risk ("no upload size
-    // limits — a stray huge upload could exhaust disk/memory").
-    const ext = String(body.ext || "bin").replace(/[^a-z0-9]/gi, "").toLowerCase();
+    /* body: { ext, dataBase64 } → writes the bytes to public/uploads and returns
+       the served URL. Deliberately unauthenticated: the shipped EvoraScan iOS app
+       POSTs here and can only be changed via an App Store resubmit. Bounded
+       instead by a size and type limit, which evoraproj.md lists as an open risk
+       ("no upload size limits — a stray huge upload could exhaust disk/memory").
+
+       Two limits, not one. An ANONYMOUS caller keeps the old contract exactly:
+       25 MB, and only the handful of extensions in MIME above. A signed-in
+       ADMIN — the Files drawer in /admindashboard, which exists precisely so
+       Bakri can park a DWG, a zip or a showroom video — may post any extension
+       up to MAX_ADMIN_UPLOAD.
+
+       Why the type allowlist still applies to everyone else: these files are
+       served back from the site's OWN origin, so an anonymous .html or .svg
+       upload would be stored XSS against evorahome.online. Behind the admin
+       gate that threat is moot (the uploader is already the administrator),
+       which is the only reason it can be lifted at all. */
+    const staff = (await sessionFromRequest(req))?.role === "admin";
+    const ext = (String(body.ext || "").replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin").slice(0, 12);
     const b64 = String(body.dataBase64 || "");
-    const MAX_UPLOAD = 25 * 1024 * 1024; // 25MB decoded — a LiDAR USDZ can be large
+    const MAX_UPLOAD = staff ? MAX_ADMIN_UPLOAD : 25 * 1024 * 1024; // 25MB decoded — a LiDAR USDZ can be large
     if (b64.length * 0.75 > MAX_UPLOAD) return json({ error: "too_large", max: MAX_UPLOAD }, 413);
-    if (!MIME[ext]) return json({ error: "unsupported_type", ext }, 415);
-    const name = `uploads/${randomBytes(8).toString("hex")}.${ext}`;
+    if (!staff && !MIME[ext]) return json({ error: "unsupported_type", ext }, 415);
+    // The on-disk name is always server-generated: random hex + a sanitised
+    // extension. Nothing the caller typed ever reaches the filesystem.
+    const file = `${randomBytes(8).toString("hex")}.${ext}`;
     try {
-      const url = await uploadToStorage(name, Buffer.from(String(body.dataBase64 || ""), "base64"), MIME[ext] || "application/octet-stream", clientOrigin(req));
-      return json({ url });
+      const url = await uploadToStorage(`uploads/${file}`, Buffer.from(b64, "base64"), MIME[ext] || "application/octet-stream", clientOrigin(req));
+      return json({ url, file });
     } catch (e) {
       return json({ error: "upload_failed", detail: (e as Error).message }, 500);
     }
+  }
+  /* Index a file that POST /upload has already written, so it shows up in the
+     studio's Files drawer. Split in two on purpose: the bytes go through the
+     one storage pipeline every other attachment uses, and this only records
+     what landed. The on-disk name is taken from the URL's basename and checked
+     against the real directory (db.createUpload → storedFileSize), so a body
+     naming a file that was never stored gets a 400 instead of minting a card
+     whose link 404s. */
+  if (head === "uploads") {
+    const g = await gateAdmin(req); if (g) return g;
+    const s = await sessionFromRequest(req);
+    // Accept the absolute URL /upload returned, or a bare path — keep only the
+    // last segment, and store an origin-free path so the same record still
+    // resolves under evorahome.online, evorafuturehome.com or a LAN IP.
+    const raw = String(body.file || body.url || "");
+    const file = raw.split(/[?#]/)[0].split("/").pop() || "";
+    const rec = await db.createUpload({
+      name: String(body.name || file),
+      file,
+      url: `/uploads/${file}`,
+      type: body.type ? String(body.type) : undefined,
+      by: s?.uid,
+    });
+    return rec ? json(rec) : json({ error: "file_not_stored" }, 400);
   }
   if (head === "projects") {
     // A LiDAR scan uploads a .usdz (great for iOS AR) but that can't render
@@ -420,6 +480,16 @@ async function handleDelete(req: NextRequest, ctx: Ctx) {
     const g = await gateAdmin(req); if (g) return g;
     await db.deleteLead(decodeURIComponent(path[1]));
     return json({ ok: true });
+  }
+  /* Admin-only, irreversible, and the only place in this codebase that removes
+     bytes from public/uploads. deleteUpload() reads the row first (unknown id →
+     404, never a phantom success), resolves the on-disk name through the
+     traversal guard in lib/portal/admin.ts, and lets a real filesystem error
+     throw so the row survives a failed unlink instead of orphaning the file. */
+  if (path[0] === "uploads" && path[1]) {
+    const g = await gateAdmin(req); if (g) return g;
+    const row = await db.deleteUpload(decodeURIComponent(path[1]));
+    return row ? json({ ok: true, id: row.id }) : notFound();
   }
   if (path[0] === "licenses" && path[1]) {
     const g = await gateAdmin(req); if (g) return g;

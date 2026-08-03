@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(portal)/layout,_N_T_/(portal)/join/layout,_N_T_/(portal)/join/page,_N_T_/join"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KHBvcnRhbCk/join/__PAGE__",
+    "/!KHBvcnRhbCk/join",
+    "/!KHBvcnRhbCk",
+    "/_index",
+    "/_head"
+  ]
+}

@@ -1,0 +1,3 @@
+module.exports=[536959,a=>{"use strict";a.s(["default",0,function({children:a}){return a},"metadata",0,{title:"Shop by Room — Living, Dining, Bedroom | Evora Future Home",description:"Furnish a whole room at once. Browse Evora by living room, dining, bedroom, majlis and outdoor — every piece made to order and delivered across Jordan.",alternates:{canonical:"/shop/rooms"},openGraph:{title:"Shop by Room — Evora Future Home",description:"Furnish a whole room at once — living, dining, bedroom, majlis and outdoor.",url:"/shop/rooms"}}])},205950,a=>{a.n(a.i(536959))}];
+
+//# sourceMappingURL=app_%28site%29_shop_rooms_layout_tsx_1v2tt83._.js.map

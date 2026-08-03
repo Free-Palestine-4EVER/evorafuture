@@ -123,4 +123,7 @@ export const Icons = {
   power: ic("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4|M16 17l5-5-5-5|M21 12H9"),
   arrow: ic("M5 12h14|M13 6l6 6-6 6"),
   key: ic("M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"),
+  // The studio's file drawer — a folder with the upward arrow that says "put
+  // things in here", so it doesn't read as another projects/designs tab.
+  files: ic("M3 8V6a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9L11.5 6H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M12 17v-6|M9.5 13.5L12 11l2.5 2.5"),
 };

@@ -6,10 +6,10 @@
 
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { EventEmitter } from "events";
-import { rtdb } from "./admin";
+import { removeStoredFile, rtdb, storedFileSize } from "./admin";
 import { notifyAdmins, notifyUsers } from "./notify";
 import { stageByIndex, stageIndex } from "./journey";
-import type { Lead, LeadStatus, PortalUser, Project, ProjectUpdate, Role } from "./types";
+import type { Lead, LeadStatus, PortalUser, Project, ProjectUpdate, Role, StoredUpload } from "./types";
 
 type StoredUser = PortalUser & { password?: string };
 
@@ -342,6 +342,80 @@ export async function sendLeadToPuffer(id: string, on = true): Promise<boolean> 
   touched();
   if (on) notifyStaff("2D plan queued for Puffer", "A design request is ready to import in /evora3dstudio");
   return true;
+}
+
+/* ---- the studio's file drawer --------------------------------------------
+   /admindashboard → Files. Bakri keeps anything here — catalogues, price
+   sheets, contracts, renders, CAD, video — and hands a customer the link.
+   The bytes themselves already went through POST /api/portal/upload (the same
+   pipeline as every other attachment); these rows are just the index that
+   makes them findable, copyable and — the part that did not exist before —
+   deletable. */
+
+/* Ids are minted right here — "f" + 12 hex — and every id that comes back in
+   over the wire is checked against that shape before it is interpolated into a
+   DB path. Without this a crafted id containing "/" or ".." would be split by
+   localdb's `segs()` into a multi-segment path and address a node OUTSIDE
+   uploads/ (`uploads/../users/staff-bakri`). It happens to be harmless today
+   because `getAt()` bails on the first missing key and ".." is never a real
+   key — but that is an accident of the traversal implementation, not a
+   guarantee, and this is the one endpoint that deletes things. */
+const UPLOAD_ID = /^f[0-9a-f]{12}$/;
+
+export async function listUploads(): Promise<StoredUpload[]> {
+  const snap = await rtdb().ref("uploads").get();
+  return (Object.values(snap.val() || {}) as StoredUpload[])
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function getUpload(id: string): Promise<StoredUpload | null> {
+  if (!UPLOAD_ID.test(id || "")) return null;
+  return ((await rtdb().ref(`uploads/${id}`).get()).val() as StoredUpload | null) || null;
+}
+
+/* Record a file that has ALREADY landed on disk. `file` is verified against
+   public/uploads before anything is written: without that check a caller could
+   mint a row for a file that was never stored, and the drawer would show a card
+   whose link 404s — the same phantom-record class as the bogus-id `update()`
+   calls above. Returns null when the file isn't there, and the route turns that
+   into a 400 rather than a fake success. */
+export async function createUpload(u: {
+  name: string; file: string; url: string; type?: string; by?: string;
+}): Promise<StoredUpload | null> {
+  // Size comes off the disk, never from the caller — a record must not be able
+  // to claim a size the file does not have.
+  const size = storedFileSize(u.file);
+  if (size < 0) return null;
+  const id = "f" + randomBytes(6).toString("hex");
+  const full: StoredUpload = {
+    id,
+    name: (u.name || u.file).slice(0, 200),
+    file: u.file,
+    url: u.url,
+    type: (u.type || "application/octet-stream").slice(0, 120),
+    size,
+    by: u.by,
+    createdAt: Date.now(),
+  };
+  await rtdb().ref(`uploads/${id}`).set(clean(full));
+  touched();
+  return full;
+}
+
+/* Delete the row AND the bytes. Read-before-write, so an unknown id is a 404
+   instead of a no-op that reports success. The disk delete happens FIRST and is
+   allowed to throw (→ 500, row intact): dropping the row while the file
+   survived would orphan those bytes forever, with nothing left in the UI that
+   could ever remove them. A file that is already gone is not an error. */
+export async function deleteUpload(id: string): Promise<StoredUpload | null> {
+  if (!UPLOAD_ID.test(id || "")) return null;
+  const ref = rtdb().ref(`uploads/${id}`);
+  const row = (await ref.get()).val() as StoredUpload | null;
+  if (!row) return null;
+  removeStoredFile(row.file);
+  await ref.remove();
+  touched();
+  return row;
 }
 
 // ---- realtime -------------------------------------------------------------

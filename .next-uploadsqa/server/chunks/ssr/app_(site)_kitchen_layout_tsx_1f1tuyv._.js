@@ -1,0 +1,3 @@
+module.exports=[953706,a=>{"use strict";a.s(["default",0,function({children:a}){return a},"metadata",0,{title:"Kitchen Configurator — Design Your Bespoke Island | Evora Future Home",description:"Fly through an Evora kitchen island, then pick your stone and watch it re-render live. Every island is cut to order in our own workshop in Khalda, Amman.",alternates:{canonical:"/kitchen"},openGraph:{title:"Design your kitchen island — live, in 3D",description:"Choose the marble, the finish, the proportions — and watch the island change as you decide. Built to order in Amman.",url:"/kitchen"}}])},624968,a=>{a.n(a.i(953706))}];
+
+//# sourceMappingURL=app_%28site%29_kitchen_layout_tsx_1f1tuyv._.js.map
