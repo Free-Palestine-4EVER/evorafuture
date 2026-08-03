@@ -272,8 +272,21 @@ zero cross-imports. Don't assume a fix in one applies to the other.
   windowed-but-still-heavy flipbook, NOT a PDF. (Whatever session wrote the
   entry below either never made the change or it was reverted.)
 
+- ⚠️ **THE ENTRY BELOW WAS NEVER TRUE — corrected 2026-08-03.** `/catalog`
+  still imported `LookbookApp`, `components/lookbook/*` was still on disk, and
+  the client hit the same iPhone crash again today, in front of them. Whatever
+  session wrote it either never made the change or it was reverted, and the
+  claim then sat here for twelve days looking authoritative. **Do not trust a
+  "deleted entirely" claim in this file without running `grep` first.**
+  What is true now: **desktop keeps the flipbook** (with a page-turn sound and
+  a mute toggle); **mobile gets the PDF and never mounts the flipbook at all.**
+  The gate has to be a real mount decision — `display:none` still mounts the
+  component and still decodes all 66 images, so it would still crash. See the
+  header comment in `app/(site)/catalog/page.tsx`.
+
 - **`/catalog` (the ARGOS lookbook) ripped out and rebuilt as a plain PDF
-  embed, 2026-07-22:** after the windowing fix (below) still didn't stop it
+  embed, 2026-07-22 — ❌ DID NOT ACTUALLY SHIP, see above:** after the
+  windowing fix (below) still didn't stop it
   crashing on the user's actual iPhone, the user cut the losses and asked to
   delete the whole custom flipbook and just serve the real book instead.
   Deleted entirely: `app/(site)/catalog/page.tsx`, all of

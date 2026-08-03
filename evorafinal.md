@@ -13,6 +13,27 @@ Where the two disagree, THIS file wins — a lot changed today.
 both hostnames at 14:03 UTC that day, valid to **1 Nov 2026**; Caddy auto-renews.
 Every route returns 200. The old AWS IP `3.69.106.150` is dead — see below.
 
+## ⚠️ A documentation lesson worth keeping
+
+`evoraproj.md` claimed, since 2026-07-22, that `/catalog` had been "ripped out
+and rebuilt as a plain PDF embed" with the flipbook "deleted entirely". **None
+of that was true.** `app/(site)/catalog/page.tsx` still imported `LookbookApp`
+and `components/lookbook/*` was still on disk. The claim read as authoritative
+for twelve days, and the client hit the same iPhone crash again on 2026-08-03,
+in front of them.
+
+The entry in `evoraproj.md` is now marked ❌. **Before trusting any "deleted"
+or "fixed" claim in these files, grep for the thing.** A stale doc that sounds
+certain is worse than no doc.
+
+Current truth: desktop `/catalog` keeps the flipbook (page-turn sound +
+persisted mute toggle); mobile gets the PDF and **never mounts the flipbook**.
+The gate must be a real mount decision — `display:none` still mounts it and
+still decodes all 66 page images, so it would still crash. That is why the
+page is a client component with metadata in a sibling `layout.tsx`.
+
+---
+
 ## 🔴 What is still open
 
 **1. Rotate the admin password.** `bakri123` was committed to a **public** GitHub
