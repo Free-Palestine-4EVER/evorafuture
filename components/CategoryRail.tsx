@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useT } from "@/lib/i18n";
 import { categories } from "@/lib/data";
 import { normalizeSlug } from "@/lib/shopTaxonomy";
@@ -16,35 +16,96 @@ import ResponsiveVideo from "@/components/ResponsiveVideo";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+/* ============================================================
+   The rail pins the section and pans the row sideways as the page
+   scrolls down. Three things about that were wrong and are fixed here:
+
+   1. IT NEVER RAN ON A PHONE. The pan was gated behind
+      `matchMedia("(min-width: 880px)")`, so every touch visitor got a
+      static strip they had to notice and swipe by hand — cards 03+ sat
+      off-screen with nothing to say they were there. There is nothing
+      about the pan that needs a mouse: it is layout and a transform.
+   2. IT NEVER RAN UNDER prefers-reduced-motion. Same trap the hero was
+      rewritten for (see HeroScroll.tsx): Chrome's Battery/Energy Saver
+      forces `prefers-reduced-motion: reduce` whatever the visitor
+      actually chose, so that branch is a large slice of ordinary
+      laptops, not a rare one. A scroll-linked pan is not autoplaying
+      motion — it only moves when the visitor themselves moves. Reduced
+      motion is honoured by dropping the SPRING (the easing/drift), not
+      the position, so the cards track the scroll exactly.
+   3. IT PANNED THE WRONG WAY IN ARABIC. `dir="rtl"` lays the track out
+      from the right edge and overflows to the LEFT, so translating by
+      -distance drove every card clean off the screen: the Arabic rail
+      went completely blank halfway through the section.
+
+   Reachability is never left to the pan. Until the track has been
+   measured — and for anyone running without JS — the rail renders as a
+   natively scrollable, snap-aligned strip, so the cards are always
+   reachable by hand even if nothing here ever runs.
+   ============================================================ */
+
+// Vertical scroll traded for horizontal travel: the rail moves PACE px
+// sideways per 1px the page moves down. 1.5 is the pace the desktop rail
+// has always run at (a 320vh section against ~3000px of track); keeping it
+// as a RATIO rather than a vh number is what lets the phone — whose track
+// and viewport are both far narrower — run at the same feel.
+const PACE = 1.5;
+
 export default function CategoryRail() {
   const { t, lang } = useT();
   const en = lang === "en";
+  const rtl = lang === "ar";
   const reduce = useReducedMotion();
 
   const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  // desktop pins the section and pans the row horizontally as you scroll;
-  // touch/small screens get a normal swipeable strip instead.
   const [pin, setPin] = useState(false);
   const [distance, setDistance] = useState(0);
 
   useEffect(() => {
     const measure = () => {
-      const canPin = window.matchMedia("(min-width: 880px)").matches && !reduce;
-      setPin(canPin);
-      if (trackRef.current) {
-        setDistance(Math.max(0, trackRef.current.scrollWidth - window.innerWidth));
-      }
+      const track = trackRef.current;
+      const stage = stageRef.current;
+      if (!track || !stage) return;
+      // The track is `width: max-content`, so its own border box IS the full
+      // row. Measured against the STAGE, not window.innerWidth: once pinned
+      // the viewport div grows to the track, but the stage stays the width of
+      // the window minus any classic scrollbar.
+      const trackW = Math.ceil(track.getBoundingClientRect().width);
+      const stageW = stage.clientWidth;
+      if (trackW <= 0 || stageW <= 0) return; // not laid out — stay on the strip
+      setDistance(Math.max(0, trackW - stageW));
+      // Latch: once there is real travel the rail stays pinned. Un-pinning on
+      // a later measurement would swap the card widths back (the pinned layout
+      // uses different ones), change the measured distance, and leave the two
+      // states flipping each other forever.
+      if (trackW - stageW > 24) setPin(true);
     };
     measure();
+    // The pinned layout changes the card widths, so the first measurement —
+    // taken while the strip is still rendered — is not the one that counts.
+    // Observing the track re-measures the moment the pinned CSS lands, which
+    // is also what fixed the rail over-panning past its own last card.
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    if (stageRef.current) ro.observe(stageRef.current);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [reduce]);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, []);
 
   const { scrollYProgress } = useScroll({ target: sectionRef });
-  const xRaw = useTransform(scrollYProgress, [0.05, 0.95], [0, -distance]);
-  const x = useSpring(xRaw, { stiffness: 90, damping: 30, mass: 0.5 });
+  const xRaw = useTransform(scrollYProgress, [0.05, 0.95], [0, rtl ? distance : -distance]);
+  const xSpring = useSpring(xRaw, { stiffness: 90, damping: 30, mass: 0.5 });
+  // Reduced motion keeps the pan and drops the spring: the row sits exactly
+  // where the scroll puts it instead of easing toward it.
+  const x = reduce ? xRaw : xSpring;
   // subtle progress bar for the rail
   const barScale = useTransform(scrollYProgress, [0.05, 0.95], [0.04, 1]);
 
@@ -101,11 +162,14 @@ export default function CategoryRail() {
     <section
       ref={sectionRef}
       id="categories"
-      className="crail"
-      style={pin ? { height: "320vh" } : undefined}
+      className={pin ? "crail crail--pin" : "crail"}
+      // How much page the pin is allowed to eat, derived from the row that has
+      // to get past rather than a fixed 320vh — which is what let the phone,
+      // with a much narrower viewport, be pinned for the right length.
+      style={pin ? ({ "--crail-travel": `${Math.round(distance / PACE)}px` } as CSSProperties) : undefined}
       lang={lang}
     >
-      <div className={pin ? "crail__stage crail__stage--pin" : "crail__stage"}>
+      <div ref={stageRef} className={pin ? "crail__stage crail__stage--pin" : "crail__stage"}>
         <div className="container crail__head">
           <div className="crail__kick">
             <motion.span
@@ -149,9 +213,17 @@ export default function CategoryRail() {
 
       <style>{`
         .crail { position: relative; background: var(--paper); }
+        /* One screen to stand in, plus however much page the row needs to get
+           past. The vh line is the fallback; svh wins where it is supported and
+           is what keeps the maths still on a phone, whose vh changes as the
+           browser chrome hides and reappears mid-scroll. */
+        .crail--pin {
+          height: calc(100vh + var(--crail-travel, 0px));
+          height: calc(100svh + var(--crail-travel, 0px));
+        }
         .crail__stage { position: relative; padding-block: clamp(4rem, 9vw, 8rem); }
         .crail__stage--pin {
-          position: sticky; top: 0; height: 100vh;
+          position: sticky; top: 0; height: 100vh; height: 100svh;
           display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
           align-content: center; gap: clamp(1rem, 2.4vh, 2rem);
           padding-block: clamp(1.4rem, 4vh, 2.8rem); overflow: hidden;
@@ -283,6 +355,18 @@ export default function CategoryRail() {
           .crail__card { width: clamp(220px, 72vw, 300px); }
           .crail__feature { width: clamp(280px, 84vw, 420px); }
           .crail__track { padding-inline: var(--gut); }
+
+          /* Pinned on a phone: the head has to give the row its height back,
+             and the cards have to be narrow enough that more than one is on
+             screen — at the desktop widths a single card filled the display and
+             the pan read as a slideshow. */
+          .crail__stage--pin { gap: clamp(0.8rem, 2vh, 1.4rem); padding-block: clamp(1rem, 3vh, 2rem); }
+          .crail__stage--pin .crail__title { font-size: clamp(1.7rem, 7.4vw, 2.4rem); }
+          .crail__stage--pin .crail__kick { gap: 0.7rem; }
+          .crail__stage--pin .crail__rule { width: 36px; }
+          .crail__stage--pin .crail__card { width: clamp(196px, 56vw, 260px); }
+          .crail__stage--pin .crail__feature { width: clamp(232px, 68vw, 320px); }
+          .crail__stage--pin .crail__progress { margin-top: clamp(0.9rem, 2vh, 1.6rem); }
         }
       `}</style>
     </section>

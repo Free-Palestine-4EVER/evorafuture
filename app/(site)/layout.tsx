@@ -90,6 +90,26 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
               "try{var m=document.cookie.match(/(?:^|; )evora_lang=(ar|en)/);var l=m&&m[1]||localStorage.getItem('evora_lang');if(l==='ar'){document.documentElement.lang='ar';document.documentElement.dir='rtl';}}catch(e){}",
           }}
         />
+        {/* Every page must open at the top. Nav links are plain <a href> full
+            page loads, so the browser restores the previous scroll position on
+            a revisit — you'd land halfway down /shop having just clicked Shop.
+
+            This has to run BEFORE first paint, which is why it lives here and
+            not in SmoothScroll's effect. Doing it after hydration is what
+            caused the documented glitch where the page snapped back to 0 out
+            from under someone who had already started scrolling natively on a
+            slow connection (touch scroll works before any JS loads).
+
+            Two deliberate exemptions:
+            - a #hash URL, so /kitchen#configurator still lands on its anchor;
+            - back/forward, where restoring where the visitor was is correct.
+              SmoothScroll separately hands that case to Lenis. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if('scrollRestoration' in history){history.scrollRestoration='manual';}var n=(performance.getEntriesByType&&performance.getEntriesByType('navigation')[0])||{};if(!location.hash&&n.type!=='back_forward'){window.scrollTo(0,0);}}catch(e){}",
+          }}
+        />
       </head>
       <body>
         <LocalBusinessSchema />

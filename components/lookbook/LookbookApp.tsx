@@ -61,7 +61,53 @@ export default function LookbookApp() {
   const filmRef = useRef<HTMLDivElement>(null);
   const switchRef = useRef<HTMLDivElement>(null);
 
-  const go = useCallback((n: number) => setPage(Math.max(0, Math.min(PAGE_COUNT - 1, n))), []);
+  // ---- page-turn sound ----------------------------------------------------
+  // Every page change in all three modes funnels through `go`, so this is the
+  // one place it needs to hook in. The clip is a synthesised paper rustle
+  // (public/sfx/page-turn.wav, ~29KB) — no third-party audio, no licence, and
+  // it works offline like the rest of the site.
+  const [muted, setMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Honour a previous choice. Sound that can't be silenced is hostile, and
+    // someone browsing a lookbook may well be somewhere quiet.
+    try {
+      setMuted(localStorage.getItem("evora_lb_muted") === "1");
+    } catch { /* storage blocked (private mode) — default to audible */ }
+    const a = new Audio("/sfx/page-turn.wav");
+    a.preload = "auto";
+    a.volume = 0.45;
+    audioRef.current = a;
+    return () => { a.pause(); audioRef.current = null; };
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted((m) => {
+      const next = !m;
+      try { localStorage.setItem("evora_lb_muted", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const go = useCallback((n: number) => {
+    const target = Math.max(0, Math.min(PAGE_COUNT - 1, n));
+    setPage((cur) => {
+      // Only sound an actual turn — not a clamped click on the first/last page.
+      if (target !== cur && !muted) {
+        const a = audioRef.current;
+        if (a) {
+          // rewind so rapid turns retrigger instead of being swallowed
+          a.currentTime = 0;
+          // Autoplay policy is satisfied because a turn is always a user
+          // gesture; the catch is for the rare refusal, which must never
+          // break pagination.
+          void a.play().catch(() => {});
+        }
+      }
+      return target;
+    });
+  }, [muted]);
 
   // deep-link the view (?view=book|read|tour)
   useEffect(() => {
@@ -137,6 +183,15 @@ export default function LookbookApp() {
 
         <div className="lb-tools">
           <span className="lb-counter">{String(page + 1).padStart(2, "0")}<i>/{PAGE_COUNT}</i></span>
+          <button
+            className="lb-icon"
+            onClick={toggleMute}
+            aria-pressed={muted}
+            aria-label={muted ? (en ? "Unmute page turns" : "تشغيل صوت تقليب الصفحات") : (en ? "Mute page turns" : "كتم صوت تقليب الصفحات")}
+            title={muted ? (en ? "Sound off" : "الصوت مغلق") : (en ? "Sound on" : "الصوت مفتوح")}
+          >
+            {muted ? <MuteIcon /> : <SoundIcon />}
+          </button>
           <button className="lb-icon" onClick={toggleFs} aria-label={en ? "Fullscreen" : "ملء الشاشة"} title={en ? "Fullscreen" : "ملء الشاشة"}>
             {fs ? <FsExitIcon /> : <FsIcon />}
           </button>
@@ -198,6 +253,8 @@ function BookIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fil
 function FsIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg>; }
 function FsExitIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 4v3a2 2 0 0 1-2 2H4M15 4v3a2 2 0 0 0 2 2h3M9 20v-3a2 2 0 0 0-2-2H4M15 20v-3a2 2 0 0 1 2-2h3"/></svg>; }
 function DlIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"/></svg>; }
+function SoundIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>; }
+function MuteIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6M21 9l-5 6"/></svg>; }
 function ReadIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M20 20l-4-4"/></svg>; }
 function TourIcon() { return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none"/></svg>; }
 
