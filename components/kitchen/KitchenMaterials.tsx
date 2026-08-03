@@ -3,6 +3,7 @@
 import { useT } from "@/lib/i18n";
 import { Rise, Stagger, StaggerItem } from "@/components/motion";
 import { SURFACES } from "@/lib/configurator";
+import { openStartProject } from "@/lib/startProject";
 
 // Page-local strings (the DesignRequest.tsx / KitchenTeaser.tsx pattern) —
 // everything here is new copy that doesn't exist in the shared i18n dict.
@@ -17,6 +18,12 @@ const T = {
     ar: "كل تشطيب هنا خيارٌ حقيقي، معروضٌ في مطبخٍ صُمّم حوله. من باتاغونيا الرمادي كالعاصفة إلى الترافرتين الرملي — عد إلى الأعلى لتجرّبه مباشرة على جزيرتك.",
   },
   cta: { en: "Try them live in the configurator", ar: "جرّبها مباشرة في المُصمِّم" },
+  // Tells the visitor what tapping a card actually does, before they tap it.
+  hint: { en: "Send your plan", ar: "أرسل مخططك" },
+  card_aria: {
+    en: "{stone} — send us your floor plan and we'll design your kitchen",
+    ar: "{stone} — أرسل لنا مخطط منزلك ونصمّم مطبخك",
+  },
 };
 
 // The gallery's own imagery, separate from the configurator's `surface-*` files.
@@ -56,7 +63,23 @@ export default function KitchenMaterials() {
         <Stagger className="kmat__grid" gap={0.07}>
           {SURFACES.filter((s) => KITCHEN_IMG[s.id]).map((s) => (
             <StaggerItem key={s.id} className="kmat__item">
-              <a href="#configurator" className="kmat__card" data-cursor="hover">
+              {/* Opens the "Send us your 2D plan" modal (StartProjectModal) —
+                  name/email/phone + a real floor-plan upload, filed as a lead.
+                  Kept as a real <a href="/start"> so middle-click, new-tab and
+                  a failed modal chunk all still reach the same form; the click
+                  handler just intercepts it for the nicer inline flow. */}
+              <a
+                href="/start"
+                className="kmat__card"
+                data-cursor="hover"
+                aria-label={tl("card_aria").replace("{stone}", s.label[lang])}
+                onClick={(e) => {
+                  // let cmd/ctrl/middle-click open /start in a new tab
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  openStartProject();
+                }}
+              >
                 <span className="kmat__imgwrap">
                   <picture>
                     <source srcSet={`${KITCHEN_IMG[s.id]}.avif`} type="image/avif" />
@@ -78,6 +101,9 @@ export default function KitchenMaterials() {
                 <span className="kmat__meta">
                   <h3 className="kmat__name display">{s.label[lang]}</h3>
                   {s.note && <span className="kmat__note">{s.note[lang]}</span>}
+                  <span className="kmat__hint">
+                    {tl("hint")} <span className="kmat__hintarrow" aria-hidden>→</span>
+                  </span>
                 </span>
               </a>
             </StaggerItem>
@@ -134,6 +160,26 @@ const css = `
     padding: 1rem 1.1rem 1.05rem; display: flex; flex-direction: column; gap: 0.2rem; }
   .kmat__name { color: var(--paper); font-size: clamp(1.1rem, 1.6vw, 1.35rem); line-height: 1.08; }
   .kmat__note { color: rgba(251,247,240,0.82); font-size: 0.84rem; line-height: 1.45; max-width: 32ch; }
+
+  /* "Send your plan →" — the card's actual action. Held back until hover on
+     pointer devices so the card stays photographic, but ALWAYS visible on
+     touch, where there is no hover to reveal it. */
+  .kmat__hint {
+    display: inline-flex; align-items: center; gap: 0.45em; margin-top: 0.5rem;
+    color: var(--brass-2); font-size: 0.7rem; letter-spacing: 0.14em;
+    text-transform: uppercase; font-weight: 500;
+  }
+  .kmat__hintarrow { transition: transform 0.4s var(--ease); }
+  [dir="rtl"] .kmat__hintarrow { transform: scaleX(-1); }
+  .kmat__card:hover .kmat__hintarrow { transform: translateX(4px); }
+  [dir="rtl"] .kmat__card:hover .kmat__hintarrow { transform: scaleX(-1) translateX(4px); }
+  @media (hover: hover) and (pointer: fine) {
+    .kmat__hint { opacity: 0; transform: translateY(4px);
+      transition: opacity 0.4s var(--ease), transform 0.4s var(--ease); }
+    .kmat__card:hover .kmat__hint,
+    .kmat__card:focus-visible .kmat__hint { opacity: 1; transform: none; }
+  }
+  .kmat__card:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
 
   .kmat__foot { margin-top: clamp(2rem, 4vw, 3rem); display: flex; justify-content: center; }
   .kmat__more {
